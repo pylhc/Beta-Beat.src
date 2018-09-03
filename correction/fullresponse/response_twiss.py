@@ -113,7 +113,7 @@ from correction.fullresponse.sequence_evaluation import check_varmap_file
 from twiss_optics.twiss_functions import get_phase_advances, tau, dphi
 from twiss_optics.twiss_functions import upper
 from utils import logging_tools as logtool
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils.contexts import timeit
 
 LOG = logtool.get_logger(__name__)

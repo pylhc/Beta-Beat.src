@@ -1,15 +1,13 @@
-import os
 import sys
-
-sys.path.append(os.path.abspath(os.path.join(__file__, os.pardir, os.pardir)))
+from os.path import abspath, join, pardir
+sys.path.append(abspath(join(__file__, pardir, pardir)))
 
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import pyplot as plt, gridspec, rcParams
-from utils.plotting.plot_style import MarkerList
 
 from utils.entrypoint import EntryPointParameters, entrypoint
 from utils.plotting import plot_style as ps
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils import logging_tools
 
 
@@ -129,10 +127,6 @@ IR_POS_DEFAULT = {
 
 MANUAL_STYLE = {
     # differences to the standard style
-    u'legend.fontsize': 16,
-    u'font.weight': u'normal',
-    u'axes.labelweight': u'normal',
-    u'axes.grid': True,
     u'lines.markersize': 5.0,
     u'lines.linestyle': u'',
 }
@@ -489,7 +483,7 @@ def _check_opt(opt):
 def get_marker(idx, change):
     """ Return the marker used """
     if change:
-        return MarkerList.get_marker(idx)
+        return ps.MarkerList.get_marker(idx)
     else:
         return rcParams['lines.marker']
 

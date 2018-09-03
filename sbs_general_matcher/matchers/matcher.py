@@ -3,7 +3,7 @@ import os
 import logging
 import shutil
 from functools import partial
-from Python_Classes4MAD import metaclass
+from segment_by_segment.segment_by_segment import SegmentBeatings
 from utils import iotools
 from model import manager
 
@@ -88,12 +88,9 @@ class Matcher(object):
             self.measurement_path,
             self.matcher_path,
         )
-        self.segment = Matcher._get_segment(
-            self.lhc_mode,
-            self.beam,
-            self.matcher_path,
-            self.label,
-        )
+        self.beatings = SegmentBeatings(os.path.join(self.matcher_path, "sbs"),
+                                        self.label)
+        self.segment = self._get_segment()
         self.propagation = self.propagation[0]
         self.ini_end = "ini" if self.propagation == "f" else "end"
 
@@ -168,6 +165,21 @@ class Matcher(object):
         )
         return constr_string
 
+    def _get_constraints_block(self, names, values, errors):
+        constr_block = ""
+        for name, value, error in zip(names, values, errors):
+            weight = 1.0
+            if self.use_errors:
+                if error == 0.0:
+                    constr_block += "    ! Ignored constraint {}\n".format(name)
+                weight = 1. / error
+            constr_line = '    constraint, weight = {weight}, '
+            constr_line += 'expr = {name} = {value};\n'
+            constr_block += constr_line.format(name=name,
+                                               value=value,
+                                               weight=weight)
+        return constr_block
+
     def _get_nominal_table_name(self, beam=None):
         if beam is None:
             beam = self.segment.get_beam()
@@ -192,22 +204,17 @@ class Matcher(object):
             return method
         return override_decorator
 
-    @staticmethod
-    def _get_segment(lhc_mode, beam, match_path, label):
-        LOGGER.info("Getting matching range for beam " + str(beam) + "...")
-        (_, range_start), (_, range_end) = _get_match_bpm_range(
-            os.path.join(os.path.join(match_path, "sbs"),
-                         "sbsphasext_" + label + ".out")
-        )
-        LOGGER.info("Matching range for Beam " + str(beam) + ": " +
+    def _get_segment(self):
+        range_start, range_end = _get_match_bpm_range(self.beatings.phase["x"])
+        LOGGER.info("Matching range for Beam " + str(self.beam) + ": " +
                     range_start + " " + range_end)
         accel_cls = manager.get_accel_class(
-            accel="lhc", lhc_mode=lhc_mode, beam=beam
+            accel="lhc", lhc_mode=self.lhc_mode, beam=self.beam
         )
         optics_file = os.path.join(
-            os.path.join(match_path, "sbs"), "modifiers.madx"
+            os.path.join(self.matcher_path, "sbs"), "modifiers.madx"
         )
-        segment = accel_cls.get_segment(label,
+        segment = accel_cls.get_segment(self.label,
                                         range_start,
                                         range_end,
                                         optics_file)
@@ -267,8 +274,5 @@ def _get_filtered_file_list(src, filter_function):
     return filtered_file_list
 
 
-def _get_match_bpm_range(file_path):
-    twiss_data = metaclass.twiss(file_path)
-    bpms_with_distances_list = zip(twiss_data.S, twiss_data.NAME)
-    bpms_with_distances_list.sort()
-    return bpms_with_distances_list[0], bpms_with_distances_list[-1]
+def _get_match_bpm_range(some_sbs_df):
+    return some_sbs_df.NAME.iloc[0], some_sbs_df.NAME.iloc[-1]

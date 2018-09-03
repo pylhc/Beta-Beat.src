@@ -18,6 +18,7 @@ import numpy as np
 from numpy import sin, cos, tan
 
 import Python_Classes4MAD.metaclass
+import tfs_files
 import utils.bpm
 import compensate_ac_effect
 import os
@@ -2557,7 +2558,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     try:
         definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
         filename = "error_elements_" + plane + ".dat"
-        errorfile = utils.tfs_file_writer.TfsFileWriter(filename)
+        errorfile = tfs_files.tfs_file_writer.TfsFileWriter(filename)
     except:
         print >> sys.stderr, "loading errorfile didnt work"
         print >> sys.stderr, "errordefspath = {0:s}".format(errordefspath)

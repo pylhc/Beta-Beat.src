@@ -77,10 +77,6 @@ class Accelerator(object):
         
     # For GetLLM #############################################################
     
-    @classmethod
-    def get_beam_direction(self):
-        return 1.0
-    
     def get_exciter_bpm(self, plane, distance):
         """
         Returns the BPM next to the exciter.
@@ -114,7 +110,7 @@ class Accelerator(object):
         """
         Returns the best knowledge model tfs file.
         """
-        Accelerator.__raise_definition_error()
+        raise AttributeError()
 
     def get_elements_tfs(self):
         """
@@ -241,11 +237,13 @@ def get_commonbpm(key1, key2, commonbpms):
     """ Returns index and bpm name of key1, if found. Otherwise of key2.
     Raises KeyError if none is found.
     TODO: @Andreas, does that need to be here? Also why not use pythonic ways?
+    TODO: @Andreas: DONT NAME SOMETHING COMMOMBPMS IF ITS A DATAFRAME ONLY HAVING AN INDEX WITH BPMS
+    !!!!!!!!! FFS !!!!!!!!
 
     try:
-        return list(commonbpms).index(key1), key1
+        return list(commonbpms.index).index(key1), key1
     except ValueError:
-        return list(commonbpms).index(key2), key2
+        return list(commonbpms.index).index(key2), key2
 
     (try-except around the second return for raising KeyError with message)
     """

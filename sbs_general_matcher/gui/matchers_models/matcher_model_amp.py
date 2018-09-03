@@ -1,9 +1,11 @@
 import os
-from matcher_model_default import MatcherModelDefault
-from matcher_model_default import MatcherPlotterDefault
-from matchers.matcher import MatcherFactory
-from matchers.amp_matcher import AmpMatcher
-from utils import tfs_pandas
+from sbs_general_matcher.gui.matchers_models.matcher_model_default import (
+    MatcherModelDefault,
+    MatcherPlotterDefault,
+)
+from sbs_general_matcher.matchers.matcher import MatcherFactory
+from sbs_general_matcher.matchers.amp_matcher import AmpMatcher
+from tfs_files import tfs_pandas
 
 
 class MatcherModelAmp(MatcherModelDefault):

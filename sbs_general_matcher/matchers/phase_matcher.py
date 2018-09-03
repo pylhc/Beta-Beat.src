@@ -1,8 +1,4 @@
-import os
-from .matcher import Matcher
-from Python_Classes4MAD import metaclass
-
-CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+from sbs_general_matcher.matchers.matcher import Matcher
 
 
 class PhaseMatcher(Matcher):
@@ -34,13 +30,8 @@ class PhaseMatcher(Matcher):
     def define_aux_vars(self):
         phases_str = ""
         sign = "" if "f" in self.propagation else "-"
-        for plane in ["x", "y"]:
-            sbs_data_path = os.path.join(
-                os.path.join(self.matcher_path, "sbs"),
-                'sbsphase' + plane + 't_' + str(self.segment.label) + '.out'
-            )
-            sbs_data = metaclass.twiss(sbs_data_path)
-            for name in sbs_data.NAME:
+        for plane in ("x", "y"):
+            for name in self.beatings.phase[plane].NAME:
                 phases_str += PhaseMatcher.PH_ERR_TMPL.format(
                     matcher_name=self.name, sign=sign, name=name, plane=plane,
                     nominal_table_name=self._get_nominal_table_name(),
@@ -48,7 +39,7 @@ class PhaseMatcher(Matcher):
 
         variables_s_str = ""
         for variable in self.get_variables():
-            variables_s_str += self.name + '.' + variable + '_0' + ' = ' + variable + ';\n'
+            variables_s_str += self.name + '.' + variable.replace("->", "") + '_0' + ' = ' + variable + ';\n'
 
         aux_vars_str = PhaseMatcher.SEGMENT_TWISS_TMPL.format(
             seq=self.get_sequence_name(),
@@ -62,25 +53,18 @@ class PhaseMatcher(Matcher):
     @Matcher.override(Matcher)
     def define_constraints(self):
         constr_string = ""
-        for plane in ["x", "y"]:
-            sbs_data = metaclass.twiss(
-                os.path.join(self.matcher_path, "sbs",
-                             'sbsphase' + plane + 't_' + str(self.segment.label) + '.out')
-            )
-
+        for plane in ("x", "y"):
+            sbs_data = self.beatings.phase[plane]
+            sbs_data = sbs_data[~sbs_data.index.isin(self.excluded_constraints)]
             is_back = "b" in self.propagation
-            for index in range(0, len(sbs_data.NAME)):
-                name = sbs_data.NAME[index]
-                if name not in self.excluded_constraints:
-                    if is_back is not True:
-                        phase = sbs_data.PROPPHASEX[index] if plane == "x" else sbs_data.PROPPHASEY[index]
-                        error = sbs_data.ERRPROPPHASEX[index] if plane == "x" else sbs_data.ERRPROPPHASEY[index]
-                    else:
-                        phase = sbs_data.BACKPHASEX[index] if plane == "x" else sbs_data.BACKPHASEY[index]
-                        error = sbs_data.ERRBACKPHASEX[index] if plane == "x" else sbs_data.ERRBACKPHASEY[index]
-                    constr_string += self._get_constraint_instruction(
-                        self.name + '.dmu' + plane + name,
-                        phase, error)
+            phases = sbs_data.loc[:, (("PROPPHASE{}" if not is_back else "BACKPHASE{}")
+                                      .format(plane.upper()))]
+            errors = sbs_data.loc[:, (("ERRPROPPHASE{}" if not is_back else "ERRBACKPHASE{}")
+                                      .format(plane.upper()))]
+            for name, phase, error in zip(sbs_data.NAME, phases, errors):
+                constr_string += self._get_constraint_instruction(
+                    self.name + '.dmu' + plane + name,
+                    phase, error)
         return constr_string
 
     @Matcher.override(Matcher)
@@ -91,19 +75,19 @@ class PhaseMatcher(Matcher):
     def update_variables_definition(self):
         update_vars_str = ""
         for variable in self.get_variables():
-            update_vars_str += "        " + variable + ' := ' + self.name + "." + variable + '_0 + d' + variable + ';\n'
+            update_vars_str += "        " + variable + ' := ' + self.name + "." + variable.replace("->", "") + '_0 + d' + variable.replace("->", "") + ';\n'
         return update_vars_str
 
     @Matcher.override(Matcher)
     def generate_changeparameters(self):
         changeparameters_str = ""
         for variable in self.get_variables():
-            changeparameters_str += 'select,flag=save,pattern=\"d' + variable + '\";\n'
+            changeparameters_str += 'select,flag=save,pattern=\"d' + variable.replace("->", "") + '\";\n'
         return changeparameters_str
 
     @Matcher.override(Matcher)
     def apply_correction(self):
         apply_correction_str = ""
         for variable in self.get_variables():
-            apply_correction_str += variable + ' = ' + self.name + "." + variable + '_0 + d' + variable + ';\n'
+            apply_correction_str += variable + ' = ' + self.name + "." + variable.replace("->", "") + '_0 + d' + variable.replace("->", "") + ';\n'
         return apply_correction_str

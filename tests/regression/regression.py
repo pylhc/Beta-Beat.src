@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 import sys
 import os
 import subprocess
@@ -83,13 +83,12 @@ def find_regressions(test_cases, valid_path, test_path, keep_fails=False):
     summary = "Testing...: "
     sys.stdout.flush()
     for test_case in test_cases:
-        print("\r{} (running: '{}')".format(summary, test_case.name), end="")
-        sys.stdout.flush()
+        _print_over_current_line("{} (running: '{}')".format(summary, test_case.name))
         result = run_test_case(test_case, valid_path, test_path,
                                keep_fails=keep_fails)
         results.append(result)
         summary += result.get_microsummary()
-    print("\r{}\n".format(summary))
+    _print_over_current_line("{}\n\n".format(summary))
     _print_sep("Test results")
     report = ""
     for result in results:
@@ -370,6 +369,12 @@ def _print_sep(text=None, length=80):
         left_len = (length - len(text) - 2)/2
         right_len = length - left_len - len(text) - 2
         print("=" * left_len + " " + text + " " + "=" * right_len)
+
+
+def _print_over_current_line(text):
+    print("\r" + " " * 200, end="")  # clear line
+    print("\r{}".format(text), end="")
+    sys.stdout.flush()
 
 
 # Contexts ####################################################################

@@ -295,28 +295,28 @@ class SddsReader(object):
     # > Big-endian
     # < Little-endian
     def _read_binary_boolean(self, bytes=SddsTypes.TYPES_SIZES[SddsTypes.Types.BOOLEAN]):
-        return np.fromstring(self._lines.read(bytes), dtype=np.bool)
+        return np.frombuffer(self._lines.read(bytes), dtype=np.bool)
 
     def _read_binary_byte(self):
-        return np.fromstring(self._lines.read(bytes), dtype=np.dtype(">i1"))
+        return np.frombuffer(self._lines.read(bytes), dtype=np.dtype(">i1"))
 
     def _read_binary_char(self, bytes=SddsTypes.TYPES_SIZES[SddsTypes.Types.CHAR]):
         return self._lines.read(bytes)
 
     def _read_binary_double(self, bytes=SddsTypes.TYPES_SIZES[SddsTypes.Types.DOUBLE]):
-        return np.fromstring(self._lines.read(bytes), dtype=np.dtype(">d"))
+        return np.frombuffer(self._lines.read(bytes), dtype=np.dtype(">d"))
 
     def _read_binary_float(self, bytes=SddsTypes.TYPES_SIZES[SddsTypes.Types.FLOAT]):
-        return np.fromstring(self._lines.read(bytes), dtype=np.dtype(">f"))
+        return np.frombuffer(self._lines.read(bytes), dtype=np.dtype(">f"))
 
     def _read_binary_int(self, bytes=SddsTypes.TYPES_SIZES[SddsTypes.Types.INT]):
-        return np.fromstring(self._lines.read(bytes), dtype=np.dtype(">i"))
+        return np.frombuffer(self._lines.read(bytes), dtype=np.dtype(">i"))
 
     def _read_binary_long(self, bytes=SddsTypes.TYPES_SIZES[SddsTypes.Types.LONG]):
-        return np.fromstring(self._lines.read(bytes), dtype=np.dtype(">i8"))
+        return np.frombuffer(self._lines.read(bytes), dtype=np.dtype(">i8"))
 
     def _read_binary_short(self, bytes=SddsTypes.TYPES_SIZES[SddsTypes.Types.SHORT]):
-        return np.fromstring(self._lines.read(bytes), dtype=np.dtype(">i2"))
+        return np.frombuffer(self._lines.read(bytes), dtype=np.dtype(">i2"))
 
     def _read_binary_string(self, bytes=SddsTypes.TYPES_SIZES[SddsTypes.Types.CHAR]):
         return self._lines.read(bytes)

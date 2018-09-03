@@ -1,8 +1,13 @@
-import __init__
-import manager  # noqa
+import sys
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
+from model import manager  # noqa
 from utils.iotools import create_dirs
 from utils.entrypoint import EntryPointParameters, entrypoint
-from model_creators.lhc_model_creator import (  # noqa
+from model.model_creators.lhc_model_creator import (  # noqa
     LhcModelCreator,
     LhcBestKnowledgeCreator,
     LhcSegmentCreator,
@@ -11,7 +16,6 @@ from model_creators.lhc_model_creator import (  # noqa
 from model_creators.psbooster_model_creator import PsboosterModelCreator
 from model_creators.ps_model_creator import PsModelCreator
 import logging
-import sys
 
 LOGGER = logging.getLogger("__name__")
 

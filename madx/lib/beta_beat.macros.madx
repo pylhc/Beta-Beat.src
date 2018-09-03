@@ -32,6 +32,7 @@ select_elements(): macro = {
     select, flag=twiss, class=skewquadrupole;
     select, flag=twiss, class=sextupole;
     select, flag=twiss, class=octupole;
+    select, flag=twiss, class=multipole;
     select, flag=twiss, class=tkicker;
     select, flag=twiss, class=rcollimator;
     select, flag=twiss, class=collimator;

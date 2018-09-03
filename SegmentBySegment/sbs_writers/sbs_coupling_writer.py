@@ -1,8 +1,10 @@
-import os
-import numpy as np
 import math
-from utils import tfs_file_writer
-from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+import os
+
+import numpy as np
+
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+from tfs_files import tfs_file_writer
 
 
 def write_coupling(element_name, is_element, measured_coupling, input_model, propagated_models, save_path, coupling_summary_file):
@@ -76,7 +78,7 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
                                        "F1001ABSBACKCOR", "ERRF1001ABSBACKCOR", "F1001REBACKCOR", "ERRF1001REBACKCOR", "F1001IMBACKCOR", "ERRF1001IMBACKCOR",
                                        "F1010ABSBACKCOR", "ERRF1010ABSBACKCOR", "F1010REBACKCOR", "ERRF1010REBACKCOR", "F1010IMBACKCOR", "ERRF1010IMBACKCOR",
                                        "MODEL_F1001RE", "MODEL_F1001IM", "MODEL_F1010RE", "MODEL_F1010IM", "MODEL_S"])
-        file_f_terms.add_column_datatypes(["%bpm_s", "%le",
+        file_f_terms.add_column_datatypes(["%s", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le",
@@ -93,7 +95,7 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
                                        "BACKC11", "ERRBACKC11", "BACKC12", "ERRBACKC12", "BACKC21", "ERRBACKC21", "BACKC22", "ERRBACKC22",
                                        "BACKCORC11", "ERRBACKCORC11", "BACKCORC12", "ERRBACKCORC12", "BACKCORC21", "ERRBACKCORC21", "BACKCORC22", "ERRBACKCORC22",
                                        "MODEL_S"])
-        file_C_terms.add_column_datatypes(["%bpm_s", "%le",
+        file_C_terms.add_column_datatypes(["%s", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
@@ -104,7 +106,7 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
                                        "F1001ABSPROP", "ERRF1001ABSPROP", "F1001REPROP", "ERRF1001REPROP", "F1001IMPROP", "ERRF1001IMPROP",
                                        "F1010ABSPROP", "ERRF1010ABSPROP", "F1010REPROP", "ERRF1010REPROP", "F1010IMPROP", "ERRF1010IMPROP",
                                        "MODEL_F1001RE", "MODEL_F1001IM", "MODEL_F1010RE", "MODEL_F1010IM", "MODEL_S"])
-        file_f_terms.add_column_datatypes(["%bpm_s", "%le",
+        file_f_terms.add_column_datatypes(["%s", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le", "%le", "%le", "%le", "%le"])
@@ -112,7 +114,7 @@ def _get_coupling_tfs_files(element_name, save_path, is_element):
         file_C_terms.add_column_names(["NAME", "S",
                                        "PROPC11", "ERRPROPC11", "PROPC12", "ERRPROPC12", "PROPC21", "ERRPROPC21", "PROPC22", "ERRPROPC22",
                                        "MODEL_S"])
-        file_C_terms.add_column_datatypes(["%bpm_s", "%le",
+        file_C_terms.add_column_datatypes(["%s", "%le",
                                            "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le",
                                            "%le"])
 

@@ -1,7 +1,5 @@
-import os
-from Python_Classes4MAD import metaclass
-from .matcher import Matcher
-from .phase_matcher import PhaseMatcher
+from sbs_general_matcher.matchers.matcher import Matcher
+from sbs_general_matcher.matchers.phase_matcher import PhaseMatcher
 
 
 class KmodMatcher(PhaseMatcher):
@@ -17,7 +15,7 @@ class KmodMatcher(PhaseMatcher):
     def define_aux_vars(self):
         beatings_str = ""
         for plane in ["x", "y"]:
-            for name in self._get_kmod_data(plane).NAME:
+            for name in self.beatings.beta_kmod[plane].NAME:
                 beatings_str += KmodMatcher.BETA_BEATING_TMPL.format(
                     varname=self.name + self._get_suffix() + plane + name,
                     bpm_name=name,
@@ -41,28 +39,20 @@ class KmodMatcher(PhaseMatcher):
     def define_constraints(self):
         constr_string = ""
         is_back = "b" in self.propagation
-        for plane in ["x", "y"]:
-            this_kmod_data = self._get_kmod_data(plane)
-            for name in this_kmod_data.NAME:
-                index = this_kmod_data.indx[name]
-                if is_back is not True:
-                    beta_beating = getattr(this_kmod_data, "BETABEAT" + plane.upper())[index]
-                    err_beta_beating = getattr(this_kmod_data, "ERRBETABEAT" + plane.upper())[index]
-                else:
-                    beta_beating = getattr(this_kmod_data, "BETABEATBACK" + plane.upper())[index]
-                    err_beta_beating = getattr(this_kmod_data, "ERRBETABEATBACK" + plane.upper())[index]
-                constr_string += self._get_constraint_instruction(
-                    self.name + self._get_suffix() + plane + name,
-                    beta_beating, err_beta_beating)
-
+        for plane in ("x", "y"):
+            this_kmod_data = self.beatings.beta_kmod[plane]
+            const_names = [self.name + self._get_suffix() + plane + name
+                           for name in this_kmod_data.NAME]
+            beta_beatings = this_kmod_data.loc[
+                :,
+                ("BETABEAT{}" if not is_back else "BETABEATBACK{}").format(plane.upper())
+            ]
+            err_beta_beatings = this_kmod_data.loc[
+                :,
+                ("ERRBETABEAT{}" if not is_back else "ERRBETABEATBACK{}").format(plane.upper())
+            ]
+            constr_string += self._get_constraints_block(const_names, beta_beatings, err_beta_beatings)
         return constr_string
 
     def _get_suffix(self):
         return ".kmodbeating"
-
-    def _get_kmod_data(self, plane):
-        sbs_kmod_data_path = os.path.join(
-            os.path.join(self.matcher_path, "sbs"),
-            'sbskmodbetabeat' + plane + '_' + self.segment.label + '.out'
-        )
-        return metaclass.twiss(sbs_kmod_data_path)

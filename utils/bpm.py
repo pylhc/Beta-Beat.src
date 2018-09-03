@@ -34,27 +34,31 @@ def model_intersect(exp_bpms, model_twiss):
 
     :returns: list with tuples: (<S_value_i>,<bpm_i>) -- A list with BPMs which are both in exp_bpms and model_twiss.
     '''
-    bpmsin = []
-    #print "start Intersect, exp_bpms #:", len(exp_bpms)
-    if len(exp_bpms) == 0:
-        print >> sys.stderr, "Zero exp BPMs sent to model_intersect"
+    try:
+        # pandas way
+        return model_twiss.loc[exp_bpms.index, "S"]
+    except AttributeError:
+        # old way
+        bpmsin = []
+        #print "start Intersect, exp_bpms #:", len(exp_bpms)
+        if len(exp_bpms) == 0:
+            print >> sys.stderr, "Zero exp BPMs sent to model_intersect"
+            return bpmsin
+
+        for bpm in exp_bpms:
+            try:
+                model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
+                bpmsin.append(bpm)
+            except KeyError:
+                print >> sys.stderr, bpm, "Not in Model"
+
+        if len(bpmsin) == 0:
+            print >> sys.stderr, "Zero intersection of Exp and Model"
+            print >> sys.stderr, "Please, provide a good Dictionary or correct data"
+            print >> sys.stderr, "Now we better leave!"
+            sys.exit(1)
+
         return bpmsin
-
-    for bpm in exp_bpms:
-        try:
-            model_twiss.indx[bpm[1].upper()]  # Check if bpm is in the model
-            bpmsin.append((model_twiss.S[model_twiss.indx[bpm[1]]], bpm[1]))
-            # bpmsin.append(bpm)
-        except KeyError:
-            print >> sys.stderr, bpm, "Not in Model"
-
-    if len(bpmsin) == 0:
-        print >> sys.stderr, "Zero intersection of Exp and Model"
-        print >> sys.stderr, "Please, provide a good Dictionary or correct data"
-        raise ValueError("Empty intersection between model and measurement.")
-
-    bpmsin.sort()
-    return bpmsin
 
 
 def intersect(list_of_twiss_files):
@@ -69,22 +73,38 @@ def intersect(list_of_twiss_files):
         print >> sys.stderr, "Nothing to intersect!!!!"
         return []
 
-    names_list = list_of_twiss_files[0].NAME
-    if len(names_list) == 0:
-        print >> sys.stderr, "No exp BPMs..."
-        sys.exit(1)
-    for twiss_file in list_of_twiss_files:
-        #TODO: have to use a set probably, does not detect duplicates! (vimaier)
-        names_list = [b for b in twiss_file.NAME if b in names_list]
+    try:
+        names_list = list_of_twiss_files[0].index
+    except AttributeError:
+        # metaclass way
+        names_list = list_of_twiss_files[0].NAME
+        if len(names_list) == 0:
+            print >> sys.stderr, "No exp BPMs..."
+            sys.exit(1)
+        for twiss_file in list_of_twiss_files:
+            #TODO: have to use a set probably, does not detect duplicates! (vimaier)
+            names_list = [b for b in twiss_file.NAME if b in names_list]
 
-    result = [] # list of tupels (S, bpm_name)
-    twiss_0 = list_of_twiss_files[0]
-    for bpm in names_list:
-        result.append((twiss_0.S[twiss_0.indx[bpm]], bpm))
+        result = [] # list of tupels (S, bpm_name)
+        twiss_0 = list_of_twiss_files[0]
+        for bpm in names_list:
+            result.append((twiss_0.S[twiss_0.indx[bpm]], bpm))
 
-    #SORT by S
-    result.sort()
-    return result
+        #SORT by S
+        result.sort()
+        return result
+    else:
+        for twiss_file in list_of_twiss_files:
+            names_list = twiss_file.index.intersection(names_list)
+
+        result = list_of_twiss_files[0].loc[names_list, "S"]
+        return result
+
+
+def get_list_of_tuples(bpms):
+    """transforms the DataFrame bpms to a list of tuples to fake the old usage.
+    """
+    return [(bpms.loc[name], name) for name in bpms.index]
 
 
 def intersect_with_bpm_list(exp_bpms, bpm_list):

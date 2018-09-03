@@ -1,17 +1,17 @@
-import sys
-import os
 import argparse
-from shutil import copyfile
+import os
+import sys
 from collections import OrderedDict
+from shutil import copyfile
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-)
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir)))
 
 from model import manager, creator
-from utils import tfs_pandas, logging_tools
-from utils.dict_tools import DotDict
-from tfs_files import TfsCollection, Tfs
+from utils import logging_tools
+from optics_measurements.io_filehandler import OpticsMeasurement
+from tfs_files.tfs_collection import TfsCollection, Tfs
+from tfs_files import tfs_pandas
 import sbs_propagables
 
 # TODO: Remove debug and set up log file
@@ -74,7 +74,7 @@ def segment_by_segment(accel_cls, options):
     if _there_are_duplicated_names(segments, elements):
         raise SbsDefinitionError("Duplicated names in segments and elements.")
     model = tfs_pandas.read_tfs(options.model).set_index("NAME", drop=False)
-    meas = GetLlmMeasurement(options.measurement)
+    meas = OpticsMeasurement(options.measurement)
     elem_segments = [Segment.init_from_element(name) for name in elements]
     for segment in elem_segments + segments:
         propagable = run_for_segment(accel_cls, segment, model, meas,
@@ -281,43 +281,6 @@ class Segment(object):
         return fake_segment
 
 
-class GetLlmMeasurement(TfsCollection):
-    """Class to hold and load the measurements from GetLLM.
-
-    The class will try to load the _free file, then the _free2 and then the
-    normal file, if none of them if present an IOError will be raised.
-
-    Arguments:
-        directory: The path to the measurement directory, usually a GetLLM
-            output directory.
-    """
-    beta = Tfs("getbeta")
-    amp_beta = Tfs("getampbeta")
-    kmod_beta = Tfs("getkmodbeta")
-    phase = Tfs("getphase")
-    phasetot = Tfs("getphasetot")
-    disp = Tfs("getD")
-    coupling = Tfs("getcouple", two_planes=False)
-    norm_disp = Tfs("getNDx", two_planes=False)
-
-    def get_filename(self, prefix, plane=""):
-        templ = prefix + "{}{}.out"
-        for filename in (templ.format(plane, "_free"),
-                         templ.format(plane, "_free2"),
-                         templ.format(plane, "")):
-            if os.path.isfile(os.path.join(self.directory, filename)):
-                return filename
-        raise IOError("No file name found for prefix {} in {}."
-                      .format(prefix, self.directory))
-
-    def write_to(self, value, prefix, plane=""):
-        data_frame, suffix = value
-        templ = prefix + "{}{}.out"
-        filename = templ.format(plane, suffix)
-        return filename, data_frame
-
-
-
 class SegmentModels(TfsCollection):
     """
     Class to hold and load the models of the segments created by MAD-X.
@@ -345,13 +308,13 @@ class SegmentBeatings(TfsCollection):
     TODO
     """
 
-    beta_phase = Tfs("sbsbetabeating{plane}_{name}.dat")
-    beta_kmod = Tfs("sbskmodbetabeating{plane}_{name}.dat")
-    beta_amp = Tfs("sbsampbetabeating{plane}_{name}.dat")
-    phase = Tfs("sbsphase{plane}t_{name}.dat")
-    coupling = Tfs("sbscouple_{name}.dat", two_planes=False)
-    disp = Tfs("sbsD{plane}_{name}.dat")
-    norm_disp = Tfs("sbsNDx_{name}.dat", two_planes=False)
+    beta_phase = Tfs("sbsbetabeating{plane}_{name}.out")
+    beta_kmod = Tfs("sbskmodbetabeating{plane}_{name}.out")
+    beta_amp = Tfs("sbsampbetabeating{plane}_{name}.out")
+    phase = Tfs("sbsphase{plane}t_{name}.out")
+    coupling = Tfs("sbscouple_{name}.out", two_planes=False)
+    disp = Tfs("sbsD{plane}_{name}.out")
+    norm_disp = Tfs("sbsNDx_{name}.out", two_planes=False)
 
     def __init__(self, directory, seg_name):
         super(SegmentBeatings, self).__init__(directory)

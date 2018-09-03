@@ -1,7 +1,5 @@
-import os
-from .matcher import Matcher
-from Python_Classes4MAD import metaclass
-import math
+import numpy as np
+from sbs_general_matcher.matchers.matcher import Matcher
 
 DEF_CONSTR_AUX_VALUES_TEMPLATE = """
 use, period=%(SEQ)s;
@@ -11,8 +9,7 @@ twiss, beta0=%(INIT_VALS)s, chrom, table=%(TABLE_NAME)s;
 %(D_VARIABLES)s
 """
 
-CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
-USE_ABS = True
+USE_ABS = False
 USE_F1010 = False
 
 
@@ -51,45 +48,41 @@ class CouplingMatcher(Matcher):
 
     @Matcher.override(Matcher)
     def define_constraints(self):
-        constr_string = ""
-        sbs_data = metaclass.twiss(
-            os.path.join(os.path.join(self.matcher_path, "sbs"),
-                         'sbscouple_' + self.segment.label + '.out')
-        )
+        sbs_data = self.beatings.coupling.copy()
+        sbs_data = sbs_data[~sbs_data.index.isin(self.excluded_constraints)]
+        sbs_data.loc[:, "F1001ABS"] = np.sqrt(sbs_data.F1001REMEAS ** 2 +
+                                              sbs_data.F1001IMMEAS ** 2)
+        sbs_data.loc[:, "F1010ABS"] = np.sqrt(sbs_data.F1010REMEAS ** 2 +
+                                              sbs_data.F1010IMMEAS ** 2)
 
-        for index in range(0, len(sbs_data.NAME)):
-            name = sbs_data.NAME[index]
-            if name not in self.excluded_constraints:
-                name = sbs_data.NAME[index]
-                s = sbs_data.S[index]
+        constr_tpl = ""
+        if USE_ABS:
+            constr_tpl += '   constraint, weight = {weight}, '
+            constr_tpl += 'expr = {cls_name}.{name}_f1001abs = {f1001abs}; \n'
+            if USE_F1010:
+                constr_tpl += '   constraint, weight = {weight}, '
+                constr_tpl += 'expr = {cls_name}.{name}_f1010abs = {f1010abs}; \n'
+        else:
+            constr_tpl += '   constraint, weight = {weight}, '
+            constr_tpl += 'expr = {cls_name}.{name}_f1001r = {f1001r}; \n'
+            constr_tpl += '   constraint, weight = {weight}, '
+            constr_tpl += 'expr = {cls_name}.{name}_f1001i = {f1001i}; \n'
+            if USE_F1010:
+                constr_tpl += '   constraint, weight = {weight}, '
+                constr_tpl += 'expr = {cls_name}.{name}_f1010r = {f1010r}; \n'
+                constr_tpl += '   constraint, weight = {weight}, '
+                constr_tpl += 'expr = {cls_name}.{name}_f1010i = {f1010i}; \n'
+        constr_tpl += '!   S = {s}\n'
 
-                f1001r = sbs_data.F1001REMEAS[index]
-                f1001i = sbs_data.F1001IMMEAS[index]
-                f1001abs = math.sqrt(f1001r ** 2 + f1001i ** 2)
-                f1010r = sbs_data.F1010REMEAS[index]
-                f1010i = sbs_data.F1010IMMEAS[index]
-                f1010abs = math.sqrt(f1010r ** 2 + f1010i ** 2)
+        def _to_line(line):
+            return constr_tpl.format(
+                cls_name=self.name, name=line.NAME, weight=1.0, s=line.S,
+                f1001abs=line.F1001ABS, f1010abs=line.F1010ABS,
+                f1001r=line.F1001REMEAS, f1001i=line.F1001REMEAS,
+                f1010r=line.F1010REMEAS, f1010i=line.F1010REMEAS,
+            )
 
-                if (USE_ABS):
-                    constr_string += '   constraint, weight = ' + str(1.0) + ' , '
-                    constr_string += 'expr = ' + self.name + "." + name + '_f1001abs = ' + str(f1001abs) + '; \n'
-                    if USE_F1010:
-                        constr_string += '   constraint, weight = ' + str(1.0) + ' , '
-                        constr_string += 'expr = ' + self.name + "." + name + '_f1010abs = ' + str(f1010abs) + '; \n'
-                else:
-                    constr_string += '   constraint, weight = ' + str(1.0) + ' , '
-                    constr_string += 'expr = ' + self.name + "." + name + '_f1001r = ' + str(f1001r) + '; \n'
-                    constr_string += '   constraint, weight = ' + str(1.0) + ' , '
-                    constr_string += 'expr = ' + self.name + "." + name + '_f1001i = ' + str(f1001i) + '; \n'
-                    if USE_F1010:
-                        constr_string += '   constraint, weight = ' + str(1.0) + ' , '
-                        constr_string += 'expr = ' + self.name + "." + name + '_f1010r = ' + str(f1010r) + '; \n'
-                        constr_string += '   constraint, weight = ' + str(1.0) + ' , '
-                        constr_string += 'expr = ' + self.name + "." + name + '_f1010i = ' + str(f1010i) + '; \n'
-
-                constr_string += '!   S = ' + str(s)
-                constr_string += ';\n'
-        return constr_string
+        return "\n".join(sbs_data.apply(_to_line, axis=1))
 
     @Matcher.override(Matcher)
     def update_constraints_values(self):
@@ -119,19 +112,19 @@ class CouplingMatcher(Matcher):
         return apply_correction_str
 
     def _get_f_terms_strings(self):
-        f_terms_string = ""
-        sbs_data = metaclass.twiss(
-            os.path.join(os.path.join(self.matcher_path, "sbs"),
-                         'sbscouple_' + self.segment.label + '.out')
-        )
-        for bpm_name in sbs_data.NAME:
-            f_terms_string += "exec, get_f_terms_for(twiss, " + bpm_name + ");\n"
-            if (USE_ABS):
-                f_terms_string += self.name + "." + bpm_name + "_f1001abs = " + bpm_name + "_f1001abs;\n"
-                f_terms_string += self.name + "." + bpm_name + "_f1010abs = " + bpm_name + "_f1010abs;\n"
-            else:
-                f_terms_string += self.name + "." + bpm_name + "_f1001r = " + bpm_name + "_f1001r;\n"
-                f_terms_string += self.name + "." + bpm_name + "_f1001i = " + bpm_name + "_f1001i;\n"
-                f_terms_string += self.name + "." + bpm_name + "_f1010r = " + bpm_name + "_f1010r;\n"
-                f_terms_string += self.name + "." + bpm_name + "_f1010i = " + bpm_name + "_f1010i;\n"
-        return f_terms_string
+        sbs_data = self.beatings.coupling
+        sbs_data = sbs_data[~sbs_data.index.isin(self.excluded_constraints)]
+        f_terms_tpl = "exec, get_f_terms_for(twiss, {name});\n"
+        if USE_ABS:
+            f_terms_tpl += "{cls_name}.{name}_f1001abs = {name}_f1001abs;\n"
+            f_terms_tpl += "{cls_name}.{name}_f1010abs = {name}_f1010abs;\n"
+        else:
+            f_terms_tpl += "{cls_name}.{name}_f1001r = {name}_f1001r;\n"
+            f_terms_tpl += "{cls_name}.{name}_f1001i = {name}_f1001i;\n"
+            f_terms_tpl += "{cls_name}.{name}_f1010r = {name}_f1010r;\n"
+            f_terms_tpl += "{cls_name}.{name}_f1010i = {name}_f1010i;\n"
+
+        def _to_line(line):
+            return f_terms_tpl.format(cls_name=self.name, name=line.NAME)
+
+        return "\n".join(sbs_data.apply(_to_line, axis=1))

@@ -1,9 +1,10 @@
 import os
 from math import sqrt, tan, sin, cos, pi
-from utils import tfs_file_writer
-import sbs_phase_writer
-import sbs_beta_writer
-from sbs_beta_writer import weighted_average_for_SbS_elements
+
+from SegmentBySegment.sbs_writers import sbs_beta_writer
+from SegmentBySegment.sbs_writers import sbs_phase_writer
+from SegmentBySegment.sbs_writers.sbs_beta_writer import weighted_average_for_SbS_elements
+from tfs_files import tfs_file_writer
 
 
 def _get_ip_tfs_files(save_path):

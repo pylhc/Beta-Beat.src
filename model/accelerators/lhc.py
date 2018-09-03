@@ -6,9 +6,10 @@ from collections import OrderedDict
 
 import pandas as pd
 
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
+from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
     get_commonbpm
-from utils import logging_tools, tfs_pandas
+from utils import logging_tools
+from tfs_files import tfs_pandas
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 LOGGER = logging_tools.get_logger(__name__)
@@ -405,6 +406,10 @@ class Lhc(Accelerator):
         return beamed_class
 
     def verify_object(self):  # TODO: Maybe more checks?
+        """Verifies if everything is defined which should be defined
+        """
+
+        LOGGER.debug("Accelerator class verification")
         try:
             self.get_beam()
         except AttributeError:
@@ -432,6 +437,16 @@ class Lhc(Accelerator):
         if self.optics_file is not None and not os.path.exists(self.optics_file):
             raise AcceleratorDefinitionError(
                 "Optics file '{:s}' does not exist.".format(self.optics_file))
+
+        # print info about the accelerator
+        # TODO: write more output prints
+        LOGGER.debug(
+            "... verification passed. Will now print some information about the accelerator")
+        LOGGER.debug("{:32s} {}".format("class name", self.__class__.__name__))
+        LOGGER.debug("{:32s} {}".format("beam", self.get_beam()))
+        LOGGER.debug("{:32s} {}".format("beam direction", self.get_beam_direction()))
+        LOGGER.debug("")
+
 
     @classmethod
     def get_nominal_tmpl(cls):
@@ -499,7 +514,17 @@ class Lhc(Accelerator):
             return list(vars_by_class)
         elems_matrix = tfs_pandas.read_tfs(
             cls._get_corrector_elems()
-        ).sort_values("S").set_index("S").loc[frm:to, :]
+        ).sort_values("S")
+        if frm is not None and to is not None:
+            if frm > to:
+                elems_matrix = elems_matrix[(elems_matrix.S >= frm) | (elems_matrix.S <= to)]
+            else:
+                elems_matrix = elems_matrix[(elems_matrix.S >= frm) & (elems_matrix.S <= to)]
+        elif frm is not None:
+            elems_matrix = elems_matrix[elems_matrix.S >= frm]
+        elif to is not None:
+            elems_matrix = elems_matrix[elems_matrix.S <= to]
+
         vars_by_position = _remove_dups_keep_order(_flatten_list(
             [raw_vars.split(",") for raw_vars in elems_matrix.loc[:, "VARS"]]
         ))
@@ -621,6 +646,27 @@ class Lhc(Accelerator):
             )
         return madx_template % replace_dict
 
+    LHC_IPS = ("1", "2", "5", "8")
+    NORMAL_IP_BPMS = "BPMSW.1{side}{ip}.B{beam}"
+    DOROS_IP_BPMS = "LHC.BPM.1{side}{ip}.B{beam}_DOROS"
+
+    @classmethod
+    def get_ips(cls):
+        """ Returns an iterable with this accelerator IPs.
+
+        Returns:
+            An iterator returning tuples with:
+                ("ip name", "left BPM name", "right BPM name")
+        """
+        beam = cls.get_beam()
+        for ip in Lhc.LHC_IPS:
+            yield ("IP{}".format(ip),
+                   Lhc.NORMAL_IP_BPMS.format(side="L", ip=ip, beam=beam),
+                   Lhc.NORMAL_IP_BPMS.format(side="R", ip=ip, beam=beam))
+            yield ("IP{}_DOROS".format(ip),
+                   Lhc.DOROS_IP_BPMS.format(side="L", ip=ip, beam=beam),
+                   Lhc.DOROS_IP_BPMS.format(side="R", ip=ip, beam=beam))
+
     def log_status(self):
         LOGGER.info("  model dir = " + self.model_dir)
         LOGGER.info("{:20s} [{:10.3f}]".format("Natural Tune X", self.nat_tune_x))
@@ -683,24 +729,24 @@ class Lhc(Accelerator):
         if self.get_beam() == 1:
             if self.excitation == AccExcitationMode.ACD:
                 return get_commonbpm(
-                    "BPMYA.5L4.B1", "BPMYB.6L4.B1", commonbpms), "MKQA.6L4.B1"
+                    "BPMYB.6L4.B1", "BPM.7L4.B1", commonbpms), "MKQA.6L4.B1"
 
             elif self.excitation == AccExcitationMode.ADT:
-                if plane == "H":
+                if plane == "X":
                     return get_commonbpm(
                         "BPMWA.B5L4.B1", "BPMWA.A5L4.B1", commonbpms), "ADTKH.C5L4.B1"
-                elif plane == "V":
+                elif plane == "Y":
                     return get_commonbpm(
                         "BPMWA.B5R4.B1", "BPMWA.A5R4.B1", commonbpms), "ADTKV.B5R4.B1"
         elif self.get_beam() == 2:
             if self.excitation == AccExcitationMode.ACD:
                 return get_commonbpm(
-                    "BPMYB.5L4.B2", "BPMYA.6L4.B2", commonbpms), "MKQA.6L4.B2"
+                    "BPMYA.6L4.B2", "BPM.7L4.B2", commonbpms), "MKQA.6L4.B2"
             elif self.excitation == AccExcitationMode.ADT:
-                if plane == "H":
+                if plane == "X":
                     return get_commonbpm(
                         "BPMWA.B5R4.B2", "BPMWA.A5R4.B2", commonbpms), "ADTKH.C5R4.B2"
-                elif plane == "V":
+                elif plane == "Y":
                     return get_commonbpm(
                         "BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms), "ADTKV.B5L4.B2"
         return None
@@ -771,6 +817,13 @@ class Lhc(Accelerator):
                     return index.get_loc(kname)
                 model_k = model_k + 1
         return None
+
+    def get_synch_BPMs(self, index):
+        # expect passing index.values
+        if self.get_beam() == 1:
+            return [i in index for i in self.model_tfs.loc["BPMSW.33L2.B1":].index]
+        elif self.get_beam() == 2:
+            return [i in index for i in self.model_tfs.loc["BPMSW.33R8.B2":].index]
 
     def get_model_tfs(self):
         return self._model
@@ -1011,8 +1064,8 @@ def _merge_jsons(*files):
     for json_file in files:
         with open(json_file, "r") as json_data:
             json_dict = json.load(json_data)
-            for key, value in json_dict.iteritems():
-                full_dict[key] = value
+            for key in json_dict.keys():
+                full_dict[key] = json_dict[key]
     return full_dict
 
 

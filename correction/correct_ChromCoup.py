@@ -57,7 +57,12 @@ from optparse import OptionParser
 import json
 
 
-import __init__ # @UnusedImport init will include paths
+import sys
+import os
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 import Python_Classes4MAD.metaclass
 import correction.GenMatrix_chromcouple
 import utils.iotools
