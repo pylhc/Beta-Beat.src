@@ -403,7 +403,7 @@ class _InputData(object):
             print >> sys.stderr, "Given Beta-Beat.src path does not exist: "+beta_beat_root
             beta_beat_root = utils.iotools.get_absolute_path_to_betabeat_root()
             print >> sys.stderr, "Will take current Beta-Beat.src: "+beta_beat_root
-        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "PS"):
+        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "PS", "PSBOOSTER"):
             raise ValueError("Unknown/not supported accelerator: "+accel)
         accel_path = os.path.join(beta_beat_root, "correction", "fullresponse", accel)
         if not utils.iotools.dirs_exist(accel_path):

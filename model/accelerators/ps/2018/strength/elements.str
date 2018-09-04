@@ -3,52 +3,92 @@
 *******************************************************************************/
 !focussing
 
+   PR.KQFN05  :=  kf;
+   PR.KQFN09  :=  kf;
+   PR.KQFW17  :=  kf;
+   PR.KQFN21  :=  kf;
+   PR.KQFW27  :=  kf;
+   PR.KQFW31  :=  kf;
+   PR.KQFN35  :=  kf;
+   PR.KQFN39  :=  kf;
+   PR.KQFN45  :=  kf;
+   PR.KQFN49  :=  kf;
+   PR.KQFN55  :=  kf;
+   PR.KQFW59  :=  kf;
+   PR.KQFN67  :=  kf;
+   PR.KQFN71  :=  kf;
+   PR.KQFN77  :=  kf;
+   PR.KQFN81  :=  kf;
+   PR.KQFN85  :=  kf;
+   PR.KQFN89  :=  kf;
+   PR.KQFN95  :=  kf;
+   PR.KQFN99  :=  kf;
 
 
-
-   PR.QFN05      , KNL  :=  {0, kf};
-   PR.QFN09      , KNL  :=  {0, kf};
-   PR.QFW17      , KNL  :=  {0, kf*1.4};
-   PR.QFN21      , KNL  :=  {0, kf};
-   PR.QFW27      , KNL  :=  {0, kf*1.4};
-   PR.QFW31      , KNL  :=  {0, kf*1.4};
-   PR.QFN35      , KNL  :=  {0, kf};
-   PR.QFN39      , KNL  :=  {0, kf};
-   PR.QFN45      , KNL  :=  {0, kf};
-   PR.QFN49      , KNL  :=  {0, kf};
-   PR.QFN55      , KNL  :=  {0, kf};
-   PR.QFW59      , KNL  :=  {0, kf*1.4};
-   PR.QFN67      , KNL  :=  {0, kf};
-   PR.QFN71      , KNL  :=  {0, kf};
-   PR.QFN77      , KNL  :=  {0, kf};
-   PR.QFN81      , KNL  :=  {0, kf};
-   PR.QFN85      , KNL  :=  {0, kf};
-   PR.QFN89      , KNL  :=  {0, kf};
-   PR.QFN95      , KNL  :=  {0, kf};
-   PR.QFN99      , KNL  :=  {0, kf};
+   PR.QFN05      , KNL  :=  {0, PR.KQFN05};
+   PR.QFN09      , KNL  :=  {0, PR.KQFN09};
+   PR.QFW17      , KNL  :=  {0, PR.KQFW17};
+   PR.QFN21      , KNL  :=  {0, PR.KQFN21};
+   PR.QFW27      , KNL  :=  {0, PR.KQFW27};
+   PR.QFW31      , KNL  :=  {0, PR.KQFW31};
+   PR.QFN35      , KNL  :=  {0, PR.KQFN35};
+   PR.QFN39      , KNL  :=  {0, PR.KQFN39};
+   PR.QFN45      , KNL  :=  {0, PR.KQFN45};
+   PR.QFN49      , KNL  :=  {0, PR.KQFN49};
+   PR.QFN55      , KNL  :=  {0, PR.KQFN55};
+   PR.QFW59      , KNL  :=  {0, PR.KQFW59};
+   PR.QFN67      , KNL  :=  {0, PR.KQFN67};
+   PR.QFN71      , KNL  :=  {0, PR.KQFN71};
+   PR.QFN77      , KNL  :=  {0, PR.KQFN77};
+   PR.QFN81      , KNL  :=  {0, PR.KQFN81};
+   PR.QFN85      , KNL  :=  {0, PR.KQFN85};
+   PR.QFN89      , KNL  :=  {0, PR.KQFN89};
+   PR.QFN95      , KNL  :=  {0, PR.KQFN95};
+   PR.QFN99      , KNL  :=  {0, PR.KQFN99};
 
 !defocussing
 
-   PR.QDW06      , KNL  :=  {0, kd*1.4};
-   PR.QDN10      , KNL  :=  {0, kd};
-   PR.QDW18      , KNL  :=  {0, kd*1.4};
-   PR.QDW22      , KNL  :=  {0, kd*1.4};
-   PR.QDW28      , KNL  :=  {0, kd*1.4};
-   PR.QDW32      , KNL  :=  {0, kd*1.4};
-   PR.QDN36      , KNL  :=  {0, kd};
-   PR.QDN40      , KNL  :=  {0, kd};
-   PR.QDN46      , KNL  :=  {0, kd};
-   PR.QDN50      , KNL  :=  {0, kd};
-   PR.QDW56      , KNL  :=  {0, kd*1.4};
-   PR.QDW60      , KNL  :=  {0, kd*1.4};
-   PR.QDN68      , KNL  :=  {0, kd};
-   PR.QDN72      , KNL  :=  {0, kd};
-   PR.QDN78      , KNL  :=  {0, kd};
-   PR.QDN82      , KNL  :=  {0, kd};
-   PR.QDN86      , KNL  :=  {0, kd};
-   PR.QDN90      , KNL  :=  {0, kd};
-   PR.QDN96      , KNL  :=  {0, kd};
-   PR.QDN00      , KNL  :=  {0, kd};
+   PR.KQDW06   :=  kd;
+   PR.KQDN10   :=  kd;
+   PR.KQDW18   :=  kd;
+   PR.KQDW22   :=  kd;
+   PR.KQDW28   :=  kd;
+   PR.KQDW32   :=  kd;
+   PR.KQDN36   :=  kd;
+   PR.KQDN40   :=  kd;
+   PR.KQDN46   :=  kd;
+   PR.KQDN50   :=  kd;
+   PR.KQDW56   :=  kd;
+   PR.KQDW60   :=  kd;
+   PR.KQDN68   :=  kd;
+   PR.KQDN72   :=  kd;
+   PR.KQDN78   :=  kd;
+   PR.KQDN82   :=  kd;
+   PR.KQDN86   :=  kd;
+   PR.KQDN90   :=  kd;
+   PR.KQDN96   :=  kd;
+   PR.KQDN00   :=  kd;
+   
+   PR.QDW06      , KNL  :=  {0, PR.KQDW06};
+   PR.QDN10      , KNL  :=  {0, PR.KQDN10};
+   PR.QDW18      , KNL  :=  {0, PR.KQDW18};
+   PR.QDW22      , KNL  :=  {0, PR.KQDW22};
+   PR.QDW28      , KNL  :=  {0, PR.KQDW28};
+   PR.QDW32      , KNL  :=  {0, PR.KQDW32};
+   PR.QDN36      , KNL  :=  {0, PR.KQDN36};
+   PR.QDN40      , KNL  :=  {0, PR.KQDN40};
+   PR.QDN46      , KNL  :=  {0, PR.KQDN46};
+   PR.QDN50      , KNL  :=  {0, PR.KQDN50};
+   PR.QDW56      , KNL  :=  {0, PR.KQDW56};
+   PR.QDW60      , KNL  :=  {0, PR.KQDW60};
+   PR.QDN68      , KNL  :=  {0, PR.KQDN68};
+   PR.QDN72      , KNL  :=  {0, PR.KQDN72};
+   PR.QDN78      , KNL  :=  {0, PR.KQDN78};
+   PR.QDN82      , KNL  :=  {0, PR.KQDN82};
+   PR.QDN86      , KNL  :=  {0, PR.KQDN86};
+   PR.QDN90      , KNL  :=  {0, PR.KQDN90};
+   PR.QDN96      , KNL  :=  {0, PR.KQDN96};
+   PR.QDN00      , KNL  :=  {0, PR.KQDN00};
 
 /*******************************************************************************
 **                        Skew quadrupoles                                    **
@@ -107,7 +147,6 @@
    PR.KQSK30 = kds ; 
    PR.KQSK34 = kds ; 
    PR.KQSK38 = kds ; 
-   PR.KQSK42 = kds ; 
    PR.KQSK44 = kds ; 
    PR.KQSK48 = kds ; 
    PR.KQSK54 = kds ; 
@@ -276,9 +315,11 @@
 **                        Slow extraction elements                            **
 *******************************************************************************/
 ! quadrupoles
+   PR.KQSE29 := +QSE*CC409;
+   PR.KQSE87 := +QSE*CC409;
 
-   PR.QSE29      , K1   := +QSE*CC409;
-   PR.QSE87      , K1   := +QSE*CC409;
+   PR.QSE29      , K1   := PR.KQSE29;
+   PR.QSE87      , K1   := PR.KQSE87;
 
 !sextupoles
 
@@ -289,11 +330,15 @@
 /*******************************************************************************
 **                                    QKEs                                    **
 *******************************************************************************/
-
+   
+   PE.KQKE162 := QKE162*CC414;
+   
+    
+   
    PE.QKE16.05   , K1   := -KQKE16;
    PE.QKE16.25   , K1   :=  KQKE16;
-   PE.QKE25      , K1   := +QKE162*CC414;
-   PE.QKE73      , K1   := -QKE162*CC414;
+   PE.QKE25      , K1   := +PE.KQKE162;
+   PE.QKE73      , K1   := -PE.KQKE162;
 
 
 /*******************************************************************************

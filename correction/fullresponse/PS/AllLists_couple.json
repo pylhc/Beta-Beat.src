@@ -1,8 +1,7 @@
 {
  "PR.QSinseries": ["kfs","kds"],
  "PR.QSK": ["kfs","kds"],
- "Qs": ["kfs","kds",
-        "PR.KQSK03",
+ "Qs": ["PR.KQSK03",
         "PR.KQSK07",
         "PR.KQSK19",
         "PR.KQSK23",
@@ -29,7 +28,6 @@
         "PR.KQSK30",
         "PR.KQSK34",
         "PR.KQSK38",
-        "PR.KQSK42",
         "PR.KQSK44",
         "PR.KQSK48",
         "PR.KQSK54",
