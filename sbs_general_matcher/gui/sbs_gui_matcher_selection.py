@@ -1,11 +1,11 @@
 import os
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
-from matchers_models.matcher_model_coupling import MatcherModelCoupling
-from matchers_models.matcher_model_phase import MatcherModelPhase
-from matchers_models.matcher_model_amp import MatcherModelAmp
-from matchers_models.matcher_model_kmod import MatcherModelKmod
-from widgets import FileSelectionComboWidget
+from sbs_general_matcher.gui.matchers_models.matcher_model_coupling import MatcherModelCoupling
+from sbs_general_matcher.gui.matchers_models.matcher_model_phase import MatcherModelPhase
+from sbs_general_matcher.gui.matchers_models.matcher_model_amp import MatcherModelAmp
+from sbs_general_matcher.gui.matchers_models.matcher_model_kmod import MatcherModelKmod
+from sbs_general_matcher.gui.widgets import FileSelectionComboWidget
 
 
 class _PhaseSelector(object):

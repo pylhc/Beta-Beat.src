@@ -1,6 +1,6 @@
 import pandas as pd
 
-from accelerator import Accelerator
+from model.accelerators.accelerator import Accelerator
 
 
 class Esrf(Accelerator):

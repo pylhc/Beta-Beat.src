@@ -8,11 +8,13 @@ email:
 python:
  - "2.7"
 script:
- - python tests/alltests.py
+ - pytest tests/unit/
+ - pytest -s tests/accuracy/
+ - python tests/regression/test_cases.py
  - travis-sphinx build --source=doc/ --nowarn
 after_success:
  - travis-sphinx deploy
 git:
     depth: false
 regression:
-    ref_commit: e12bbfdb0be00da1e3ca3e60e4726ac0a8c58bc5
+    ref_commit: cc070d58108fb724ad1637dad099cb7e22e81488

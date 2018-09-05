@@ -5,20 +5,21 @@ import shutil
 import numpy as np
 import argparse
 import time
-import subprocess
 
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")
-))
-
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+import measure_optics
+from optics_measurements import optics_input
 import madx_wrapper
 from drive import drive_runner
 from GetLLM import GetLLM
 from Python_Classes4MAD import metaclass
 from utils import iotools, ADDbpmerror, logging_tools
 from utils.contexts import silence
-from hole_in_one import hole_in_one
-from hole_in_one.io_handlers import input_handler as hio_input_handler
+import hole_in_one
+from harmonic_analysis.io_handlers import input_handler as hio_input_handler
 from model import manager
 
 LOGGER = logging_tools.get_logger(__name__)
@@ -30,7 +31,7 @@ THIS_DIR = os.path.dirname(__file__)
 FILES_PATH = os.path.abspath(os.path.join(THIS_DIR,
                                           "getllm_precision_check"))
 MADX_PATH = os.path.abspath(os.path.join(THIS_DIR, "..",
-                                         "binaries", "madx_dev"))
+                                         "madx", "bin", "madx-linux64-gnu"))
 
 FREE_BB_MAX = 0.25e-2  #  maximal bete beating error for free kick 0.25 %
 FREE_BB_PEAK_MAX = 0.5e-2  #  maximal bete beating peak error for free kick 0.5 %
@@ -211,6 +212,12 @@ def _parse_args():
         dest="nosilent",
         action="store_true",
     )
+    parser.add_argument(
+        "--new",
+        help="Use measure_optics instead of GetLLM",
+        dest="new",
+        action="store_true",
+    )
     return parser.parse_args()
 
 
@@ -263,7 +270,6 @@ def print_getllm_precision(options):
         raise IOError(
             "ADT and AC-dipole are both set to 1. Please select only one"
         )
-
     _run_tracking_model(output_dir, options)
     _do_analysis(output_dir, options)
     _comprare_results(output_dir, options)
@@ -281,6 +287,9 @@ def _run_tracking_model(directory, options):
         return
     print("Creating model and tracking...")
     madx_script = _get_madx_script(BEAM, directory, options)
+    print(tbt_path)
+    print(MADX_PATH)
+    print(directory)
     madx_wrapper.resolve_and_run_string(
         madx_script,
         madx_path=MADX_PATH,
@@ -383,14 +392,22 @@ def _do_analysis(directory, options):
             _run_harpy(directory, options)
 
     tbt_path = _get_tbt_path(directory)
+    twiss_path = _get_twiss_path(directory)
     err_def_path = _copy_error_def_file(directory, options)
     #shutil.copy(err_def_path)
 
-    LOGGER.info("    -> Running GetLLM...")
+
     # with silence():
-    accel = manager.get_accel_instance(accel="lhc", lhc_mode="lhc_runII_2016", beam=BEAM, model_dir=directory)
-    GetLLM.main(accel, directory, directory, tbt_path,
-                bpmu="mm")
+    if options.new:
+        LOGGER.info("    -> Running measure_optics...")
+        inputs = measure_optics.InputFiles(tbt_path)
+        meas_input = optics_input.OpticsInput()
+        meas_input.outputdir = directory
+        meas_input.accelerator = manager.get_accel_instance(accel="lhc", lhc_mode="lhc_runII_2016", beam=BEAM, model_dir=directory)
+        measure_optics.measure_optics(inputs, meas_input)
+    else:
+        LOGGER.info("    -> Running GetLLM...")
+        GetLLM.main(directory, tbt_path, twiss_path, accel="LHCB" + str(BEAM),  errordefspath = err_def_path, bpmu="mm")
     LOGGER.info("")
 
 

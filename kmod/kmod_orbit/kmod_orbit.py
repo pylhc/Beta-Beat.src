@@ -1,15 +1,19 @@
 from __future__ import print_function
-import sys
-import os
-import numpy as np
-import time
-import datetime
+
 import argparse
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__),
-    ".."
-)))
-from utils import tfs_pandas
+import datetime
+import os
+import sys
+import time
+
+import numpy as np
+import pandas as pd
+
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
+
+from tfs_files import tfs_pandas
+from tfs_files.tfs_file_writer import significant_numbers
 
 
 BEAMS = BEAM1, BEAM2 = (0, 1)
@@ -18,7 +22,7 @@ PLANES = HOR, VER = (0, 1)
 
 PLANE_STR = {HOR: "X", VER: "Y"}
 BEAM_STR = {BEAM1: "1", BEAM2: "2"}
-SIDE_STR = {LEFT: "L", RIGHT: "R"}
+SIDE_STR = {LEFT: "Left ", RIGHT: "Right"}
 
 CUTOFF = 0.15  # BPMs we ignor
 # CUTOFF = 1.5 * np.max(v[0,:])
@@ -70,12 +74,18 @@ def _parse_args():
         type=int,
         dest="ip",
     )
+    parser.add_argument(
+        "--output",
+        help="If present, will write the results to this path in a TFS table.",
+        type=str,
+        dest="output",
+    )
     options = parser.parse_args()
     input = (options.model1_path, options.model2_path,
              options.orbit_path_left, options.orbit_path_right,
              options.kleft_path, options.kright_path,
              options.ip)
-    return input
+    return input, options.output
 
 
 def compute_offset(model1_path, model2_path,
@@ -100,6 +110,10 @@ def compute_offset(model1_path, model2_path,
         )
     )
     return results
+
+
+def _quad_name(side, ip):
+    return "MQXA.1" + SIDE_STR[side][0] + str(ip)
 
 
 def _collect_orbit_data(orbit_path_left, orbit_path_right,
@@ -137,17 +151,12 @@ def _collect_orbit_data(orbit_path_left, orbit_path_right,
                 beam = BEAM1
             elif filename.startswith('LHCB2'):
                 beam = BEAM2
-            try:
-                k[(beam, side, HOR)].append(_get_sign(beam, HOR) *
-                                            k_file.loc[timestamp, "K"])
-                k[(beam, side, VER)].append(_get_sign(beam, VER) *
-                                            k_file.loc[timestamp, "K"])
-                orbit_x = orbit_data.loc[:, "X"]
-                bpm[(beam, side, HOR)].append(orbit_x - np.mean(orbit_x))
-                orbit_y = orbit_data.loc[:, "Y"]
-                bpm[(beam, side, VER)].append(orbit_y - np.mean(orbit_y))
-            except KeyError:
-                continue
+            for plane in (HOR, VER):
+                closest = np.argmin(np.abs(timestamp - k_file.index.values))
+                val = _get_sign(beam, plane) * k_file.K.iloc[closest]
+                k[(beam, side, plane)].append(val)
+                orbit = orbit_data.loc[:, PLANE_STR[plane]]
+                bpm[(beam, side, plane)].append(orbit - np.mean(orbit))
     return k, bpm
 
 
@@ -170,8 +179,8 @@ def _compute_and_clean(ip, beam, side, plane, models, bpm_names, ks, orbits):
     this_bpm_names = bpm_names[(beam, side)]
     this_bpm_model = this_model.loc[this_bpm_names, :]
 
-    quadname = "MQXA.1" + SIDE_STR[side] + str(ip)
-    this_k = _compute_kl(ks[(beam, side, plane)], this_model, quadname, plane)
+    quadname = _quad_name(side, ip)
+    this_k = _compute_kl(ks[(beam, side, plane)], this_model, quadname)
 
     orb = np.array(this_orbit)
 
@@ -201,18 +210,19 @@ def _compute_and_clean(ip, beam, side, plane, models, bpm_names, ks, orbits):
     # Work out offset using matrix multiplication
     offset = np.dot(np.dot(np.transpose(u[:, 0]), orb),
                     np.transpose(v[0, :])) / s[0]
-    N = orb - offset * model_data
-    errorbars = np.abs(np.dot(np.dot(np.transpose(u[:, 0]), N),
-                              np.transpose(v[0, :])) / s[0])
+    N = (orb - offset * model_data) / orb
+    onesigma = np.std(N)
+    N = N[np.abs(N) < onesigma]
+    errorbars = np.abs(offset * np.mean(N))
     return offset, errorbars
 
 
-def _compute_kl(ks, model, quadname, ip):
+def _compute_kl(ks, model, quadname):
     quad_length = (model.loc[quadname, "S"] -
-                   model.ix[model.index.get_loc(quadname) - 1, "S"]),
-
+                   model.ix[model.index.get_loc(quadname) - 1, "S"])
+    sign = np.sign(model.loc[quadname, "K1L"])
     avg_k = np.mean(ks)
-    return (ks - avg_k) * quad_length
+    return sign * (ks - avg_k) * quad_length
 
 
 def _compute_transfer_matrix(model, bpm_model, quadname, ks, plane, beam):
@@ -244,24 +254,15 @@ def _compute_transfer_matrix(model, bpm_model, quadname, ks, plane, beam):
 
 
 def _apply_to_beam_side_plane(function):
-    results = {}
-    for beam in BEAMS:
-        for side in SIDES:
-            for plane in PLANES:
-                results[(beam, side, plane)] = function(beam, side, plane)
-    return results
+    return {(beam, side, plane): function(beam, side, plane)
+            for beam in BEAMS for side in SIDES for plane in PLANES}
 
 
-# TODO: Replace with dict
 def _get_sign(beam, plane):
-    if beam == BEAM1 and plane == HOR:
-        return 1
-    elif beam == BEAM1 and plane == VER:
-        return -1
-    elif beam == BEAM2 and plane == HOR:
-        return -1
-    elif beam == BEAM2 and plane == VER:
-        return 1
+    return {(BEAM1, HOR): +1,
+            (BEAM1, VER): -1,
+            (BEAM2, HOR): +1,
+            (BEAM2, VER): -1, }[(beam, plane)]
 
 
 def _date_str_to_timestamp(str_date):
@@ -273,15 +274,29 @@ def _date_str_to_timestamp(str_date):
     return long(timestamp)
 
 
+def _write_table(results, output):
+    rows = [[BEAM_STR[beam], SIDE_STR[side],
+             results[(beam, side, HOR)][0], results[(beam, side, HOR)][1],
+             results[(beam, side, VER)][0], results[(beam, side, VER)][1]]
+            for beam in BEAMS for side in SIDES]
+    data = pd.DataFrame(data=rows,
+                        columns=("BEAM", "SIDE",
+                                 "OFFSETX", "ERROFFSETX",
+                                 "OFFSETY", "ERROFFSETY"))
+    tfs_pandas.write_tfs(output, data)
+
+
 def _terminal_start():
-    _input = _parse_args()
+    _input, output = _parse_args()
     results = compute_offset(*_input)
+    if output is not None:
+        _write_table(results, output)
     _apply_to_beam_side_plane(
         lambda beam, side, plane: print(
-            "Beam" + BEAM_STR[beam],
-            "Side " + SIDE_STR[side],
-            "Plane " + PLANE_STR[plane] + ":",
-            str(results[(beam, side, plane)])
+            "Beam " + BEAM_STR[beam],
+            SIDE_STR[side],
+            PLANE_STR[plane] + ":",
+            " +- ".join(significant_numbers(*results[(beam, side, plane)]))
         )
     )
 

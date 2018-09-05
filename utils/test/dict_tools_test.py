@@ -1,4 +1,9 @@
-import __init__
+import sys
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
 from utils.dict_tools import DotDict
 from utils.dict_tools import DictParser
 from utils.dict_tools import Argument

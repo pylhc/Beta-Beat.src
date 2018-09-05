@@ -2,6 +2,7 @@
 
 """
 import copy
+import six
 from utils import logging_tools
 LOG = logging_tools.get_logger(__name__)
 
@@ -36,6 +37,10 @@ class DotDict(dict):
         except KeyError as e:
             raise AttributeError(e)  # TODO: Adapt traceback to not link here (Python3 does that?)
 
+    def get_subdict(self, keys, strict=True):
+        """ See get_subdict in dict_tools. """
+        return get_subdict(self, keys, strict)
+
 
 def print_dict_tree(dictionary, name='Dictionary'):
     """ Prints a dictionary as a tree """
@@ -58,6 +63,23 @@ def print_dict_tree(dictionary, name='Dictionary'):
 
     LOG.info('{:s}:'.format(name))
     print_tree(dictionary, '')
+
+
+def get_subdict(full_dict, keys, strict=True):
+    """ Returns a sub-dictionary of ``full_dict`` containing only keys of ``keys``.
+
+    Args:
+        full_dict: Dictionary to extract from
+        keys: keys to extract
+        strict: If false it ignores keys not in full_dict. Otherwise it crashes on those.
+                Default: True
+
+    Returns: Extracted sub-dictionary
+
+    """
+    if strict:
+        return {k: full_dict[k] for k in keys}
+    return {k: full_dict[k] for k in keys if k in full_dict}
 
 
 # Dict Parser ##################################################################
@@ -89,7 +111,7 @@ class Parameter(object):
         self._validate()
 
     def _validate(self):
-        if not isinstance(self.name, basestring):
+        if not isinstance(self.name, six.string_types):
             raise ParameterError("Parameter '{:s}': ".format(str(self.name)) +
                                  "Name is not a valid string.")
 
@@ -103,12 +125,13 @@ class Parameter(object):
                     raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                          "Default value not found in choices.")
 
-                if self.type:
+                if self.type or self.subtype:
+                    check = self.type if self.subtype is None else self.subtype
                     for choice in self.choices:
-                        if not isinstance(choice, self.type):
-                            raise ParameterError("Choice '{:s}'".format(choice) +
+                        if not isinstance(choice, check):
+                            raise ParameterError("Choice '{}' ".format(choice) +
                                                  "of parameter '{:s}': ".format(self.name) +
-                                                 "is not of type '{:s}'.".format(self.type))
+                                                 "is not of type '{:s}'.".format(check.__name__))
             except TypeError:
                 raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                      "Choices seem to be not iterable.")
@@ -225,9 +248,17 @@ class DictParser(object):
                                     idx, key, param.subtype.__name__) +
                                 ".\nHelp: {:s}".format(param.help))
 
-            if param.choices and opt not in param.choices:
-                raise ArgumentError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
-                    key, param.choices, param.help)
+                if param.choices and any([o for o in opt if o not in param.choices]):
+                    raise ArgumentError(
+                        "All elements of '{:s}' need to be one of {:s},".format(key,
+                                                                                param.choices) +
+                        " instead the list was {:s}.\nHelp: {:s}".format(str(opt), param.help)
+                    )
+
+            elif param.choices and opt not in param.choices:
+                raise ArgumentError(
+                    "'{:s}' needs to be one of {:s}, instead it was {:s}.\nHelp: {:s}".format(
+                    key, param.choices, str(opt), param.help)
                 )
         return opt
 
@@ -433,26 +464,41 @@ class DictParser(object):
 
     def _convert_config_items(self, items):
         """ Converts items list to a dictionary with types already in place """
+        def list_check(value, level):
+            s = value.replace(" ", "")
+            if not (s.startswith("[" * (level+1)) or s.startswith(("["*level) + "range")):
+                value = "[" + value + "]"
+            return value
+
         def evaluate(name, item):
             try:
                 return eval(item)  # sorry for using that
-            except NameError:
+            except (NameError, SyntaxError):
                 raise ArgumentError(
                     "Could not evaluate argument '{:s}', unknown '{:s}'".format(name, item))
+
+        def eval_type(my_type, item):
+            if issubclass(my_type, six.string_types):
+                return my_type(item.strip("\'\""))
+            if issubclass(my_type, bool):
+                return bool(eval(item))
+            else:
+                return my_type(item)
 
         out = {}
         for name, value in items:
             if name in self.dictionary:
                 arg = self.dictionary[name]
                 if arg.type == list:
-                    if not value.startswith("["):
-                        value = "[" + value + "]"
+                    value = list_check(value, level=0)
+                    if arg.subtype == list:
+                        value = list_check(value, level=1)
                     value = evaluate(name, value)
                     if arg.subtype:
                         for idx, entry in enumerate(value):
-                            value[idx] = arg.subtype(entry)
+                            value[idx] = eval_type(arg.subtype, entry)
                 elif arg.type:
-                    value = arg.type(value)
+                    value = eval_type(arg.type, value)
                 else:
                     value = evaluate(name, value)
                 out[name] = value

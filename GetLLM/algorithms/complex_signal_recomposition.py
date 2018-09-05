@@ -1,5 +1,4 @@
 from __future__ import print_function
-import __init__ 
 import os, sys
 import numpy as np
 from Utilities import tfs_pandas

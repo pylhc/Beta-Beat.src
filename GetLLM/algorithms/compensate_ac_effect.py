@@ -24,10 +24,7 @@ from collections import OrderedDict
 
 import utils.bpm
 import phase
-from SegmentBySegment.SegmentBySegment import get_good_bpms
-from __builtin__ import raw_input
 from constants import PI, TWOPI, kEPSILON
-from SegmentBySegment.sbs_writers.sbs_phase_writer import FIRST_BPM_B1
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 

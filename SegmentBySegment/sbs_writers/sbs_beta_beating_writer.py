@@ -1,10 +1,14 @@
-import __init__  # @UnusedImport
 import os
 import sys
-
-import sbs_beta_writer
 from math import sqrt
-from utils import tfs_file_writer
+from os.path import abspath, join, dirname, pardir
+
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
+from SegmentBySegment.sbs_writers import sbs_beta_writer
+from tfs_files import tfs_file_writer
 
 
 def write_beta_beat(element_name,
@@ -86,7 +90,7 @@ def _get_beta_beat_from_phase_tfs_files(element_name, save_path):
             "BET" + plane + "MDL", "MODEL_S"
         ]
         file_beta_beat[plane].add_column_names(column_names)
-        file_beta_beat[plane].add_column_datatypes(["%bpm_s"] + ["%le"] * (len(column_names) - 1))
+        file_beta_beat[plane].add_column_datatypes(["%s"] + ["%le"] * (len(column_names) - 1))
 
     return file_beta_beat["X"], file_beta_beat["Y"]
 
@@ -104,7 +108,7 @@ def _get_beta_beat_from_amp_tfs_files(element_name, save_path):
             "BET" + plane + "MDL", "MODEL_S"
         ]
         file_beta_beat[plane].add_column_names(column_names)
-        file_beta_beat[plane].add_column_datatypes(["%bpm_s"] + ["%le"] * (len(column_names) - 1))
+        file_beta_beat[plane].add_column_datatypes(["%s"] + ["%le"] * (len(column_names) - 1))
 
     return file_beta_beat["X"], file_beta_beat["Y"]
 
@@ -122,7 +126,7 @@ def _get_kmod_beta_beat_tfs_files(element_name, save_path):
             "BET" + plane + "MDL", "MODEL_S"
         ]
         file_kmod_beta_beat[plane].add_column_names(column_names)
-        file_kmod_beta_beat[plane].add_column_datatypes(["%bpm_s"] + ["%le"] * (len(column_names) - 1))
+        file_kmod_beta_beat[plane].add_column_datatypes(["%s"] + ["%le"] * (len(column_names) - 1))
 
     return file_kmod_beta_beat["X"], file_kmod_beta_beat["Y"]
 

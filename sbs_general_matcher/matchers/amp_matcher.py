@@ -1,7 +1,5 @@
-import os
-from .matcher import Matcher
-from .kmod_matcher import KmodMatcher
-from Python_Classes4MAD import metaclass
+from sbs_general_matcher.matchers.matcher import Matcher
+from sbs_general_matcher.matchers.kmod_matcher import KmodMatcher
 
 
 class AmpMatcher(KmodMatcher):
@@ -11,25 +9,22 @@ class AmpMatcher(KmodMatcher):
     @Matcher.override(KmodMatcher)
     def define_constraints(self):
         constr_string = ""
-        for plane in ["x", "y"]:
-            this_amp_data = self._get_amp_data(plane)
-            for name in this_amp_data.NAME:
-                index = this_amp_data.indx[name]
-                beta_beating = getattr(this_amp_data, "BETABEATAMP" + plane.upper())[index]
-                err_beta_beating = getattr(this_amp_data, "ERRBETABEATAMP" + plane.upper())[index]
-                constr_string += self._get_constraint_instruction(
-                    self.name + self._get_suffix() + plane + name,
-                    beta_beating, err_beta_beating)
-
+        is_back = "b" in self.propagation
+        for plane in ("x", "y"):
+            this_amp_data = self.beatings.beta_amp[plane]
+            const_names = [self.name + self._get_suffix() + plane + name
+                           for name in this_amp_data.NAME]
+            beta_beatings = this_amp_data.loc[
+                :,
+                ("BETABEATAMP{}" if not is_back else "BETABEATAMPBACK{}").format(plane.upper())
+            ]
+            err_beta_beatings = this_amp_data.loc[
+                :,
+                ("ERRBETABEATAMP{}" if not is_back else "ERRBETABEATAMPBACK{}").format(plane.upper())
+            ]
+            constr_string += self._get_constraints_block(const_names, beta_beatings, err_beta_beatings)
         return constr_string
 
     @Matcher.override(KmodMatcher)
     def _get_suffix(self):
         return ".ampbeating"
-
-    def _get_amp_data(self, plane):
-        sbs_amp_data_path = os.path.join(
-            os.path.join(self.matcher_path, "sbs"),
-            'sbsampbetabeat' + plane + '_' + self.segment.label + '.out'
-        )
-        return metaclass.twiss(sbs_amp_data_path)

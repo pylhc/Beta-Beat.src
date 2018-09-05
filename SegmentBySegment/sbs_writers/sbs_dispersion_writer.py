@@ -1,11 +1,11 @@
-import __init__  # @UnusedImport
-import os
-import numpy as np
 import math
-
+import os
 from math import sqrt
-from utils import tfs_file_writer
-from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+
+import numpy as np
+
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+from tfs_files import tfs_file_writer
 
 
 def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_disp, measured_norm_disp, input_model, propagated_models, save_path, dispersion_summary_file):
@@ -46,7 +46,7 @@ def get_dispersion_summary_file(save_path):
                                                   "DYPROP", "DYPROPERR", "DPYPROP", "DPYPROPERR",
                                                   "NDXPROP", "NDXPROPERR",
                                                   "DXMODEL", "DYMODEL", "NDXMODEL", "DPXMODEL", "DYPMODEL", "MODEL_S"])
-        dispersion_summary_file.add_column_datatypes(["%bpm_s", "%le",
+        dispersion_summary_file.add_column_datatypes(["%s", "%le",
                                                       "%le", "%le", "%le", "%le",
                                                       "%le", "%le", "%le", "%le",
                                                       "%le", "%le",
@@ -75,7 +75,7 @@ def _get_dispersion_tfs_files(element_name, is_element, save_path):
                                       "DPXPROP", "DPXPROPERR", "DPXCOR", "DPXCORERR",
                                       "DPXBACK", "DPXBACKERR", "DPXBACKCOR", "DPXBACKCORERR",
                                       "DXMODEL", "DPXMODEL", "MODEL_S"])
-        file_disp_x.add_column_datatypes(["%bpm_s", "%le",
+        file_disp_x.add_column_datatypes(["%s", "%le",
                                           "%le", "%le", "%le", "%le",
                                           "%le", "%le", "%le", "%le",
                                           "%le", "%le", "%le", "%le",
@@ -86,7 +86,7 @@ def _get_dispersion_tfs_files(element_name, is_element, save_path):
                                            "NDXPROP", "NDXPROPERR", "NDXCOR", "NDXCORERR",
                                            "NDXBACK", "NDXBACKERR", "NDXBACKCOR", "NDXBACKCORERR",
                                            "NDXMODEL", "MODEL_S"])
-        file_norm_disp_x.add_column_datatypes(["%bpm_s", "%le",
+        file_norm_disp_x.add_column_datatypes(["%s", "%le",
                                                "%le", "%le", "%le", "%le",
                                                "%le", "%le", "%le", "%le",
                                                "%le", "%le"])
@@ -97,7 +97,7 @@ def _get_dispersion_tfs_files(element_name, is_element, save_path):
                                       "DPYPROP", "DPYPROPERR", "DPYCOR", "DPYCORERR",
                                       "DPYBACK", "DPYBACKERR", "DPYBACKCOR", "DPYBACKCORERR",
                                       "DYMODEL", "DPYMODEL", "MODEL_S"])
-        file_disp_y.add_column_datatypes(["%bpm_s", "%le",
+        file_disp_y.add_column_datatypes(["%s", "%le",
                                           "%le", "%le", "%le", "%le",
                                           "%le", "%le", "%le", "%le",
                                           "%le", "%le", "%le", "%le",
@@ -105,13 +105,13 @@ def _get_dispersion_tfs_files(element_name, is_element, save_path):
                                           "%le", "%le", "%le"])
     else:
         file_disp_x.add_column_names(["NAME", "S", "DXPROP", "DXPROPERR", "DPXPROP", "DPXPROPERR", "DXMODEL", "DPXMODEL", "MODEL_S"])
-        file_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_disp_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
         file_norm_disp_x.add_column_names(["NAME", "S", "NDXPROP", "NDXPROPERR", "NDXMODEL", "MODEL_S"])
-        file_norm_disp_x.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le"])
+        file_norm_disp_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le"])
 
         file_disp_y.add_column_names(["NAME", "S", "DYPROP", "DYPROPERR", "DPYPROP", "DPYPROPERR", "DYMODEL", "DPYMODEL", "MODEL_S"])
-        file_disp_y.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_disp_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     return file_disp_x, file_norm_disp_x, file_disp_y
 

@@ -1,7 +1,12 @@
 import numpy as np
-import pandas as pd
-import __init__
-from utils.tfs_pandas import read_tfs
+import sys
+import os
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
+from tfs_files.tfs_pandas import read_tfs
 
 
 C = 299792458.0 

@@ -87,7 +87,7 @@ PRINT, TEXT = "=========== step for {macro_name} ===========";
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 """
-END_MATCH = ("lmdif, tolerance:=1e-24, calls:=120;\n"
+END_MATCH = ("lmdif, tolerance:=1e-34, calls:=12000;\n"
              "endmatch;")
 
 RUN_CORRECTED_TWISS_TEMPLATE = """
@@ -240,7 +240,7 @@ class TemplateProcessor(object):
     def _define_variables(self):
         def_variables_string = ""
         for variable in self._variables:
-            def_variables_string += '    vary, name=d' + variable
+            def_variables_string += '    vary, name=d' + variable.replace("->", "")
             def_variables_string += ', step := 1e-6;\n'
         self._define_variables_list.append(def_variables_string)
 
@@ -276,7 +276,7 @@ class TemplateProcessor(object):
         changeparameters_str = ""
         for variable in self._variables:
             changeparameters_str += ('select, flag=save, '
-                                     'pattern=\"d{}\";\n'.format(variable))
+                                     'pattern=\"d{}\";\n'.format(variable.replace("->", "")))
         self._gen_changeparameters_list.append(changeparameters_str)
 
     def _run_corrected_twiss(self, matcher):

@@ -1,6 +1,7 @@
-from utils import tfs_file_writer
-from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
 import os
+
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+from tfs_files import tfs_file_writer
 
 
 def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_chromatic_wy, input_model, propagated_models, save_path, chrom_summary_file):
@@ -34,7 +35,7 @@ def get_chrom_summary_file(save_path):
                                              "WPROPX", "ERRWPROPX", "PHIPROPX", "ERRPHIPROPX",
                                              "WPROPY", "ERRWPROPY", "PHIPROPY", "ERRPHIPROPY",
                                              "MODELWX", "MODELWY", "MODELPHIX", "MODELPHIY", "MODEL_S"])
-        chrom_summary_file.add_column_datatypes(["%bpm_s", "%le",
+        chrom_summary_file.add_column_datatypes(["%s", "%le",
                                                  "%le", "%le", "%le", "%le",
                                                  "%le", "%le", "%le", "%le",
                                                  "%le", "%le", "%le", "%le", "%le"])
@@ -52,7 +53,7 @@ def _get_chromatic_w_files(save_path, element_name, is_element):
                                             "WBACKX", "ERRWBACKX", "PHIBACKX", "ERRPHIBACKX",
                                             "WBACKCORX", "ERRWBACKCORX", "PHIBACKCORX", "ERRPHIBACKCORX",
                                             "MODELWX", "MODELPHIX", "MODEL_S"])
-        file_chromatic_wx.add_column_datatypes(["%bpm_s", "%le",
+        file_chromatic_wx.add_column_datatypes(["%s", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
@@ -65,7 +66,7 @@ def _get_chromatic_w_files(save_path, element_name, is_element):
                                             "WBACKY", "ERRWBACKY", "PHIBACKY", "ERRPHIBACKY",
                                             "WBACKCORY", "ERRWBACKCORY", "PHIBACKCORY", "ERRPHIBACKCORY",
                                             "MODELWY", "MODELPHIY", "MODEL_S"])
-        file_chromatic_wy.add_column_datatypes(["%bpm_s", "%le",
+        file_chromatic_wy.add_column_datatypes(["%s", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
                                                 "%le", "%le", "%le", "%le",
@@ -73,10 +74,10 @@ def _get_chromatic_w_files(save_path, element_name, is_element):
                                                 "%le", "%le", "%le"])
     else:
         file_chromatic_wx.add_column_names(["NAME", "S", "WPROPX", "ERRWPROPX", "PHIPROPX", "ERRPHIPROPX", "MODELWX", "MODELPHIX", "MODEL_S"])
-        file_chromatic_wx.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_chromatic_wx.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
         file_chromatic_wy.add_column_names(["NAME", "S", "WPROPY", "ERRWPROPY", "PHIPROPY", "ERRPHIPROPY", "MODELWY", "MODELPHIY", "MODEL_S"])
-        file_chromatic_wy.add_column_datatypes(["%bpm_s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_chromatic_wy.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     return file_chromatic_wx, file_chromatic_wy
 
@@ -131,7 +132,7 @@ def _write_chromatic_w_for_plane(file_chromatic, plane, element_name, bpms_list,
     return summary_data
 
 
-def  _write_summary_data(chrom_summary_file, summary_data_x, summary_data_y):
+def _write_summary_data(chrom_summary_file, summary_data_x, summary_data_y):
     chrom_summary_file.add_table_row([summary_data_x[0], summary_data_x[1],
                                       summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
                                       summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5],

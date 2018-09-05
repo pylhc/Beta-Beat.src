@@ -1,7 +1,8 @@
 #!/usr/bin/env pythonafs
 
 import sys
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Python_Classes4MAD/')
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir)))
 from os import system
 
 from numpy import *
@@ -9,7 +10,7 @@ from numpy.linalg import pinv as  generalized_inverse
 from numpy import dot as matrixmultiply
 import pickle
 
-from metaclass import twiss
+from Python_Classes4MAD.metaclass import twiss
 
 ##############################
 def orbit(bpms, vc, twiss,twissall):
