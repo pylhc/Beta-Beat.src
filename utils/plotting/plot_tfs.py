@@ -1,14 +1,13 @@
-import os
 import sys
-
-sys.path.append(os.path.abspath(os.path.join(__file__, os.pardir, os.pardir)))
+from os.path import abspath, join, pardir
+sys.path.append(abspath(join(__file__, pardir, pardir)))
 
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import pyplot as plt, gridspec, rcParams
 
 from utils.entrypoint import EntryPointParameters, entrypoint
 from utils.plotting import plot_style as ps
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 from utils import logging_tools
 
 

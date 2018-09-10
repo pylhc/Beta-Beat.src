@@ -1,6 +1,5 @@
-import os
-from .matcher import Matcher
-from .phase_matcher import PhaseMatcher
+from sbs_general_matcher.matchers.matcher import Matcher
+from sbs_general_matcher.matchers.phase_matcher import PhaseMatcher
 
 
 class KmodMatcher(PhaseMatcher):

@@ -22,8 +22,8 @@ from optics_measurements import optics_input, dpp, tune, phase
 from optics_measurements import (beta, beta_from_amplitude, coupling, dispersion,
                                  interaction_point, kick, resonant_driving_terms)
 from model.accelerators.accelerator import AccExcitationMode
-from utils import tfs_pandas, logging_tools, iotools
-
+from utils import logging_tools, iotools
+from tfs_files import tfs_pandas
 
 VERSION = '0.2.0'
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d measure_optics.py...") (vimaier)
@@ -145,13 +145,18 @@ class InputFiles(dict):
     """
     def __init__(self, files_to_analyse):
         super(InputFiles, self).__init__(zip(PLANES, ([], [])))
-        for file_in in files_to_analyse.split(','):
-            for plane in PLANES:
-                if isfile(file_in + '.lin' + plane.lower()):
-                    file_to_load = file_in + '.lin' + plane.lower()
-                else:
-                    file_to_load = file_in + '_lin' + plane.lower()
-                self[plane].append(tfs_pandas.read_tfs(file_to_load).set_index("NAME"))
+        if isinstance(files_to_analyse, str):
+            for file_in in files_to_analyse.split(','):
+                for plane in PLANES:
+                    if isfile(file_in + '.lin' + plane.lower()):
+                        file_to_load = file_in + '.lin' + plane.lower()
+                    else:
+                        file_to_load = file_in + '_lin' + plane.lower()
+                    self[plane].append(tfs_pandas.read_tfs(file_to_load).set_index("NAME"))
+        else:
+            for file_in in files_to_analyse:
+                for plane in PLANES:
+                    self[plane].append(file_in[plane.lower()])
         for plane in PLANES:
             self[plane] = dpp.arrange_dpp(self[plane])
         if len(self['X']) + len(self['Y']) == 0:

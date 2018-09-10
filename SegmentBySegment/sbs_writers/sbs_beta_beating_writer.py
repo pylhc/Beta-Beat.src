@@ -1,10 +1,14 @@
-import __init__  # @UnusedImport
 import os
 import sys
-
-import sbs_beta_writer
 from math import sqrt
-from utils import tfs_file_writer
+from os.path import abspath, join, dirname, pardir
+
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
+from SegmentBySegment.sbs_writers import sbs_beta_writer
+from tfs_files import tfs_file_writer
 
 
 def write_beta_beat(element_name,

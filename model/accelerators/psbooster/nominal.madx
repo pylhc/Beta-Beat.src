@@ -30,6 +30,8 @@
  ******************************************************************************************/
  call, file = '%(FILES_DIR)s/psb.ele';
  call, file = '%(FILES_DIR)s/psb.seq';
+ call, file = '%(FILES_DIR)s/defseries.seq';
+ call, file = '%(FILES_DIR)s/powering.seq';
  call, file = '%(FILES_DIR)s/psb.dbx';
  call, file = '%(FILES_DIR)s/psb_orbit.str';
 
@@ -37,7 +39,11 @@
 /******************************************************************************************
  * beam, use
  ******************************************************************************************/
- call, file = '%(FILES_DIR)s/psb_orbit.beamx';
+ 
+ 
+ beam, particle=PROTON, pc=beam_pc;  ! change depending on c-time of orbit measurement; pc=momentum
+
+ 
  use, sequence=psb%(RING)s;
 
 /******************************************************************************************
@@ -48,6 +54,10 @@
  Qy = %(NAT_TUNE_Y)s;
  Qxd = %(DRV_TUNE_X)s;
  Qyd = %(DRV_TUNE_Y)s;
+
+ hacmap21 = 0;
+ vacmap43 = 0;
+
 
  MATCH,sequence=psb%(RING)s;
   vary, NAME=kKF, step = 0.0001;
@@ -81,8 +91,12 @@
  if (ac_s == 1) {
       select, flag=twiss, clear;
       twiss;
+
       betxac = table(twiss, hacmap, betx);
       betyac = table(twiss, vacmap, bety);
+
+      hacmap21 := ac_s * (2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx)));
+      vacmap43 := ac_s * (2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy)));
 
       select, flag=twiss, clear;
       select, flag=twiss, pattern="^BR.*BPM",column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;

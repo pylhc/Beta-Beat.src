@@ -1,8 +1,11 @@
 import sys
-sys.path.append('/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src/Python_Classes4MAD/')
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 
 from optparse import OptionParser
-from metaclass import twiss
+from Python_Classes4MAD.metaclass import twiss
 import matplotlib.pyplot as plt
 
 

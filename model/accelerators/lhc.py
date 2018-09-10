@@ -6,9 +6,10 @@ from collections import OrderedDict
 
 import pandas as pd
 
-from accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
+from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
     get_commonbpm
-from utils import logging_tools, tfs_pandas
+from utils import logging_tools
+from tfs_files import tfs_pandas
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 LOGGER = logging_tools.get_logger(__name__)
@@ -513,7 +514,17 @@ class Lhc(Accelerator):
             return list(vars_by_class)
         elems_matrix = tfs_pandas.read_tfs(
             cls._get_corrector_elems()
-        ).sort_values("S").set_index("S").loc[frm:to, :]
+        ).sort_values("S")
+        if frm is not None and to is not None:
+            if frm > to:
+                elems_matrix = elems_matrix[(elems_matrix.S >= frm) | (elems_matrix.S <= to)]
+            else:
+                elems_matrix = elems_matrix[(elems_matrix.S >= frm) & (elems_matrix.S <= to)]
+        elif frm is not None:
+            elems_matrix = elems_matrix[elems_matrix.S >= frm]
+        elif to is not None:
+            elems_matrix = elems_matrix[elems_matrix.S <= to]
+
         vars_by_position = _remove_dups_keep_order(_flatten_list(
             [raw_vars.split(",") for raw_vars in elems_matrix.loc[:, "VARS"]]
         ))
@@ -1053,8 +1064,8 @@ def _merge_jsons(*files):
     for json_file in files:
         with open(json_file, "r") as json_data:
             json_dict = json.load(json_data)
-            for key, value in json_dict.iteritems():
-                full_dict[key] = value
+            for key in json_dict.keys():
+                full_dict[key] = json_dict[key]
     return full_dict
 
 

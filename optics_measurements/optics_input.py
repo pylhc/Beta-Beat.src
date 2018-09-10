@@ -12,8 +12,12 @@ import sys
 from model import manager
 
 
-def parse_args():
-    optics_input = OpticsInput.init_from_options(*_get_optics_parser())
+def parse_args(args=None):
+    parser = _get_optics_parser()
+    options, acc_args = parser.parse_known_args(args)
+    accelerator = manager.get_accel_instance(acc_args)
+    options.accelerator = accelerator
+    optics_input = OpticsInput.init_from_options(options)
     return optics_input
 
 
@@ -47,7 +51,7 @@ class OpticsInput(object):
         self.accelerator = None
 
     @staticmethod
-    def init_from_options(options, accelerator):
+    def init_from_options(options):
         self = OpticsInput()
         self.files = options.files
         self.outputdir = options.outputdir
@@ -61,14 +65,14 @@ class OpticsInput(object):
         self.nonlinear = options.nonlinear
         self.three_bpm_method = options.three_bpm_method
         self.only_coupling = options.only_coupling
-        self.accelerator = accelerator
+        self.accelerator = options.accelerator
         return self
 
 
-def _get_optics_parser(start_args=sys.argv[1:]):
+def _get_optics_parser():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--files", dest="files",  required=True,
+    parser.add_argument("--files", "--file", dest="files",  required=True,
                         help="Files from analysis, separated by comma")
     parser.add_argument("--outputdir", dest="outputdir", required=True, help="Output directory")
     parser.add_argument("--max_closed_orbit", dest="max_closed_orbit",
@@ -97,7 +101,4 @@ def _get_optics_parser(start_args=sys.argv[1:]):
                         help="Use 3 BPM method only")  # TODO --no_systematic_errors option instead?
     parser.add_argument("--only_coupling", dest="only_coupling", action="store_true",
                         help="Only coupling is calculated. ")
-
-    options, acc_args = parser.parse_known_args(args=start_args)
-    accelerator = manager.get_accel_instance(acc_args)
-    return options, accelerator
+    return parser

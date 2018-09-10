@@ -10,7 +10,7 @@ import pytimber
 
 import constants as const
 from utils import logging_tools
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 
 TIME_COL = const.get_time_col()
 START_TIME = const.get_tstart_head()

@@ -8,7 +8,9 @@ Created on 26/07/18
 It contains wrappers to new data structures such that they can be used in old functions.
 """
 import warnings
-from utils import tfs_file_writer, logging_tools
+from utils import logging_tools
+from tfs_files import tfs_file_writer
+
 LOGGER = logging_tools.get_logger(__name__)
 warnings.simplefilter('always', DeprecationWarning)
 
@@ -18,7 +20,8 @@ def _get_output_tfs_files(header_dict, filename, outpath):
     for (key, value) in header_dict.items():
         tfs_file.add_string_descriptor(key, value)
     tfs_file.add_string_descriptor("FILENAME", filename)
-    warnings.warn("Manual construction of tfs_file is deprecated, consider using utils.tfs_pandas",
+    warnings.warn("Manual construction of tfs_file is deprecated, "
+                  "consider using tfs_files.tfs_pandas",
                   DeprecationWarning, 2)
     return tfs_file
 

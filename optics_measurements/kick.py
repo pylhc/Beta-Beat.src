@@ -11,7 +11,7 @@ from os.path import join
 import pandas as pd
 import numpy as np
 from model.accelerators.accelerator import AccExcitationMode
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 
 
 def calculate_kick(measure_input, input_files, model, mad_ac, beta_d, header_dict):

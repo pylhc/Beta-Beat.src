@@ -58,15 +58,17 @@ Options::
 
 .. moduleauthor:: Unknown
 """
-import sys
-import os
 import optparse
 import json
 import pickle
 import re
+import sys
+import os
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 
-
-import __init__  # @UnusedImport init will include paths
 import correction.GenMatrix
 import Python_Classes4MAD.metaclass
 import utils.iotools
@@ -417,7 +419,7 @@ class _InputData(object):
             print >> sys.stderr, "Given Beta-Beat.src path does not exist: " + beta_beat_root
             beta_beat_root = utils.iotools.get_absolute_path_to_betabeat_root()
             print >> sys.stderr, "Will take current Beta-Beat.src: " + beta_beat_root
-        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC"):
+        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "PS", "PSBOOSTER"):
             raise ValueError("Unknown/not supported accelerator: " + accel)
         accel_path = os.path.join(beta_beat_root, "correction", "fullresponse", accel)
         if not utils.iotools.dirs_exist(accel_path):

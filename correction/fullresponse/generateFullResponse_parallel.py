@@ -49,7 +49,6 @@ Options::
 """
 
 
-import os
 import math
 import time
 import cPickle
@@ -58,8 +57,13 @@ import multiprocessing
 import json
 
 import numpy
+import sys
+import os
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 
-import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass as metaclass
 import utils.iotools
 import correction.correction_helpers
@@ -112,7 +116,7 @@ class _InputData(object):
 
     @staticmethod
     def static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl, fullresponse):
-        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL","PS"):
+        if accel not in ("LHCB1", "LHCB2", "SPS", "PSBOOSTER", "RHIC", "SOLEIL","PS"):
             raise ValueError("Unknown accelerator: " + accel)
         if not utils.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain job.iterator.madx and modifiers.madx.")

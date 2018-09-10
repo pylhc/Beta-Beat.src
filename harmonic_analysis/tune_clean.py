@@ -3,12 +3,10 @@ import sys
 import argparse
 import numpy as np
 
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__),
-    ".."
-)))
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir)))
 from utils import outliers  # noqa
-from utils import tfs_pandas  # noqa
+from tfs_files import tfs_pandas
 
 DEF_LIMIT = 1e-5
 

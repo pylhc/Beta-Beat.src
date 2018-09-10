@@ -3,18 +3,15 @@ import os
 import sys
 import argparse
 import logging
-import log_handler
-
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+from sbs_general_matcher import log_handler
+from sbs_general_matcher.matchers import (
+    phase_matcher,
+    coupling_matcher,
+    kmod_matcher,
+    amp_matcher,
 )
-
-from matchers import (phase_matcher,
-                      coupling_matcher,
-                      kmod_matcher,
-                      amp_matcher, )
-from template_manager.template_processor import TemplateProcessor
-from SegmentBySegment import SegmentBySegment
+from sbs_general_matcher.template_manager.template_processor import TemplateProcessor
+from SegmentBySegment import SegmentBySegmentMain
 from utils.contexts import silence
 
 
@@ -77,12 +74,12 @@ def _write_sbs_data_for_matchers(input_data):
 
 def _write_sbs_data(segment_inst, temporary_path):
     save_path = os.path.join(temporary_path, "sbs")
-    input_data = SegmentBySegment._InputData(temporary_path)
-    prop_models = SegmentBySegment._PropagatedModels(
+    input_data = SegmentBySegmentMain._InputData(temporary_path)
+    prop_models = SegmentBySegmentMain._PropagatedModels(
         save_path,
         segment_inst.label
     )
-    SegmentBySegment.getAndWriteData(
+    SegmentBySegmentMain.getAndWriteData(
         segment_inst.label, input_data, None, prop_models, save_path,
         False, False, True, False,
         segment_inst,
@@ -150,11 +147,11 @@ class InputData():
 
 def _run_gui(lhc_mode=None, match_path=None, input_dir=None):
     try:
-        from gui import gui
-    except ImportError as e:
+        from sbs_general_matcher.gui import gui
+    except ImportError as err:
         LOGGER.debug("ImportError importing GUI", exc_info=1)
         LOGGER.info("Cannot start GUI using the current Python installation:")
-        LOGGER.info(str(e))
+        LOGGER.info(str(err))
         LOGGER.info("Launching OMC Anaconda Python...")
         _run_gui_anaconda()
         return
@@ -163,7 +160,7 @@ def _run_gui(lhc_mode=None, match_path=None, input_dir=None):
 
 def _run_gui_anaconda():
     from subprocess import call
-    if not sys.platform == "darwin":  # This is Mac
+    if sys.platform != "darwin":  # This is Mac
         if "win" in sys.platform:
             LOGGER.error("There is not Windows version of Anaconda in OMC.\
                          Aborting.")

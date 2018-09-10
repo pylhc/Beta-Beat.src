@@ -2,13 +2,13 @@ import sys
 import os
 import subprocess
 import logging
+from contextlib import contextmanager
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QThread, Qt, QFileSystemWatcher, pyqtSignal
-from contextlib import contextmanager
-from sbs_gui_matcher_selection import SbSGuiMatcherTypeSelection
-from widgets import InitialConfigPopup, LogDialog
-from sbs_gui_match_result_view import SbSGuiMatchResultView
-import sbs_general_matcher
+import sbs_matcher_main
+from sbs_general_matcher.gui.sbs_gui_matcher_selection import SbSGuiMatcherTypeSelection
+from sbs_general_matcher.gui.widgets import InitialConfigPopup, LogDialog
+from sbs_general_matcher.gui.sbs_gui_match_result_view import SbSGuiMatchResultView
 
 
 LOGGER = logging.getLogger(__name__)
@@ -336,7 +336,7 @@ class SbSGuiMainController(object):
         for matcher_subw in self._view.get_subwindows_list():
             matchers_list.append(matcher_subw.model.get_matcher())
         minimize = self._view.is_minimize_selected()
-        input_data = sbs_general_matcher.InputData(
+        input_data = sbs_matcher_main.InputData(
             self._lhc_mode, self._match_path, minimize, matchers_list
         )
 
@@ -347,12 +347,12 @@ class SbSGuiMainController(object):
                     had_active_watcher = True
                     self._active_watcher.removePath(self._match_path)
                     self._active_watcher = None
-                sbs_general_matcher.run_full_madx_matching(input_data)
+                sbs_matcher_main.run_full_madx_matching(input_data)
                 if had_active_watcher:
                     self._watch_dir(self._match_path)
         else:
             def background_task():
-                sbs_general_matcher.run_twiss_and_sbs(input_data)
+                sbs_matcher_main.run_twiss_and_sbs(input_data)
 
         self._current_thread = BackgroundThread(
             self._view,

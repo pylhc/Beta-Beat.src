@@ -3,10 +3,9 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
-))
-from hole_in_one import clean
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
+from harmonic_analysis import clean
 
 
 def test_detect_known_bad_bpms():

@@ -14,8 +14,9 @@ import os
 from optparse import OptionParser
 import numpy as np
 import pandas as pd
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from utils import tfs_pandas as tfs
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir)))
+from tfs_files import tfs_pandas as tfs
 from model import manager
 
 PI2I = 2 * np.pi * complex(0, 1)

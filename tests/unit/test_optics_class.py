@@ -1,22 +1,20 @@
 import os
 import sys
-import warnings
 
 import numpy as np
 import pandas as pd
 import pytest
-from hypothesis import given, assume, settings
-from hypothesis.extra.pandas import range_indexes, columns, data_frames, column
+from hypothesis import given, settings
+from hypothesis.extra.pandas import range_indexes, data_frames, column
 from hypothesis.strategies import integers, floats, tuples
 
 from twiss_optics.optics_class import TwissOptics
 from twiss_optics.twiss_functions import get_all_rdts
-from utils.tfs_pandas import TfsDataFrame
+from tfs_files.tfs_pandas import TfsDataFrame
 from utils.contexts import suppress_warnings
 
-sys.path.append(os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
-))
+from os.path import abspath, join, dirname, pardir
+sys.path.append(abspath(join(dirname(__file__), pardir, pardir)))
 
 MAX_NRES = 40
 CURRENT_DIR = os.path.dirname(__file__)
@@ -168,6 +166,7 @@ def test_linear_dispersion(df, q):
 
 
 @given(df=full_dataframes(), q=tunes())
+@settings(deadline=1000)
 def test_linear_chromaticity(df, q):
     df = _pd_to_tfs(df, q)
     to = TwissOptics(df, quick_init=False)
@@ -177,6 +176,7 @@ def test_linear_chromaticity(df, q):
 
 
 @given(df=full_dataframes(), q=tunes())
+@settings(deadline=1000)
 def test_chromatic_beating(df, q):
     df = _pd_to_tfs(df, q)
     to = TwissOptics(df, quick_init=False)

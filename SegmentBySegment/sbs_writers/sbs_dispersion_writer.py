@@ -1,11 +1,11 @@
-import __init__  # @UnusedImport
-import os
-import numpy as np
 import math
-
+import os
 from math import sqrt
-from utils import tfs_file_writer
-from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+
+import numpy as np
+
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+from tfs_files import tfs_file_writer
 
 
 def write_dispersion(element_name, is_element, measured_hor_disp, measured_ver_disp, measured_norm_disp, input_model, propagated_models, save_path, dispersion_summary_file):

@@ -60,16 +60,17 @@ UQD       : MONITOR     , L := 0;         ! UQD Pick-up Monitor quadrupolar
 UTFB      : MONITOR     , L := 0;         ! PU Transverse feedback, electrostatic PU; type F
 UWBL      : MONITOR     , L := .3405;     ! Wide band PU, PU wide band (BSM, tomoscope)
 //---------------------- OCTUPOLE       ---------------------------------------------
-ONO       : OCTUPOLE    , L := 0;         ! Normal Octupole
-ONOH0     : OCTUPOLE    , L := 0;         ! Normal Octupole
-OSK       : OCTUPOLE    , L := 0;         ! Skew Octupole
+ONO       : MULTIPOLE    , L := 0;         ! Normal Octupole
+ONOH0     : MULTIPOLE    , L := 0;         ! Normal Octupole
+OSK       : MULTIPOLE    , L := 0;         ! Skew Octupole
 //---------------------- QUADRUPOLE     ---------------------------------------------
 MQNEC4WP  : QUADRUPOLE  , L := .5036;     ! Quadrupole magnet, 4 apertures, type QFO
 MQNED4WP  : QUADRUPOLE  , L := .5036;     ! Quadrupole magnet, 4 apertures, type QFO extraction
 MQNFA4WP  : QUADRUPOLE  , L := .8789;     ! Quadrupole magnet, 4 apertures, type QDE
-QNO__001  : QUADRUPOLE  , L := 0;         ! Normal Quadrupole
-QSK       : QUADRUPOLE  , L := 0;         ! Skew Quadrupole
-QSKH0     : QUADRUPOLE  , L := 0;         ! QSKH0 Quadrupole Skew
+lQNO = 0.0;
+QNO__001  : MULTIPOLE   , L := 0;         ! Normal Quadrupole
+QSK       : MULTIPOLE   , L := 0;         ! Skew Quadrupole
+QSKH0     : MULTIPOLE   , L := 0;         ! QSKH0 Quadrupole Skew
 //---------------------- RBEND          ---------------------------------------------
 MBHGC4WP  : RBEND       , L := 1.617696;  ! Bending magnet , Booster, 4 apertures. Alsthom "Normaux"
 MBHGD4WP  : RBEND       , L := 1.617696;  ! Bending magnet , Booster ejection, 4 apertures. Alsthom "Speciaux"
@@ -84,9 +85,9 @@ ACC04     : RFCAVITY    , L := 2.22;      ! 4 MHz radio frequency cavity
 ACC16     : RFCAVITY    , L := 1.285571;  ! 16 MHz cavity
 ACWF      : RFCAVITY    , L := .67;       ! Accelerating Cavities, wide-band, Finemet
 //---------------------- SEXTUPOLE      ---------------------------------------------
-XNOH0     : SEXTUPOLE   , L := 0;         ! Normal Sextupole
-XNO__001  : SEXTUPOLE   , L := 0;         ! Normal Sextupole
-XSK       : SEXTUPOLE   , L := 0;         ! Skew sextupole
+XNOH0     : MULTIPOLE   , L := 0;         ! Normal Sextupole
+XNO__001  : MULTIPOLE   , L := 0;         ! Normal Sextupole
+XSK       : MULTIPOLE   , L := 0;         ! Skew sextupole
 //---------------------- VKICKER        ---------------------------------------------
 DBSV      : VKICKER     , L := 0;         ! DBSV Vertical kicker for the beam scope, Dipoles Type I
 DSHAV     : VKICKER     , L := 0;         ! DSHAV Vertical Kicker type 1 (nominal current:10A), Shielding
