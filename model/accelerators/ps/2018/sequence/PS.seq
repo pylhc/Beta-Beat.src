@@ -583,7 +583,6 @@ PS42: SEQUENCE, L= 1.0;
 !  PI.BSF42      :  MSG    , AT = 1.0;    ! Sem grid. This instrument is physically implemented in the PS ring
                                           !           but logically it belongs the BTP line. The name on the
                                           !           instrument is MSG42.
-   PR.QSK42      :  QLSD   , AT = 1.0;
    PR.BHZ42      :  BHZ    , AT = 1.0;
 
 ENDSEQUENCE;
