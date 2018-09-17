@@ -178,6 +178,7 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
                 idx_name = INDEX_ID + data_frame.index.name
             except TypeError:
                 idx_name = INDEX_ID
+        data_frame = data_frame.copy()  # otherwise insert changes the original dataframe
         data_frame.insert(0, idx_name, data_frame.index)
 
     tfs_name = os.path.basename(tfs_path)
@@ -205,6 +206,9 @@ def write_tfs(tfs_path, data_frame, headers_dict={}, save_index=False):
     for _, row in data_frame.iterrows():
         tfs_writer.add_table_row(row)
     tfs_writer.write_to_file()
+
+    # if save_index:
+    #     data_frame.drop(idx_name, "columns", inplace=True)
 
 
 class TfsFormatError(Exception):

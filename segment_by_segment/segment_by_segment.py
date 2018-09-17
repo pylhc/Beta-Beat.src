@@ -309,8 +309,8 @@ class SegmentBeatings(TfsCollection):
     """
 
     beta_phase = Tfs("sbsbetabeating{plane}_{name}.out")
-    beta_kmod = Tfs("sbskmodbetabeating{plane}_{name}.out")
-    beta_amp = Tfs("sbsampbetabeating{plane}_{name}.out")
+    beta_kmod = Tfs("sbskmodbetabeat{plane}_{name}.out")
+    beta_amp = Tfs("sbsampbetabeat{plane}_{name}.out")
     phase = Tfs("sbsphase{plane}t_{name}.out")
     coupling = Tfs("sbscouple_{name}.out", two_planes=False)
     disp = Tfs("sbsD{plane}_{name}.out")

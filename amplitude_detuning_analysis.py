@@ -144,7 +144,7 @@ def _get_params():
     )
     params.add_parameter(
         flags="--finecut",
-        help="Length of the moving average window. (# data points)",
+        help="Cut (i.e. tolerance) of the tune for the fine cleaning.",
         name="fine_cut",
         type=float,
     )
