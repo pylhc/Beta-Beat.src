@@ -20,18 +20,22 @@ Usage:
 ++++++++++++++++++++++++
 
 To be used as a decorator::
+
     @entrypoint(parameters)
     def some_function(options, unknown_options)
 
 Using **strict** mode (see below)::
+
     @entrypoint(parameters, strict=True)
     def some_function(options)
 
 It is also possible to use the EntryPoint Class similar to a normal parser::
+
     ep_parser = EntryPoint(parameters)
     options, unknown_options = ep_parser.parse(arguments)
 
 Using **strict** mode (see below)::
+
     ep_parser = EntryPoint(parameters, strict=True)
     options = ep_parser.parse(arguments)
 
@@ -54,6 +58,7 @@ Parameters need to be a list or a dictionary of dictionaries with the following 
  (commandline only, do not use ``REMAINDER``!)
 | **action** (*optional*): either ``store_true`` or ``store_false``, will set ``type`` to bool
  and the default to ``False`` and ``True`` respectively.
+
 
 
 The **strict** option changes the behaviour for unknown parameters:
