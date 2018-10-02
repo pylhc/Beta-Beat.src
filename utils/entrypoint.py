@@ -534,6 +534,30 @@ def param_names(params):
     return names
 
 
+class CreateParamHelp(object):
+    """ Print params help quickly but changing the logging format first.
+
+    Usage Example::
+
+        import amplitude_detuning_analysis
+        help = CreateParamHelp()
+        help(amplitude_detuning_analysis)
+        help(amplitude_detuning_analysis, "_get_plot_params")
+
+    """
+    def __init__(self):
+        logtools.get_logger("__main__", fmt="%(message)s")
+
+    def __call__(self, module, param_fun=None):
+        if param_fun is None:
+            try:
+                module.get_params().help()
+            except AttributeError:
+                module._get_params().help()
+        else:
+            getattr(module, param_fun)().help()
+
+
 # Script Mode ##################################################################
 
 

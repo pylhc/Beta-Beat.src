@@ -1,3 +1,19 @@
+"""
+Entrypoint for amplitude detuning analysis.
+
+This module provides functionality to run amplitude detuning analysis with
+additionally getting BBQ data from timber, averaging and filtering this data and
+subtracting it from the measurement data.
+
+Furthermore, the orthogonal distance regression is utilized to get a
+linear fit from the measurements.
+
+Also, plotting functionality is integrated, for the amplitude detuning as well as for the bbq data.
+
+
+:author: Joschua Dilly
+"""
+
 import datetime
 import os
 
@@ -45,7 +61,7 @@ def _get_params():
         type=int,
     )
     params.add_parameter(
-        flags="--orientaion",
+        flags="--orientation",
         help="Orientation we are in. 'H' or 'V'.",
         name="orientation",
         required=True,
@@ -293,7 +309,69 @@ def _get_plot_params():
 
 @entrypoint(_get_params(), strict=True)
 def analyse_with_bbq_corrections(opt):
-    """ Create amplitude detuning analysis with BBQ correction from timber data. """
+    """ Create amplitude detuning analysis with BBQ correction from timber data.
+
+    Keyword Args:
+        ampdet_plot_out (str): Save the amplitude detuning plot here.
+                          **Flags**: --ampdetplot
+        ampdet_plot_show: Show the amplitude detuning plot.
+                          **Flags**: --ampdetplotshow
+                          **Action**: ``store_true``
+        ampdet_plot_xmax (float): Maximum action (x-axis) in amplitude detuning plot.
+                          **Flags**: --ampdetplotxmax
+        ampdet_plot_xmin (float): Minimum action (x-axis) in amplitude detuning plot.
+                                  **Flags**: --ampdetplotxmin
+        ampdet_plot_ymax (float): Maximum tune (y-axis) in amplitude detuning plot.
+                                  **Flags**: --ampdetplotymax
+        ampdet_plot_ymin (float): Minimum tune (y-axis) in amplitude detuning plot.
+                                  **Flags**: --ampdetplotymin
+        bbq_out (str): Output location to save bbq data as tfs-file
+                       **Flags**: --bbqout
+        bbq_plot_full: Plot the full bqq data with interval as lines.
+                       **Flags**: --bbqplotfull
+                       **Action**: ``store_true``
+        bbq_plot_out (str): Save the bbq plot here.
+                            **Flags**: --bbqplot
+        bbq_plot_show: Show the bbq plot.
+                       **Flags**: --bbqplotshow
+                       **Action**: ``store_true``
+        bbq_plot_two: Two plots for the bbq plot.
+                      **Flags**: --bbqplottwo
+                      **Action**: ``store_true``
+        debug: Activates Debug mode
+               **Flags**: --debug
+               **Action**: ``store_true``
+        fine_cut (float): Cut (i.e. tolerance) of the tune for the fine cleaning.
+                          **Flags**: --finecut
+        fine_window (int): Length of the moving average window. (# data points)
+                           **Flags**: --finewindow
+        kickac_out (str): If given, writes out the modified kickac file
+                          **Flags**: --kickacout
+        label (str): Label to identify this run.
+                     **Flags**: --label
+        logfile (str): Logfile if debug mode is active.
+                       **Flags**: --logfile
+        timber_out (str): Output location to save fill as tfs-file
+                          **Flags**: --timberout
+        tune_cut (float): Cuts for the tune. For BBQ cleaning.
+                          **Flags**: --tunecut
+        tune_x (float): Horizontal Tune. For BBQ cleaning.
+                        **Flags**: --tunex
+        tune_x_max (float): Horizontal Tune minimum. For BBQ cleaning.
+                            **Flags**: --tunexmax
+        tune_x_min (float): Horizontal Tune minimum. For BBQ cleaning.
+                            **Flags**: --tunexmin
+        tune_y (float): Vertical Tune. For BBQ cleaning.
+                        **Flags**: --tuney
+        tune_y_max (float): Vertical Tune minimum. For BBQ cleaning.
+                            **Flags**: --tuneymax
+        tune_y_min (float): Vertical  Tune minimum. For BBQ cleaning.
+                            **Flags**: --tuneymin
+        window_length (int): Length of the moving average window. (# data points)
+                             **Flags**: --window
+                             **Default**: ``20``
+
+     """
     LOG.info("Starting Amplitude Detuning Analysis")
     with logging_tools.DebugMode(active=opt.debug, log_file=opt.logfile):
         opt = _check_analyse_opt(opt)
@@ -379,7 +457,28 @@ def analyse_with_bbq_corrections(opt):
 
 @entrypoint(_get_plot_params(), strict=True)
 def plot_bbq_data(opt):
-    """ Plot BBQ wrapper. """
+    """ Plot BBQ wrapper.
+
+    Keyword Args:
+        interval (str): x_axis interval that was used in calculations.
+                        **Flags**: --interval
+        output (str): Save figure to this location.
+                      **Flags**: --out
+        show: Show plot.
+              **Flags**: --show
+              **Action**: ``store_true``
+        two_plots: Plot two axis into the figure.
+                   **Flags**: --two
+                   **Action**: ``store_true``
+        xmax (str): Upper x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)
+                    **Flags**: --xmax
+        xmin (str): Lower x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)
+                    **Flags**: --xmin
+        ymax (float): Upper y-axis limit.
+                      **Flags**: --ymax
+        ymin (float): Lower y-axis limit.
+                      **Flags**: --ymin
+    """
     LOG.info("Plotting BBQ.")
     if isinstance(opt.input, basestring):
         bbq_df = tfs.read_tfs(opt.input, index=COL_TIME())
