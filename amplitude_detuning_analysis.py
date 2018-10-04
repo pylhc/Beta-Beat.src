@@ -39,6 +39,7 @@ COL_CORRECTED = ta_const.get_natq_corr_col
 PLANES = ta_const.get_planes()
 TIMBER_KEY = ta_const.get_timber_bbq_key
 
+TIMEZONE = ta_const.get_experiment_timezone()
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -370,7 +371,6 @@ def analyse_with_bbq_corrections(opt):
         window_length (int): Length of the moving average window. (# data points)
                              **Flags**: --window
                              **Default**: ``20``
-
      """
     LOG.info("Starting Amplitude Detuning Analysis")
     with logging_tools.DebugMode(active=opt.debug, log_file=opt.logfile):
@@ -410,7 +410,8 @@ def analyse_with_bbq_corrections(opt):
                     output=opt.bbq_plot_out,
                     show=opt.bbq_plot_show,
                     two_plots=opt.bbq_plot_two,
-                    interval=[str(datetime.datetime.fromtimestamp(xint)) for xint in x_interval],
+                    interval=[str(datetime.datetime.fromtimestamp(xint, tz=TIMEZONE))
+                              for xint in x_interval],
                 )
             else:
                 figs["bbq"] = bbq_tools.plot_bbq_data(
