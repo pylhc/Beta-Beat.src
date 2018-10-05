@@ -64,10 +64,11 @@ def _get_params():
         type=int,
     )
     params.add_parameter(
-        flags="--orientation",
-        help="Orientation we are in. 'H' or 'V'.",
-        name="orientation",
+        flags="--plane",
+        help="Plane of the kicks. 'X' or 'Y'.",
+        name="plane",
         required=True,
+        choices=PLANES,
         type=str,
     )
     params.add_parameter(
@@ -319,8 +320,9 @@ def analyse_with_bbq_corrections(opt):
                     **Flags**: --beam
         kickac_path (str): Location of the kickac file
                            **Flags**: --kickac
-        orientation (str): Orientation we are in. 'H' or 'V'.
-                           **Flags**: --orientation
+        plane (str): Plane of the kicks. 'X' or 'Y'.
+                           **Flags**: --plane
+                           **Choices**: XY
         Optional
         ampdet_plot_out (str): Save the amplitude detuning plot here.
                           **Flags**: --ampdetplot
@@ -433,13 +435,12 @@ def analyse_with_bbq_corrections(opt):
                 )
 
         # amplitude detuning analysis
-        plane = ta_const.get_plane_from_orientation(opt.orientation)
         for other_plane in PLANES:
-            labels = ta_const.get_paired_lables(plane, other_plane)
-            id_str = "J{:s}_Q{:s}".format(plane.upper(), other_plane.upper())
+            labels = ta_const.get_paired_lables(opt.plane, other_plane)
+            id_str = "J{:s}_Q{:s}".format(opt.plane.upper(), other_plane.upper())
 
             # get proper data
-            columns = ta_const.get_paired_columns(plane, other_plane)
+            columns = ta_const.get_paired_columns(opt.plane, other_plane)
             data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
 
             # plotting
