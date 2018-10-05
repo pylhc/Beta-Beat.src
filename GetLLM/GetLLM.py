@@ -1155,24 +1155,47 @@ def _calculate_kick(kick_times, getllm_d, twiss_d, phase_d, beta_d, mad_twiss, m
 
 
 def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
-    calibration_file = calibration_twiss[plane]
-    cal_amplitudes = []
-    err_cal_amplitudes = []
-    calibration_value = []
-    calibration_error = []
-    for bpm_name in drive_file.NAME:
-        drive_index = drive_file.indx[bpm_name]
-        cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
-        err_cal_amplitude = 0.
-        if bpm_name in calibration_file.NAME:
-            cal_index = calibration_file.indx[bpm_name]
-            cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
-            err_cal_amplitude = cal_amplitude * calibration_file.ERROR_CALIBRATION[cal_index]
-        calibration_value.append(calibration_file.CALIBRATION[cal_index])
-        calibration_error.append(calibration_file.ERROR_CALIBRATION[cal_index])
-        cal_amplitudes.append(cal_amplitude)
-        err_cal_amplitudes.append(err_cal_amplitude)
-    return array(cal_amplitudes), array(err_cal_amplitudes),array(calibration_value),array(calibration_error)
+   calibration_file = calibration_twiss[plane]
+   cal_amplitudes = []
+   err_cal_amplitudes = []
+   calibration_value = []
+   calibration_error = []
+   if plane == "X":
+      tune = "Q1"
+      tune_rms = "Q1RMS"
+      natural_tune = "NATQ1"
+      natural_tune_rms = "NATQ1RMS"
+   elif plane == "Y":
+      tune = "Q2"
+      tune_rms = "Q2RMS"
+      natural_tune = "NATQ2"
+      natural_tune_rms = "NATQ2RMS"
+   tune_value = getattr(drive_file,tune)
+   #print "DRIVE TUNE"
+   #print tune_value
+   #print tune_value_rms
+   #print "NATURAL TUNE"
+   #print natural_tune_value
+   #print natural_tune_value_rms
+   tune_value_rms = getattr(drive_file,tune_rms)
+   natural_tune_value = getattr(drive_file,natural_tune_rms)
+   natural_tune_value_rms = getattr(drive_file,natural_tune_rms)
+   for bpm_name in drive_file.NAME:
+       drive_index = drive_file.indx[bpm_name]
+       cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
+       err_cal_amplitude = 0.
+       if bpm_name in calibration_file.NAME:
+           cal_index = calibration_file.indx[bpm_name]
+           cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
+           err_cal_amplitude = cal_amplitude * calibration_file.ERROR_CALIBRATION[cal_index]
+           calibration_value.append(calibration_file.CALIBRATION[cal_index])
+           calibration_error.append(calibration_file.ERROR_CALIBRATION[cal_index])
+       else:
+           calibration_value.append(1.)
+           calibration_error.append(0.)
+       cal_amplitudes.append(cal_amplitude)
+       err_cal_amplitudes.append(err_cal_amplitude)
+   return array(cal_amplitudes), array(err_cal_amplitudes),array(calibration_value),array(calibration_error)
 # END _get_calibrated_amplitudes --------------------------------------------------------------------
 
 
