@@ -18,6 +18,7 @@ from gui_utils import get_icon
 import options_utils as outils
 from general_helper import suppress_exception
 
+
 def change_properties(artist, parent=None):
     """ Change the properties of artist via user interface. """
     regen_legend = False
@@ -109,7 +110,6 @@ def _get_axis_properties(axis):
         grid_style = outils.get_linestyles().keys()[0]
 
     grid_style_data = outils.prepare_formdata(outils.get_linestyles(), grid_style)
-
 
     # find limits
     lim = axis.axes.__getattribute__("get_{}lim".format(plane))()
@@ -251,7 +251,10 @@ def _get_ebar_properties(ebar):
     props += _get_line_properties(ebar[0])[0][3:]
 
     if bar is not None:
-        ls = "-"  # TODO: Could not find the proper way to return the linestyle
+        ls = bar.get_linestyles()[0][0]
+        if ls is None:
+            ls = "None"  # it seems as if None here is "Solid" for some reason.
+            # Workaround: set width to 0
 
         ls_def, ls_choices = outils.prepare_formdata(outils.get_linestyles(), ls)
 
