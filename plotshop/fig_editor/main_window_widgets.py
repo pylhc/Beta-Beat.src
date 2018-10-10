@@ -227,7 +227,7 @@ class FigureCanvasExt(FigureCanvas):
 
     def update_legend(self):
         axes = self.figure.gca()
-        options_utils.regenerate_legend(axes)
+        options_utils.regenerate_legend(axes, force_new=True)
         self._save_legend_loc()
         self.draw()
 

@@ -75,7 +75,9 @@ def figure_edit(axes, parent=None):
 
     for idx, ebar in enumerate([cont for cont in axes.containers if outils.is_errorbar(cont)]):
             label = ebar.get_label()
-            if label == NOLEGEND:
+            if label is None:
+                label = ""
+            elif label == NOLEGEND:
                 label = "unnamed{:d}".format(idx)
             linedict[label] = ebar
 
@@ -224,12 +226,6 @@ def figure_edit(axes, parent=None):
                 line.set_markersize(markersize)
                 line.set_markerfacecolor(markerfacecolor)
                 line.set_markeredgecolor(markeredgecolor)
-
-            if not visible:
-                if ebar:
-                    ebar.set_label(NOLEGEND)
-                else:
-                    line.set_label(NOLEGEND)
 
         # Set / Images
         for index, image_settings in enumerate(images):

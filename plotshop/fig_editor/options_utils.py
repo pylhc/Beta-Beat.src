@@ -29,16 +29,22 @@ def get_scales():
     return ['linear', 'log', 'symlog', 'logit']
 
 
-def regenerate_legend(axes):
+def regenerate_legend(axes, force_new=False):
     """ Update legend but keep style and position """
+    old_legend = axes.get_legend()
+    if old_legend is None and not force_new:
+        return
+
     draggable = None
     loc = None
     ncol = 1
-    old_legend = axes.get_legend()
+    # save old properties
     if old_legend is not None:
         draggable = old_legend._draggable is not None
         ncol = old_legend._ncol
         loc = old_legend._get_loc()
+
+    # create new legend
     new_legend = axes.legend(ncol=ncol)
     if new_legend:
         new_legend.draggable(draggable)

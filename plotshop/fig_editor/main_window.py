@@ -13,6 +13,8 @@ Functionality:
 
 Planned:
     - copy paste between plots
+    - have a "draggable" switch for text objects
+    - add texts to options_figure to find invisible texts again
 
 WARNING: Pre-Alpha version.
 """

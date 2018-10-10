@@ -190,7 +190,7 @@ def _get_line_properties(line):
                  line.set_label, line.get_label(),
                  None),
         Property("Visible",
-                 lambda x, line=line: _apply_line_visibility(line, x), line.get_visible(),
+                 line.set_visible, line.get_visible(),
                  None),
         Property("Z-Order",
                  line.set_zorder, line.get_zorder(),
@@ -235,12 +235,16 @@ def _get_ebar_properties(ebar):
     with suppress_exception(IndexError):
         bar = ebar[2][0]
 
+    label = ebar.get_label()
+    if label is None:
+        label = ""  # workaround as ebars can return None labels
+
     props = [
         Property("Label",
-                 ebar.set_label, ebar.get_label(),
+                 ebar.set_label, label,
                  None),
         Property("Visible",
-                 lambda x, ebar=ebar: outils.apply_to_ebar(_apply_line_visibility, ebar, x),
+                 lambda x, ebar=ebar: outils.apply_to_ebar(lambda e, v: e.set_visible(v), ebar, x),
                  ebar[0].get_visible(),
                  None),
         Property("Z-Order",
@@ -410,11 +414,6 @@ def _show_ticks(state, axis, which):
     for item in items:
         item.set_visible(state)
 
-
-def _apply_line_visibility(line, visible):
-    line.set_visible(visible)
-    if not visible:
-        line.set_label(outils.NOLEGEND)
 
 
 # Property Class ###############################################################
