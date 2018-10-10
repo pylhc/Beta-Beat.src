@@ -583,6 +583,7 @@ PS42: SEQUENCE, L= 1.0;
 !  PI.BSF42      :  MSG    , AT = 1.0;    ! Sem grid. This instrument is physically implemented in the PS ring
                                           !           but logically it belongs the BTP line. The name on the
                                           !           instrument is MSG42.
+!  PR.QSK42      :  QLSD   , AT = 1.0;    ! not present in the machine
    PR.BHZ42      :  BHZ    , AT = 1.0;
 
 ENDSEQUENCE;
@@ -1608,9 +1609,6 @@ SEC0 : SEQUENCE, REFER=ENTRY, L = 62.83185307180;
 ENDSEQUENCE;
 
 
-
-
-
 PS : SEQUENCE, REFER=ENTRY, L = 628.318530718;
 SEC1,  at =   0.00000;
 SEC2,  at =  62.8318530718;
@@ -1625,8 +1623,49 @@ SEC0,  at = 565.4866776462;
 ENDMARK,at= 628.3185307180;
 ENDSEQUENCE;
 
-
-
+PSL=628.318530718;
+PS4 : SEQUENCE, L = 4*PSL, refer=entry;
+SEC1,  at =   0.00000;
+SEC2,  at =  62.8318530718;
+SEC3,  at = 125.6637061436;
+SEC4,  at = 188.4955592154;
+SEC5,  at = 251.3274122872;
+SEC6,  at = 314.1592653590;
+SEC7,  at = 376.9911184308;
+SEC8,  at = 439.8229715026;
+SEC9,  at = 502.6548245744;
+SEC0,  at = 565.4866776462;
+SEC1,  at =   0.00000      +PSL;
+SEC2,  at =  62.8318530718 +PSL;
+SEC3,  at = 125.6637061436 +PSL;
+SEC4,  at = 188.4955592154 +PSL;
+SEC5,  at = 251.3274122872 +PSL;
+SEC6,  at = 314.1592653590 +PSL;
+SEC7,  at = 376.9911184308 +PSL;
+SEC8,  at = 439.8229715026 +PSL;
+SEC9,  at = 502.6548245744 +PSL;
+SEC0,  at = 565.4866776462 +PSL;
+SEC1,  at =   0.00000      +2*PSL;
+SEC2,  at =  62.8318530718 +2*PSL;
+SEC3,  at = 125.6637061436 +2*PSL;
+SEC4,  at = 188.4955592154 +2*PSL;
+SEC5,  at = 251.3274122872 +2*PSL;
+SEC6,  at = 314.1592653590 +2*PSL;
+SEC7,  at = 376.9911184308 +2*PSL;
+SEC8,  at = 439.8229715026 +2*PSL;
+SEC9,  at = 502.6548245744 +2*PSL;
+SEC0,  at = 565.4866776462 +2*PSL;
+SEC1,  at =   0.00000      +3*PSL;
+SEC2,  at =  62.8318530718 +3*PSL;
+SEC3,  at = 125.6637061436 +3*PSL;
+SEC4,  at = 188.4955592154 +3*PSL;
+SEC5,  at = 251.3274122872 +3*PSL;
+SEC6,  at = 314.1592653590 +3*PSL;
+SEC7,  at = 376.9911184308 +3*PSL;
+SEC8,  at = 439.8229715026 +3*PSL;
+SEC9,  at = 502.6548245744 +3*PSL;
+SEC0,  at = 565.4866776462 +3*PSL;
+ENDSEQUENCE;
 
 !ejection channels
 DR01:DRIFT,L=0.1;
