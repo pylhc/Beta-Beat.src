@@ -60,7 +60,7 @@ def calculate_phases(measure_input, input_files, tunes, header_dict):
                         plane, (tunes[plane]["Q"], tunes[plane]["QF"], phase_d[plane]["ac2bpm"]))
             headers = _get_headers(header_dict, tunes, plane, free=True)
             write_output(headers, output_dfs, measure_input.outputdir, plane)
-
+        write_special_phase_file(plane, phase_d[plane]["F"], tunes[plane]["QF"], measure_input.accelerator, measure_input.outputdir)
             # phase_d[plane]["F2"]  = _get_free_phase(phase_d[plane]["F"],
             # tune_d[plane]["Q"], tune_d[plane]["QF"], bpmsx, model_driven, model, plane)
     return phase_d
@@ -202,47 +202,44 @@ class PhaseDict(dict):
                          {"ac2bpm": None, "D": None, "F": None, "F2": None})))
 
 
-"""
-def write_special_phase_file(plane, phase_advances, tune_x, tune_y, accel):
+def write_special_phase_file(plane, phase_advances, plane_tune, accel, outputdir):
+    # TODO REFACTOR AND SIMPLIFY
     plane_mu = "MU" + plane
-    plane_tune = tune_x if plane == "X" else tune_y
     meas = phase_advances["MEAS"]
     err = phase_advances["ERRMEAS"]
     bd = accel.get_beam_direction()
     elements = accel.get_elements_tfs()
+    lines = []
     for elem1, elem2 in accel.get_important_phase_advances():
         mus1 = elements.loc[elem1, plane_mu] - elements.loc[:, plane_mu]
         minmu1 = abs(mus1.loc[meas.index]).idxmin()
         mus2 = elements.loc[:, plane_mu] - elements.loc[elem2, plane_mu]
         minmu2 = abs(mus2.loc[meas.index]).idxmin()
-        try:
-            bpm_phase_advance = meas.loc[minmu1, minmu2]
-            model_value = elements.loc[elem2, plane_mu] - elements.loc[elem1, plane_mu]
-            if (elements.loc[elem1, "S"] - elements.loc[elem2, "S"]) * bd > 0.0:
-                bpm_phase_advance += plane_tune
-                model_value += plane_tune
-            bpm_err = err.loc[minmu1, minmu2]
-            phase_to_first = -mus1.loc[minmu1]
-            phase_to_second = -mus2.loc[minmu2]
-            ph_result = ((bpm_phase_advance + phase_to_first + phase_to_second) * bd)
-            model_value = (model_value * bd)
-            resultdeg = ph_result % .5 * 360
-            if resultdeg > 90:
-                resultdeg -= 180
-            modeldeg = model_value % .5 * 360
-            if modeldeg > 90:
-                modeldeg -= 180
-            model_desc = [elem1 + "__to__" + elem2 + "___MODL",
-                          "{:8.4f}     {:6s} = {:6.2f} deg".format(model_value % 1, "",
-                                                                   modeldeg)]
-            result_desc = [elem1 + "__to__" + elem2 + "___MEAS",
-                           "{:8.4f}  +- {:6.4f} = {:6.2f} +- {:3.2f} deg ({:8.4f} + {:8.4f} [{}, {}])".format(
-                               ph_result % 1, bpm_err, resultdeg, bpm_err * 360,
-                               bpm_phase_advance,
-                               phase_to_first + phase_to_second,
-                               minmu1, minmu2) ]
-            tfs_file.add_string_descriptor(*model_desc)
-            tfs_file.add_string_descriptor(*result_desc)
-        except KeyError as e:
-            LOGGER.error("Couldn't calculate the phase advance because " + e)
-"""
+        bpm_phase_advance = meas.loc[minmu1, minmu2]
+        model_value = elements.loc[elem2, plane_mu] - elements.loc[elem1, plane_mu]
+        if (elements.loc[elem1, "S"] - elements.loc[elem2, "S"]) * bd > 0.0:
+            bpm_phase_advance += plane_tune
+            model_value += plane_tune
+        bpm_err = err.loc[minmu1, minmu2]
+        phase_to_first = -mus1.loc[minmu1]
+        phase_to_second = -mus2.loc[minmu2]
+        ph_result = ((bpm_phase_advance + phase_to_first + phase_to_second) * bd)
+        model_value = (model_value * bd)
+        resultdeg = ph_result % .5 * 360
+        if resultdeg > 90:
+            resultdeg -= 180
+        modeldeg = model_value % .5 * 360
+        if modeldeg > 90:
+            modeldeg -= 180
+        model_desc = "{} to {} MODEL: {:8.4f}     {:6s} = {:6.2f} deg".format(elem1,elem2, model_value % 1, "", modeldeg)
+        result_desc = "{} to {} MEAS : {:8.4f}  +- {:6.4f} = {:6.2f} +- {:3.2f} deg ({:8.4f} + {:8.4f} [{}, {}])".format(
+                           elem1, elem2, ph_result % 1, bpm_err, resultdeg, bpm_err * 360,
+                           bpm_phase_advance,
+                           phase_to_first + phase_to_second,
+                           minmu1, minmu2)
+        lines.extend([model_desc, result_desc])
+    with open(join(outputdir, 'special_phase' + plane.lower() + '.out'), 'w') as special_phase_writer:
+        special_phase_writer.write('Special phase advances\n')
+        for line in lines:
+            special_phase_writer.write(line + '\n')
+

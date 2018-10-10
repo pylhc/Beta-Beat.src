@@ -116,7 +116,7 @@ class _InputData(object):
 
     @staticmethod
     def static_init(accel, output_path, path_to_core_files_without_accel, delta_k, delta_kl, fullresponse):
-        if accel not in ("LHCB1", "LHCB2", "SPS", "RHIC", "SOLEIL","PS"):
+        if accel not in ("LHCB1", "LHCB2", "SPS", "PSBOOSTER", "RHIC", "SOLEIL","PS"):
             raise ValueError("Unknown accelerator: " + accel)
         if not utils.iotools.dirs_exist(output_path):
             raise ValueError("Output path does not exists. It has to contain job.iterator.madx and modifiers.madx.")

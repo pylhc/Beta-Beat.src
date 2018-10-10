@@ -1,3 +1,19 @@
+"""
+Entrypoint for amplitude detuning analysis.
+
+This module provides functionality to run amplitude detuning analysis with
+additionally getting BBQ data from timber, averaging and filtering this data and
+subtracting it from the measurement data.
+
+Furthermore, the orthogonal distance regression is utilized to get a
+linear fit from the measurements.
+
+Also, plotting functionality is integrated, for the amplitude detuning as well as for the bbq data.
+
+
+:author: Joschua Dilly
+"""
+
 import datetime
 import os
 
@@ -23,6 +39,9 @@ COL_CORRECTED = ta_const.get_natq_corr_col
 PLANES = ta_const.get_planes()
 TIMBER_KEY = ta_const.get_timber_bbq_key
 
+TIMEZONE = ta_const.get_experiment_timezone()
+
+DTIME = 60  # extra seconds to add to kickac times when extracting from timber
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -45,17 +64,17 @@ def _get_params():
         type=int,
     )
     params.add_parameter(
-        flags="--orientaion",
-        help="Orientation we are in. 'H' or 'V'.",
-        name="orientation",
+        flags="--plane",
+        help="Plane of the kicks. 'X' or 'Y'.",
+        name="plane",
         required=True,
+        choices=PLANES,
         type=str,
     )
     params.add_parameter(
         flags="--timberin",
         help="Fill number of desired data or path to presaved tfs-file",
         name="timber_in",
-        required=True,
     )
     params.add_parameter(
         flags="--timberout",
@@ -144,7 +163,7 @@ def _get_params():
     )
     params.add_parameter(
         flags="--finecut",
-        help="Length of the moving average window. (# data points)",
+        help="Cut (i.e. tolerance) of the tune for the fine cleaning.",
         name="fine_cut",
         type=float,
     )
@@ -293,15 +312,87 @@ def _get_plot_params():
 
 @entrypoint(_get_params(), strict=True)
 def analyse_with_bbq_corrections(opt):
-    """ Create amplitude detuning analysis with BBQ correction from timber data. """
+    """ Create amplitude detuning analysis with BBQ correction from timber data.
+
+    Keyword Args:
+        Required
+        beam (int): Which beam to use.
+                    **Flags**: --beam
+        kickac_path (str): Location of the kickac file
+                           **Flags**: --kickac
+        plane (str): Plane of the kicks. 'X' or 'Y'.
+                           **Flags**: --plane
+                           **Choices**: XY
+        Optional
+        ampdet_plot_out (str): Save the amplitude detuning plot here.
+                          **Flags**: --ampdetplot
+        ampdet_plot_show: Show the amplitude detuning plot.
+                          **Flags**: --ampdetplotshow
+                          **Action**: ``store_true``
+        ampdet_plot_xmax (float): Maximum action (x-axis) in amplitude detuning plot.
+                          **Flags**: --ampdetplotxmax
+        ampdet_plot_xmin (float): Minimum action (x-axis) in amplitude detuning plot.
+                                  **Flags**: --ampdetplotxmin
+        ampdet_plot_ymax (float): Maximum tune (y-axis) in amplitude detuning plot.
+                                  **Flags**: --ampdetplotymax
+        ampdet_plot_ymin (float): Minimum tune (y-axis) in amplitude detuning plot.
+                                  **Flags**: --ampdetplotymin
+        bbq_out (str): Output location to save bbq data as tfs-file
+                       **Flags**: --bbqout
+        bbq_plot_full: Plot the full bqq data with interval as lines.
+                       **Flags**: --bbqplotfull
+                       **Action**: ``store_true``
+        bbq_plot_out (str): Save the bbq plot here.
+                            **Flags**: --bbqplot
+        bbq_plot_show: Show the bbq plot.
+                       **Flags**: --bbqplotshow
+                       **Action**: ``store_true``
+        bbq_plot_two: Two plots for the bbq plot.
+                      **Flags**: --bbqplottwo
+                      **Action**: ``store_true``
+        debug: Activates Debug mode
+               **Flags**: --debug
+               **Action**: ``store_true``
+        fine_cut (float): Cut (i.e. tolerance) of the tune for the fine cleaning.
+                          **Flags**: --finecut
+        fine_window (int): Length of the moving average window. (# data points)
+                           **Flags**: --finewindow
+        kickac_out (str): If given, writes out the modified kickac file
+                          **Flags**: --kickacout
+        label (str): Label to identify this run.
+                     **Flags**: --label
+        logfile (str): Logfile if debug mode is active.
+                       **Flags**: --logfile
+        timber_in: Fill number of desired data or path to presaved tfs-file
+                   **Flags**: --timberin
+        timber_out (str): Output location to save fill as tfs-file
+                          **Flags**: --timberout
+        tune_cut (float): Cuts for the tune. For BBQ cleaning.
+                          **Flags**: --tunecut
+        tune_x (float): Horizontal Tune. For BBQ cleaning.
+                        **Flags**: --tunex
+        tune_x_max (float): Horizontal Tune minimum. For BBQ cleaning.
+                            **Flags**: --tunexmax
+        tune_x_min (float): Horizontal Tune minimum. For BBQ cleaning.
+                            **Flags**: --tunexmin
+        tune_y (float): Vertical Tune. For BBQ cleaning.
+                        **Flags**: --tuney
+        tune_y_max (float): Vertical Tune minimum. For BBQ cleaning.
+                            **Flags**: --tuneymax
+        tune_y_min (float): Vertical  Tune minimum. For BBQ cleaning.
+                            **Flags**: --tuneymin
+        window_length (int): Length of the moving average window. (# data points)
+                             **Flags**: --window
+                             **Default**: ``20``
+     """
     LOG.info("Starting Amplitude Detuning Analysis")
     with logging_tools.DebugMode(active=opt.debug, log_file=opt.logfile):
         opt = _check_analyse_opt(opt)
         figs = {}
 
         # get data
-        bbq_df = _get_timber_data(opt.beam, opt.timber_in, opt.timber_out)
         kickac_df = tfs.read_tfs(opt.kickac_path, index=COL_TIME())
+        bbq_df = _get_timber_data(opt.beam, opt.timber_in, opt.timber_out, kickac_df)
         x_interval = _get_approx_bbq_interval(bbq_df, kickac_df.index, opt.window_length)
 
         # add moving average to kickac
@@ -332,7 +423,8 @@ def analyse_with_bbq_corrections(opt):
                     output=opt.bbq_plot_out,
                     show=opt.bbq_plot_show,
                     two_plots=opt.bbq_plot_two,
-                    interval=[str(datetime.datetime.fromtimestamp(xint)) for xint in x_interval],
+                    interval=[str(datetime.datetime.fromtimestamp(xint, tz=TIMEZONE))
+                              for xint in x_interval],
                 )
             else:
                 figs["bbq"] = bbq_tools.plot_bbq_data(
@@ -343,13 +435,12 @@ def analyse_with_bbq_corrections(opt):
                 )
 
         # amplitude detuning analysis
-        plane = ta_const.get_plane_from_orientation(opt.orientation)
         for other_plane in PLANES:
-            labels = ta_const.get_paired_lables(plane, other_plane)
-            id_str = "J{:s}_Q{:s}".format(plane.upper(), other_plane.upper())
+            labels = ta_const.get_paired_lables(opt.plane, other_plane)
+            id_str = "J{:s}_Q{:s}".format(opt.plane.upper(), other_plane.upper())
 
             # get proper data
-            columns = ta_const.get_paired_columns(plane, other_plane)
+            columns = ta_const.get_paired_columns(opt.plane, other_plane)
             data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
 
             # plotting
@@ -379,7 +470,32 @@ def analyse_with_bbq_corrections(opt):
 
 @entrypoint(_get_plot_params(), strict=True)
 def plot_bbq_data(opt):
-    """ Plot BBQ wrapper. """
+    """ Plot BBQ wrapper.
+
+    Keyword Args:
+        Required
+        input: BBQ data as data frame or tfs file.
+               **Flags**: --in
+        Optional
+        interval (str): x_axis interval that was used in calculations.
+                        **Flags**: --interval
+        output (str): Save figure to this location.
+                      **Flags**: --out
+        show: Show plot.
+              **Flags**: --show
+              **Action**: ``store_true``
+        two_plots: Plot two axis into the figure.
+                   **Flags**: --two
+                   **Action**: ``store_true``
+        xmax (str): Upper x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)
+                    **Flags**: --xmax
+        xmin (str): Lower x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)
+                    **Flags**: --xmin
+        ymax (float): Upper y-axis limit.
+                      **Flags**: --ymax
+        ymin (float): Lower y-axis limit.
+                      **Flags**: --ymin
+    """
     LOG.info("Plotting BBQ.")
     if isinstance(opt.input, basestring):
         bbq_df = tfs.read_tfs(opt.input, index=COL_TIME())
@@ -440,27 +556,37 @@ def _get_approx_bbq_interval(bbq_df, time_array, window_length):
     return bbq_tmp.index[i_start], bbq_tmp.index[i_end]
 
 
-def _get_timber_data(beam, input, output):
+def _get_timber_data(beam, input, output, kickac_df):
     """ Return Timber data from input """
-    LOG.debug("Getting timber data from '{}'".format(input))
+
     try:
         fill_number = int(input)
     except ValueError:
-        fill = tfs.read_tfs(input, index=COL_TIME())
-        fill.drop([COL_MAV(p) for p in PLANES if COL_MAV(p) in fill.columns],
+        # input is a string
+        LOG.debug("Getting timber data from file '{:s}'".format(input))
+        data = tfs.read_tfs(input, index=COL_TIME())
+        data.drop([COL_MAV(p) for p in PLANES if COL_MAV(p) in data.columns],
                   axis='columns')
+    except TypeError:
+        # input is None
+        LOG.debug("Getting timber data from kickac-times.")
+        timber_keys, bbq_cols = _get_timber_keys_and_bbq_columns(beam)
+        t_start, t_end = kickac_df.index[[0, -1]]
+        data = timber_extract.extract_between_times(t_start-DTIME, t_end+DTIME,
+                                                    keys=timber_keys,
+                                                    names=dict(zip(timber_keys, bbq_cols)))
     else:
-        timber_keys = [TIMBER_KEY(plane, beam) for plane in PLANES]
-        bbq_cols = [COL_BBQ(plane) for plane in PLANES]
-
-        fill = timber_extract.lhc_fill_to_tfs(fill_number,
+        # input is a number
+        LOG.debug("Getting timber data from fill '{:d}'".format(input))
+        timber_keys, bbq_cols = _get_timber_keys_and_bbq_columns(beam)
+        data = timber_extract.lhc_fill_to_tfs(fill_number,
                                               keys=timber_keys,
                                               names=dict(zip(timber_keys, bbq_cols)))
 
-        if output:
-            tfs.write_tfs(output, fill, save_index=COL_TIME())
+    if output:
+        tfs.write_tfs(output, data, save_index=COL_TIME())
 
-    return fill
+    return data
 
 
 def _add_moving_average(kickac_df, bbq_df, **kwargs):
@@ -487,6 +613,12 @@ def _add_corrected_natural_tunes(kickac_df):
         kickac_df[COL_CORRECTED(plane)] = \
             kickac_df[COL_NATQ(plane)] - kickac_df[COL_MAV(plane)]
     return kickac_df
+
+
+def _get_timber_keys_and_bbq_columns(beam):
+    keys = [TIMBER_KEY(plane, beam) for plane in PLANES]
+    cols = [COL_BBQ(plane) for plane in PLANES]
+    return keys, cols
 
 
 # Script Mode ##################################################################

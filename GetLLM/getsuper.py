@@ -662,11 +662,13 @@ def _get_tunes(model_file, fileslist):
 
 def linreg(X, Y):
     """
-    Summary
-        Linear regression of y = ax + b
-    Usage
-        real, real, real = linreg(list, list)
     Returns coefficients to the regression line "y=ax+b" from x[] and y[], and R^2 Value
+
+    Summary:
+        Linear regression of y = ax + b
+
+    Usage:
+        real, real, real = linreg(list, list)
     """
     if len(X) != len(Y):  raise ValueError, 'unequal length'
     N = len(X)

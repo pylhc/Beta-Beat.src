@@ -64,12 +64,14 @@ def get_moving_average(data_series, length=20,
         max_mask = np.zeros(data_series.size, dtype=bool)
 
     cut_mask = min_mask | max_mask
+    _is_empty_mask(~cut_mask)
     data_mav = _get_interpolated_moving_average(data_series, cut_mask, length)
 
     if fine_length is not None:
         min_mask = data_series <= (data_mav - fine_cut)
         max_mask = data_series >= (data_mav + fine_cut)
         cut_mask = min_mask | max_mask
+        _is_empty_mask(~cut_mask)
         data_mav = _get_interpolated_moving_average(data_series, cut_mask, fine_length)
 
     return data_mav, cut_mask
@@ -203,6 +205,12 @@ def _get_interpolated_moving_average(data_series, clean_mask, length):
     shift = -int((length-1)/2)  # Shift average to middle value
     return data_mav.rolling(length).mean().shift(shift).fillna(
         method="bfill").fillna(method="ffill")
+
+
+def _is_empty_mask(mask):
+    """ Checks if mask is empty. """
+    if sum(mask) == 0:
+        raise ValueError("All points have been filtered. Maybe wrong tune, cutoff?")
 
 
 # Script Mode #################################################################

@@ -200,6 +200,10 @@ class Psbooster(Accelerator):
         return os.path.join(PSB_DIR, "nominal.madx")
 
     @classmethod
+    def get_iteration_tmpl(cls):
+        return cls.get_file("template.iterate.madx")
+
+    @classmethod
     def get_psb_dir(cls):
         return PSB_DIR
 
@@ -227,6 +231,7 @@ class Psbooster(Accelerator):
     @classmethod
     def get_file(cls, filename):
         return os.path.join(CURRENT_DIR, "psbooster", filename)
+
 
     # Private Methods ##########################################################
 
