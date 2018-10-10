@@ -16,7 +16,7 @@ from matplotlib.ticker import FormatStrFormatter
 import constants as const
 from utils import logging_tools
 from utils.contexts import suppress_warnings
-from utils.plotting import plot_style as ps
+from plotshop import plot_style as ps
 
 TIMEZONE = const.get_experiment_timezone()
 

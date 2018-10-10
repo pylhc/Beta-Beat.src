@@ -16,6 +16,7 @@ Contents:
    GetLLM/index
    harmonic_analysis/index
    model/index
+   plotshop/index
    segment_by_segment/index
    tfs_files/index
    tune_analysis/index

@@ -9,7 +9,7 @@ from scipy.odr import RealData, Model, ODR
 
 import constants as const
 from utils import logging_tools
-from utils.plotting import plot_style as ps
+from plotshop import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
 
