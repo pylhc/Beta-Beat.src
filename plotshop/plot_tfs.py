@@ -6,7 +6,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import pyplot as plt, gridspec, rcParams
 
 from utils.entrypoint import EntryPointParameters, entrypoint
-from utils.plotting import plot_style as ps
+from plotshop import plot_style as ps
 from tfs_files import tfs_pandas as tfs
 from utils import logging_tools
 

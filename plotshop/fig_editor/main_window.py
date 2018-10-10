@@ -1,8 +1,6 @@
 import logging
-import os
 import sys
 from PyQt5 import QtGui, QtWidgets, QtCore
-import time
 
 import matplotlib
 import numpy as np

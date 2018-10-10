@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 from io_widgets import ColumnSelectorDialog
 from tfs_files import tfs_pandas as tfs
-from utils.plotting import plot_tfs
+from plotshop import plot_tfs
 
 LOG = logging.getLogger(__name__)
 
