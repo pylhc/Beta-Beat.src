@@ -1,4 +1,7 @@
 """
+Module plotshop.post_processing
+---------------------------------
+
 Functions for plot post-processing.
 """
 import numpy as np

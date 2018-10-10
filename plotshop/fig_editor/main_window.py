@@ -1,3 +1,21 @@
+"""
+Module plotshop.fig_editor.main_window: QT-based Figure Editor
+-----------------------------------------------------------------
+
+This is an extended figure editor based on the PyQT5 backend of matplotlib.
+
+Functionality:
+    - easily plot from tfs files
+    - change plot attributes by douple click on element
+    - change plot attributes via icon in navigation bar
+    - drag text around
+    - move the legend to predefined positions
+
+Planned:
+    - copy paste between plots
+
+WARNING: Pre-Alpha version.
+"""
 import logging
 import sys
 from PyQt5 import QtGui, QtWidgets, QtCore
@@ -12,14 +30,7 @@ from main_window_widgets import (
     FigureCanvasExt, NavigationToolbar, LogDialog, LogStatusBar, DragHandler
 )
 
-
 LOG = logging.getLogger(__name__)
-
-# TODO: set title position higher
-# On picker: check if line is in errorbarcontainer
-# use formlayout.fedit to edit lines/title/text/etc
-#
-
 
 _VERSION = "0.0_prealpha"
 _AUTHOR = "Joschua"

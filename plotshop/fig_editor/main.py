@@ -1,5 +1,11 @@
 """
-Launcher for the advanced qt-gui for matpoltlib.
+Module plotshop.fig_editor.main: Figure Editor Command Line
+-------------------------------------------------------------------
+
+Commandline launcher/wrapper for the advanced qt-gui for matpoltlib.
+This module simply starts an empty* figure-editor.
+
+*right now it is filled with random stuff for testing. But you can just load the file you want.
 """
 import sys
 from PyQt5 import QtWidgets

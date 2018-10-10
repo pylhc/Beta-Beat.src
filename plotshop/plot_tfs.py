@@ -1,3 +1,11 @@
+"""
+Module plotshop.plot_tfs
+-------------------------
+
+Wrapper to easily plot tfs-files. With entrypoint functionality.
+"""
+
+
 import sys
 from os.path import abspath, join, pardir
 sys.path.append(abspath(join(__file__, pardir, pardir)))
