@@ -41,7 +41,8 @@ def get_errorbar_data(ax):
         ax: axes handle to axes to extract data from.
 
     Returns:
-        List of dictionaries of extracted data with keys as follows:
+        :List of dictionaries of extracted data with keys as follows:
+
         |    label: Line label
         |    x: x-position data of the points
         |    y: y-position data of the points
@@ -76,7 +77,8 @@ def get_line_data(ax):
         ax: axes handle to axes to extract data from.
 
     Returns:
-        List of dictionaries of extracted data with keys as follows:
+        :List of dictionaries of extracted data with keys as follows:
+
         |    label: Line label
         |    x: x-position data of the points
         |    y: y-position data of the points

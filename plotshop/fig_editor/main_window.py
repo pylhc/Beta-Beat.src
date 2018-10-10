@@ -109,7 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                            None, quit_action))
 
         self.help_menu = self.menuBar().addMenu("&Help")
-        about_action = self._create_action("&About", slot=self.on_about,
+        about_action = self._create_action("&About", slot=self._on_about,
                                            shortcut='F1', tip='About the demo')
         log_action = self._create_action("&Show Log", slot=self.show_log,
                                            shortcut='F2', tip='Show the log.')
@@ -190,14 +190,14 @@ class MainWindow(QtWidgets.QMainWindow):
         #
         self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)  # needed for key events to regisiter
         self.canvas.setFocus()                            # sets focus without clicking on it
-        self.cids.append(self.canvas.mpl_connect('pick_event', self.on_pick))
-        self.cids.append(self.canvas.mpl_connect('draw_event', self.on_draw))
-        self.cids.append(self.canvas.mpl_connect('key_press_event', self.on_key_press))
-        self.cids.append(self.canvas.mpl_connect('key_release_event', self.on_key_release))
-        self.cids.append(self.canvas.mpl_connect('button_press_event', self.on_mouse_click))
-        self.cids.append(self.canvas.mpl_connect("button_release_event", self.on_mouse_release))
-        self.cids.append(self.canvas.mpl_connect("motion_notify_event", self.on_mouse_move))
-        self.cids.append(self.canvas.mpl_connect('scroll_event', self.on_scroll))
+        self.cids.append(self.canvas.mpl_connect('pick_event', self._on_pick))
+        self.cids.append(self.canvas.mpl_connect('draw_event', self._on_draw))
+        self.cids.append(self.canvas.mpl_connect('key_press_event', self._on_key_press))
+        self.cids.append(self.canvas.mpl_connect('key_release_event', self._on_key_release))
+        self.cids.append(self.canvas.mpl_connect('button_press_event', self._on_mouse_click))
+        self.cids.append(self.canvas.mpl_connect("button_release_event", self._on_mouse_release))
+        self.cids.append(self.canvas.mpl_connect("motion_notify_event", self._on_mouse_move))
+        self.cids.append(self.canvas.mpl_connect('scroll_event', self._on_scroll))
 
         self._dragged = None
 
@@ -209,7 +209,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Listeners ###############################################################
 
-    def on_about(self):
+    def _on_about(self):
         msg = "A small gui to plot tfs files easily and adapt matplotlib plots on the fly.\n"
         msg += "\n"
         msg += "Version: {:s}\n".format(_VERSION)
@@ -217,7 +217,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         QtWidgets.QMessageBox.about(self, "About the tfs plotter.", msg)
 
-    def on_pick(self, event):
+    def _on_pick(self, event):
         # The event received here is of the type
         # matplotlib.backend_bases.PickEvent
         #
@@ -230,10 +230,10 @@ class MainWindow(QtWidgets.QMainWindow):
         elif isinstance(event.artist, matplotlib.text.Text):
                 self._dragged = DragHandler(event.artist, event.mouseevent)
 
-    def on_draw(self, event):
+    def _on_draw(self, event):
         pass
 
-    def on_mouse_click(self, event):
+    def _on_mouse_click(self, event):
         """ Single mouse click into window """
         ax = event.canvas.figure.gca()
         if event.button == 2:
@@ -270,18 +270,18 @@ class MainWindow(QtWidgets.QMainWindow):
             # right button -> return in history
             self.mpl_toolbar.back()
 
-    def on_mouse_release(self, event):
+    def _on_mouse_release(self, event):
         if self._dragged is not None:
             self._dragged.move(event)
             self._dragged = None
             self.update_figure()
 
-    def on_mouse_move(self, event):
+    def _on_mouse_move(self, event):
         if self._dragged is not None:
             self._dragged.move(event)
             self.update_figure()
 
-    def on_scroll(self, event):
+    def _on_scroll(self, event):
         """ Zoom with respect to mouse-position or center of axes. """
         if self.mpl_toolbar._nav_stack() is None:
             self.mpl_toolbar.push_current()  # set current view as home
@@ -310,7 +310,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ax.set_ylim(new_ylim)
         self.update_figure()
 
-    def on_key_press(self, event):
+    def _on_key_press(self, event):
         # LOG.info("Key press '{}' has been registered".format(event.key))
         if "ctrl+c" == event.key:
                 self._copy_selection()
@@ -322,20 +322,9 @@ class MainWindow(QtWidgets.QMainWindow):
         elif "delete" == event.key:
             self._delete_selection()
 
-    def on_key_release(self, event):
+    def _on_key_release(self, event):
         # LOG.info("Key release '{}' has been registered".format(event.key))
         pass
-
-    # Main Frame functions ###########################################################
-
-    def update_figure(self, figure=None):
-        if figure:
-            self.canvas.update_figure(figure)
-            figure.set_dpi(self.dpi)
-            figure.set_size_inches(self.figure_size)
-            figure.tight_layout()
-            self.canvas.set_pickers(self.picktol)
-        self.canvas.draw()
 
     # Copy/Pase ######################################
 
@@ -372,6 +361,16 @@ class MainWindow(QtWidgets.QMainWindow):
     # Public Functions #######################################################
 
     def show_log(self):
+        """ Show the logging window. """
         self._log_dialog.show()
 
+    def update_figure(self, figure=None):
+        """ Redraw current figure or provide new one. """
+        if figure:
+            self.canvas.update_figure(figure)
+            figure.set_dpi(self.dpi)
+            figure.set_size_inches(self.figure_size)
+            figure.tight_layout()
+            self.canvas.set_pickers(self.picktol)
+        self.canvas.draw()
 
