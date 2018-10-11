@@ -1,4 +1,7 @@
 """
+Module plotshop.plot_style
+----------------------------
+
 Helper functions to make the most awesome* plots out there.
 
 * please feel free to add more stuff

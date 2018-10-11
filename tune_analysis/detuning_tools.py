@@ -1,4 +1,5 @@
-""" Some tools for amplitude detuning, mainly plotting.
+"""
+Some tools for amplitude detuning, mainly plotting.
 """
 import os
 
@@ -8,12 +9,19 @@ from scipy.odr import RealData, Model, ODR
 
 import constants as const
 from utils import logging_tools
-from utils.plotting import plot_style as ps
+from plotshop import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
 
 
 def linear_model(beta, x):
+    """ Return a linear model ``beta[0] + beta[1] * x``.
+
+    Args:
+        beta: beta[0] = y-offset
+              beta[1] = slope
+        x: x-value
+    """
     return beta[0] + beta[1] * x
 
 

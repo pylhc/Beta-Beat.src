@@ -5,10 +5,10 @@ It uses a combination of the laskar method with SVD decomposition to speed up
 the search of resonances.
 
 TODOs:
-- Mising nattunez - not needed yet
-- Improve search of higher order resonances smaller tolerance
-- Other option of noise estimate is to take average of to take average
-   amplitude of fft of few last taken or first not taken modes
+    - Mising nattunez - not needed yet
+    - Improve search of higher order resonances smaller tolerance
+    - Other option of noise estimate is to take average of to take average
+      amplitude of fft of few last taken or first not taken modes
 """
 from __future__ import print_function
 import multiprocessing
@@ -141,19 +141,16 @@ def harmonic_analysis(bpm_matrix=None, usv=None, mode="bpm", sequential=False):
 
     Args:
         bpm_matrix: Pandas DataFrame containing the signals of each bpm in
-            each row. In bpm mode this parameter is obligatory.
+                    each row. In bpm mode this parameter is obligatory.
         usv: Truncated SVD decomposition of the bpm matrix. It must contain a
-            tuple (U, S, V), where U must be a DataFrame with the bpm names
-            as index.
+             tuple (U, S, V), where U must be a DataFrame with the bpm names as index.
         mode: one of 'bpm', 'svd', or 'fast'. Check 'harmonic_analysis_bpm'
-            documentation for 'bpm' mode and 'harmonic_analysis_svd" for 'svd'
-            and 'fast'.
-        sequential: If true, it will run all the computations in a single
-            core.
+              documentation for 'bpm' mode and 'harmonic_analysis_svd" for 'svd' and 'fast'.
+        sequential: If true, it will run all the computations in a single core.
+
     Returns:
         frequencies: A numpy array with the frequencies found per BPM.
-        bpm_coefficients: A numpy array containing the complex coefficients
-            found per BPM.
+        bpm_coefficients: A numpy array containing the complex coefficients found per BPM.
     """
     if mode == "bpm":
         if bpm_matrix is None:
@@ -189,14 +186,13 @@ def harmonic_analysis_bpm(bpm_matrix,
 
     Args:
         bpm_matrix: Pandas DataFrame containing the signals of each bpm in
-            each row. In bpm mode this parameter is obligatory.
-        sequential: If true, it will run all the computations in a single
-            core.
+                    each row. In bpm mode this parameter is obligatory.
+        sequential: If true, it will run all the computations in a single core.
         num_harms: Number of harmonics to compute per BPM.
+
     Returns:
         frequencies: A numpy array with the frequencies found per BPM.
-        bpm_coefficients: A numpy array containing the complex coefficients
-            found per BPM.
+        bpm_coefficients: A numpy array containing the complex coefficients found per BPM.
     """
     frequencies, bpm_coefficients = _parallel_laskar(
         bpm_matrix, sequential, num_harms,
@@ -215,17 +211,16 @@ def harmonic_analysis_svd(usv, fast=False,
 
     Args:
         usv: Truncated SVD decomposition of the bpm matrix. It must contain a
-            tuple (U, S, V), where U must be a DataFrame with the bpm names
-            as index.
+             tuple (U, S, V), where U must be a DataFrame with the bpm names
+             as index.
         fast: If true, it will use the 'fast' calculation mode ('svd'
-            otherwise)
-        sequential: If true, it will run all the computations in a single
-            core.
+              otherwise)
+        sequential: If true, it will run all the computations in a single core.
         num_harms: Number of harmonics to compute per BPM.
+
     Returns:
         frequencies: A numpy array with the frequencies found per BPM.
-        bpm_coefficients: A numpy array containing the complex coefficients
-            found per BPM.
+        bpm_coefficients: A numpy array containing the complex coefficients found per BPM.
     """
     sv = np.dot(np.diag(usv[1]), usv[2])
     fake_bpms = ["MODE{}".format(i) for i in range(sv.shape[0])]

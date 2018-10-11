@@ -14,9 +14,12 @@ Contents:
    entrypoints/index
    correction/index
    GetLLM/index
-   hole_in_one/index
+   harmonic_analysis/index
    model/index
+   plotshop/index
    segment_by_segment/index
+   tfs_files/index
+   tune_analysis/index
    twiss_optics/index
    utils/index
 

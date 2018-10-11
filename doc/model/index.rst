@@ -1,4 +1,4 @@
-Documentation Model
+Model
 ********************
 
 Entry Points Model
