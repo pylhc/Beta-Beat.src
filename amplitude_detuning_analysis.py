@@ -571,7 +571,8 @@ def _get_timber_data(beam, input, output, kickac_df):
         # input is None
         LOG.debug("Getting timber data from kickac-times.")
         timber_keys, bbq_cols = _get_timber_keys_and_bbq_columns(beam)
-        t_start, t_end = kickac_df.index[[0, -1]]
+        t_start = min(kickac_df.index.values)
+        t_end = max(kickac_df.index.values)
         data = timber_extract.extract_between_times(t_start-DTIME, t_end+DTIME,
                                                     keys=timber_keys,
                                                     names=dict(zip(timber_keys, bbq_cols)))
