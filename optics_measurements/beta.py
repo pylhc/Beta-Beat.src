@@ -136,25 +136,26 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
 
     # ------------- HORIZONTAL
     if phase_d["X"]["F"]:
-        beta_df_x, driven_beta_df_x = _beta_from_phase_for_plane(
+        beta_df_x, compensated_beta_df_x = _beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
             getllm_d.range_of_bpms, phase_d, error_method, tune_d, "X"
         )
 
     # ------------- VERTICAL
     if phase_d["Y"]["F"]:
-        beta_df_y, driven_beta_df_y = _beta_from_phase_for_plane(
+        beta_df_y, compensated_beta_df_y = _beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
             getllm_d.range_of_bpms, phase_d, error_method, tune_d, "Y"
         )
 
-    for df in [beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y]:
+    for df in [beta_df_x, compensated_beta_df_x, beta_df_y, compensated_beta_df_y]:
         if df is not None:
             _add_header(df, header_dict, error_method, getllm_d.range_of_bpms)
             LOGGER.debug("writing %s", df.headers["FILENAME"])
-            tfs_pandas.write_tfs(os.path.join(getllm_d.outputdir, df.headers["FILENAME"]), df)
+            tfs_pandas.write_tfs(os.path.join(getllm_d.outputdir, df.headers["FILENAME"]), df,
+                                 save_index="NAME")
 
-    return beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y
+    return beta_df_x, compensated_beta_df_x, beta_df_y, compensated_beta_df_y
 
 
 def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, range_of_bpms,
@@ -171,40 +172,42 @@ def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, ran
     phase_adv_driven = phases[plane]["D"]
     LOGGER.info("Beta {} free calculation".format(plane))
     # remove BPMs that are not in the input
-    free_model = free_model.loc[phase_adv_free["MEAS"].index]
-    if driven_model is not None:
-        driven_model = driven_model.loc[phase_adv_free["MEAS"].index]
+    if phase_adv_driven is not None:
+        comp_model = free_model.loc[phase_adv_driven["MEAS"].index]
+        model = driven_model.loc[phase_adv_free["MEAS"].index]
+    else:
+        model = free_model.loc[phase_adv_free["MEAS"].index]
+
     bk_model = bk_model.loc[phase_adv_free["MEAS"].index]
 
     # if DEBUG create a binary debugfile where the algorithm is writing matrices, beta-values,
     # weights etc.
     if DEBUG:
         DBG.create_debugfile(
-            "getbeta{}_free.bdebug".format(plane_for_file)  # TODO change working path
+            "getbeta{}.bdebug".format(plane_for_file)  # TODO change working path
         )
 
-    beta_df = _beta_from_phase(free_model, elements, phase_adv_free, plane, range_of_bpms,
+    beta_df = _beta_from_phase(model, elements, phase_adv_free, plane, range_of_bpms,
                                error_method, Qf, Qmdlf % 1.0)
 
-    beta_df.headers["FILENAME"] = "getbeta{}_free.out".format(plane_for_file)
+    beta_df.headers["FILENAME"] = "getbeta{}.out".format(plane_for_file)
     if DEBUG:
         DBG.close_file()
 
-    driven_beta_df = None
+    compensated_beta_df = None
 
     if phase_adv_driven is not None:
-        driven_model = driven_model.loc[phase_adv_driven["MEAS"].index]
-        LOGGER.info("Beta {} driven calculation".format(plane))
+        LOGGER.info("Beta {} compensated calculation".format(plane))
         if DEBUG:
             DBG.create_debugfile(
-                "getbeta{}.bdebug".format(plane_for_file)  # TODO change working path
+                "getbeta{}_free.bdebug".format(plane_for_file)  # TODO change working path
             )
 
-        driven_beta_df = _beta_from_phase(
-            driven_model, elements,
-            phase_adv_driven, plane, range_of_bpms, error_method, Q, Qmdl % 1.0
+        compensated_beta_df = _beta_from_phase(
+            comp_model, elements,
+            phase_adv_free, plane, range_of_bpms, error_method, Q, Qmdl % 1.0
         )
-        driven_beta_df.headers["FILENAME"] = "getbeta{}.out".format(plane_for_file)
+        compensated_beta_df.headers["FILENAME"] = "getbeta{}_free.out".format(plane_for_file)
 
         if DEBUG:
             DBG.close_file()
@@ -212,7 +215,7 @@ def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, ran
         LOGGER.warning("Skip free2 calculation")
 
     # add filename to header
-    return beta_df, driven_beta_df
+    return beta_df, compensated_beta_df
 
 
 def _beta_from_phase(madTwiss, madElements, phase, plane,
@@ -424,6 +427,7 @@ def _scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     # for fast access
     phases_meas = phase["MEAS"] * TWOPI
     phases_err = phase["ERRMEAS"] * TWOPI
+    phases_err.where(phases_err.notnull(), 1, inplace=True)
 
     result = np.ndarray(len(phases_meas.index), [('beti', float), ('betstat', float),
                                                  ('betsys', float), ('beterr', float),
