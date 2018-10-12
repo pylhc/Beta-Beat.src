@@ -42,6 +42,11 @@ def get_used_in_mav_col(plane):
     return "{:s}_IN_MAV".format(get_bbq_col(plane))
 
 
+def get_mav_std_col(plane):
+    """ Label for the standard deviation of the moving average data. """
+    return "{:s}_MAV_STD".format(get_bbq_col(plane))
+
+
 def get_natq_col(plane):
     """ Label for the natural tune column. """
     return 'NATQ{:s}'.format(plane.upper())

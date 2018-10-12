@@ -32,6 +32,7 @@ from utils.entrypoint import entrypoint, EntryPointParameters
 COL_TIME = ta_const.get_time_col
 COL_BBQ = ta_const.get_bbq_col
 COL_MAV = ta_const.get_mav_col
+COL_MAV_STD = ta_const.get_mav_std_col
 COL_IN_MAV = ta_const.get_used_in_mav_col
 COL_NATQ = ta_const.get_natq_col
 COL_CORRECTED = ta_const.get_natq_corr_col
@@ -602,16 +603,18 @@ def _add_moving_average(kickac_df, bbq_df, **kwargs):
     LOG.debug("Calculating moving average.")
     for plane in PLANES:
         tune = "tune_{:s}".format(plane.lower())
-        bbq_mav, mask = bbq_tools.get_moving_average(bbq_df[COL_BBQ(plane)],
-                                                     length=kwargs["window_length"],
-                                                     min_val=kwargs["{}_min".format(tune)],
-                                                     max_val=kwargs["{}_max".format(tune)],
-                                                     fine_length=kwargs["fine_window"],
-                                                     fine_cut=kwargs["fine_cut"],
-                                                     )
+        bbq_mav, bbq_std, mask = bbq_tools.get_moving_average(bbq_df[COL_BBQ(plane)],
+                                                              length=kwargs["window_length"],
+                                                              min_val=kwargs["{}_min".format(tune)],
+                                                              max_val=kwargs["{}_max".format(tune)],
+                                                              fine_length=kwargs["fine_window"],
+                                                              fine_cut=kwargs["fine_cut"],
+                                                              )
         bbq_df[COL_MAV(plane)] = bbq_mav
+        bbq_df[COL_MAV_STD(plane)] = bbq_std
         bbq_df[COL_IN_MAV(plane)] = ~mask
         kickac_df = bbq_tools.add_to_kickac_df(kickac_df, bbq_mav, COL_MAV(plane))
+        kickac_df = bbq_tools.add_to_kickac_df(kickac_df, bbq_std, COL_MAV_STD(plane))
     return kickac_df, bbq_df
 
 

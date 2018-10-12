@@ -51,8 +51,8 @@ def do_linear_odr(x, y, x_err, y_err):
     lin_model = Model(linear_model)
     # data = RealData(x, y, sx=np.sqrt(x_err/x), sy=np.sqrt(y_err/y))
     # data = RealData(x, y, sx=x_err/np.sqrt(x), sy=y_err/np.sqrt(y))
-    data = RealData(x, y, sx=np.sqrt(x_err), sy=np.sqrt(y_err))
-    # data = RealData(x, y, sx=x_err, sy=y_err)
+    # data = RealData(x, y, sx=np.sqrt(x_err), sy=np.sqrt(y_err))
+    data = RealData(x, y, sx=x_err, sy=y_err)
     odr_fit = ODR(data, lin_model, beta0=[0., 1.]).run()
     print_odr_result(LOG.debug, odr_fit)
     return odr_fit

@@ -26,6 +26,7 @@ PLANES = const.get_planes()
 COL_MAV = const.get_mav_col
 COL_IN_MAV = const.get_used_in_mav_col
 COL_BBQ = const.get_bbq_col
+COL_MAV_STD = const.get_mav_std_col
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -65,16 +66,16 @@ def get_moving_average(data_series, length=20,
 
     cut_mask = min_mask | max_mask
     _is_empty_mask(~cut_mask)
-    data_mav = _get_interpolated_moving_average(data_series, cut_mask, length)
+    data_mav, std_mav = _get_interpolated_moving_average(data_series, cut_mask, length)
 
     if fine_length is not None:
         min_mask = data_series <= (data_mav - fine_cut)
         max_mask = data_series >= (data_mav + fine_cut)
         cut_mask = min_mask | max_mask
         _is_empty_mask(~cut_mask)
-        data_mav = _get_interpolated_moving_average(data_series, cut_mask, fine_length)
+        data_mav, std_mav = _get_interpolated_moving_average(data_series, cut_mask, fine_length)
 
-    return data_mav, cut_mask
+    return data_mav, std_mav, cut_mask
 
 
 def add_to_kickac_df(kickac_df, bbq_series, column):
@@ -196,15 +197,20 @@ def plot_bbq_data(bbq_df,
 
 def _get_interpolated_moving_average(data_series, clean_mask, length):
     """ Returns the moving average of data series with a window of length and interpolated NaNs"""
-    data_mav = data_series.copy()
-    data_mav[clean_mask] = np.NaN
+    data = data_series.copy()
+    data[clean_mask] = np.NaN
 
     # 'interpolate' fills nan based on index/values of neighbours
-    data_mav = data_mav.interpolate("index").fillna(method="bfill").fillna(method="ffill")
+    data = data.interpolate("index").fillna(method="bfill").fillna(method="ffill")
 
     shift = -int((length-1)/2)  # Shift average to middle value
-    return data_mav.rolling(length).mean().shift(shift).fillna(
+
+    # calculate mean and std, fill NaNs at the ends
+    data_mav = data.rolling(length).mean().shift(shift).fillna(
         method="bfill").fillna(method="ffill")
+    std_mav = data.rolling(length).std().shift(shift).fillna(
+        method="bfill").fillna(method="ffill")
+    return data_mav, std_mav
 
 
 def _is_empty_mask(mask):
