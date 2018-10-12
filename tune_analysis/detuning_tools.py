@@ -17,10 +17,12 @@ from scipy.odr import RealData, Model, ODR
 
 import constants as const
 from utils import logging_tools
-from utils.dict_tools import DotDict
 from plotshop import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
+
+
+# Linear ODR ###################################################################
 
 
 def linear_model(beta, x):
@@ -49,9 +51,6 @@ def do_linear_odr(x, y, x_err, y_err):
     Returns: Linear odr fit. Betas see ``linear_model()``.
     """
     lin_model = Model(linear_model)
-    # data = RealData(x, y, sx=np.sqrt(x_err/x), sy=np.sqrt(y_err/y))
-    # data = RealData(x, y, sx=x_err/np.sqrt(x), sy=y_err/np.sqrt(y))
-    # data = RealData(x, y, sx=np.sqrt(x_err), sy=np.sqrt(y_err))
     data = RealData(x, y, sx=x_err, sy=y_err)
     odr_fit = ODR(data, lin_model, beta0=[0., 1.]).run()
     print_odr_result(LOG.debug, odr_fit)
@@ -81,6 +80,33 @@ def plot_linear_odr(ax, odr_fit, lim):
     line_fit = odr_fit.beta[1] * x_fit
     ax.plot(x_fit, line_fit, marker="", linestyle='--', color='k',
             label='${:.4f}\, \pm\, {:.4f}$'.format(odr_fit.beta[1], odr_fit.sd_beta[1]))
+
+
+# Data Extraction ##############################################################
+
+
+def get_ampdet_data_from_kickac(kickac_df, action_plane, tune_plane):
+    """ Extract the data needed for odr and plotting from the kickac dataframe.
+
+    Args:
+        kickac_df: Dataframe containing the data
+        action_plane: Plane of the action
+        tune_plane: Plane of the tune
+
+    Returns:
+        Dictionary containing x,y, x_err and y_err
+
+    """
+    columns = {"x": const.get_action_col(action_plane),
+               "x_err": const.get_action_err_col(action_plane),
+               "y": const.get_natq_corr_col(tune_plane),
+               "y_err": const.get_total_natq_std_col(tune_plane),
+               }
+    data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
+    return data
+
+
+# General Plotting #############################################################
 
 
 def plot_detuning(x, y, x_err, y_err, labels, x_min=None, x_max=None, y_min=None, y_max=None,

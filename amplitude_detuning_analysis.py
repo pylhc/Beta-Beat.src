@@ -16,6 +16,7 @@ Also, plotting functionality is integrated, for the amplitude detuning as well a
 
 import datetime
 import os
+import numpy as np
 
 import matplotlib.pyplot as plt
 
@@ -408,6 +409,7 @@ def analyse_with_bbq_corrections(opt):
 
         # add corrected values to kickac
         kickac_df = _add_corrected_natural_tunes(kickac_df)
+        kickac_df = _add_total_natq_std(kickac_df)
 
         # BBQ plots
         if opt.bbq_plot_out or opt.bbq_plot_show:
@@ -428,20 +430,19 @@ def analyse_with_bbq_corrections(opt):
                     two_plots=opt.bbq_plot_two,
                 )
 
-        # amplitude detuning analysis
+        # amplitude detuning odr and plotting
         for tune_plane in PLANES:
-            labels = ta_const.get_paired_lables(opt.plane, tune_plane)
-            id_str = "J{:s}_Q{:s}".format(opt.plane.upper(), tune_plane.upper())
-
-            # get proper data
-            columns = ta_const.get_paired_columns(opt.plane, tune_plane)
-            data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
+            # get the proper data
+            data = detuning_tools.get_ampdet_data_from_kickac(kickac_df, opt.plane, tune_plane)
 
             # make the odr
             odr_fit = detuning_tools.do_linear_odr(**data)
-            kickac_df = _add_odr_to_kickac(kickac_df, odr_fit, opt.plane, tune_plane)
+            kickac_df = _add_odr(kickac_df, odr_fit, opt.plane, tune_plane)
 
             # plotting
+            labels = ta_const.get_paired_lables(opt.plane, tune_plane)
+            id_str = "J{:s}_Q{:s}".format(opt.plane.upper(), tune_plane.upper())
+
             try:
                 output = os.path.splitext(opt.ampdet_plot_out)
                 output = "{:s}_{:s}{:s}".format(output[0], id_str, output[1])
@@ -626,11 +627,21 @@ def _add_corrected_natural_tunes(kickac_df):
     return kickac_df
 
 
-def _add_odr_to_kickac(kickac_df, odr_fit, j_plane, q_plane):
+def _add_odr(kickac_df, odr_fit, j_plane, q_plane):
     """ Adds the odr fit to the header of the kickac. """
     kickac_df.headers[ta_const.get_odr_header_offset(j_plane, q_plane)] = odr_fit.beta[0]
     kickac_df.headers[ta_const.get_odr_header_slope(j_plane, q_plane)] = odr_fit.beta[1]
     kickac_df.headers[ta_const.get_odr_header_slope_std(j_plane, q_plane)] = odr_fit.sd_beta[1]
+    return kickac_df
+
+
+def _add_total_natq_std(kickac_df):
+    """ Add the total standard deviation of the natural tune to the kickac. """
+    for plane in PLANES:
+        kickac_df[ta_const.get_total_natq_std_col(plane)] = np.sqrt(
+            np.power(kickac_df[ta_const.get_natq_err_col(plane)], 2) +
+            np.power(kickac_df[ta_const.get_mav_std_col(plane)], 2)
+        )
     return kickac_df
 
 

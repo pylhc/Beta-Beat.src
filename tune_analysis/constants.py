@@ -29,22 +29,27 @@ def get_tend_head():
 
 def get_bbq_col(plane):
     """ Label for the BBQ column """
-    return 'BBQ_{:s}'.format(plane.upper())
+    return 'BBQ{:s}'.format(plane.upper())
 
 
 def get_mav_col(plane):
     """ Label for the moving average BBQ column. """
-    return "{:s}_MAV".format(get_bbq_col(plane))
+    return "{:s}MAV".format(get_bbq_col(plane))
 
 
 def get_used_in_mav_col(plane):
     """ Label for the column showing if BBQ value was used in moving average. """
-    return "{:s}_IN_MAV".format(get_bbq_col(plane))
+    return "{:s}INMAV".format(get_bbq_col(plane))
 
 
 def get_mav_std_col(plane):
     """ Label for the standard deviation of the moving average data. """
-    return "{:s}_MAV_STD".format(get_bbq_col(plane))
+    return "{:s}MAVSTD".format(get_bbq_col(plane))
+
+
+def get_total_natq_std_col(plane):
+    """ Return the total standard deviation for the natural tune. """
+    return "{:s}TOTSTD".format(get_natq_col(plane))
 
 
 def get_natq_col(plane):
@@ -54,7 +59,7 @@ def get_natq_col(plane):
 
 def get_natq_corr_col(plane):
     """ Label for the corrected natural tune column. """
-    return "{:s}_CORRECTED".format(get_natq_col(plane))
+    return "{:s}CORR".format(get_natq_col(plane))
 
 
 def get_natq_err_col(plane):
@@ -70,12 +75,6 @@ def get_action_col(plane):
 def get_action_err_col(plane):
     """ Label for the action error column. """
     return get_action_col("{:s}STD".format(plane))
-
-
-def get_paired_columns(plane, other_plane):
-    """ Four-Tupel of action/tune pair columns + errors. """
-    return {"x": get_action_col(plane), "x_err": get_action_err_col(plane),
-            "y": get_natq_corr_col(other_plane), "y_err": get_natq_err_col(other_plane)}
 
 
 def get_paired_lables(plane, other_plane):
