@@ -442,6 +442,7 @@ def analyse_with_bbq_corrections(opt):
             # get proper data
             columns = ta_const.get_paired_columns(opt.plane, other_plane)
             data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
+            odr_fit = detuning_tools.do_linear_odr(**data)
 
             # plotting
             try:
@@ -451,7 +452,8 @@ def analyse_with_bbq_corrections(opt):
                 output = None
 
             figs[id_str] = detuning_tools.plot_detuning(
-                odr_plot=detuning_tools.linear_odr_plot,
+                odr_fit=odr_fit,
+                odr_plot=detuning_tools.plot_linear_odr,
                 labels={"x": labels[0], "y": labels[1], "line": opt.label},
                 output=output,
                 show=opt.ampdet_plot_show,
