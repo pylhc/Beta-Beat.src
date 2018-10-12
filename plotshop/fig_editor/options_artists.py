@@ -19,6 +19,9 @@ import options_utils as outils
 from general_helper import suppress_exception
 
 
+formlayout.BLACKLIST = {"title", "label", "position", "name", "text"}
+
+
 def change_properties(artist, parent=None):
     """ Change the properties of artist via user interface. """
     regen_legend = False
@@ -282,8 +285,6 @@ def _get_ebar_properties(ebar):
                      bar.get_color()[0],
                      None),
         ]
-
-
     return props, title
 
 
@@ -291,7 +292,7 @@ def _get_text_properties(txt):
     """ Properties for all text objects. """
     title = "Edit Text '{}'".format(txt.get_text())
     props = [
-        Property("Label",  # needs to be called 'label' for fedit to know it's just text.
+        Property("Text",
                  txt.set_text, txt.get_text(),
                  None,),
         "Style:",
@@ -334,6 +335,9 @@ def _get_legend_properties(leg):
         Property("Position",
                  lambda x, leg=leg: leg._set_loc(eval(x)),  # backconversion from string
                  str(leg._get_loc()),
+                 None),
+        Property("Columns",
+                 lambda n: leg.__setattr__("_ncol", n), leg._ncol,
                  None),
         Property("Z-Order",
                  leg.set_zorder, leg.get_zorder(),
