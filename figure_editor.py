@@ -8,7 +8,7 @@ Currently starts a testing figure.
 """
 import sys
 from PyQt5 import QtWidgets
-from main_window import MainWindow
+from plotshop.fig_editor.main_window import MainWindow
 
 
 def _quick_figure():
