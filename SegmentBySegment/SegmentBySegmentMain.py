@@ -22,6 +22,7 @@ if new_path not in sys.path:
 import utils.iotools
 from model import manager, creator
 from model.accelerators.lhc import Lhc
+from model.accelerators.psbooster import Psbooster
 from model.accelerators.accelerator import Element
 from Python_Classes4MAD.metaclass import twiss
 import madx_wrapper
@@ -81,7 +82,6 @@ def _parse_args(args=None):
     options, accel_args = parser.parse_known_args(args)
 
     accel_cls = manager.get_accel_class(accel_args)
-
     return accel_cls, options
 
 
@@ -130,12 +130,16 @@ def main(accel_cls, options):
         print("Started processing", element_name)
 
         start_bpm_name, end_bpm_name, is_element = get_good_bpms(input_data, error_cut, input_model, start_bpms, end_bpms, element_name)
-
-        (start_bpm_horizontal_data,
-         start_bpm_vertical_data,
-         end_bpm_horizontal_data,
-         end_bpm_vertical_data) = gather_data(input_data, start_bpm_name, end_bpm_name)
-
+        if issubclass(accel_cls, Psbooster):
+            (start_bpm_horizontal_data,
+            start_bpm_vertical_data,
+            end_bpm_horizontal_data,
+            end_bpm_vertical_data) = gather_data_amplitude(input_data, start_bpm_name, end_bpm_name)
+        else:
+            (start_bpm_horizontal_data,
+            start_bpm_vertical_data,
+            end_bpm_horizontal_data,
+            end_bpm_vertical_data) = gather_data(input_data, start_bpm_name, end_bpm_name)
         element_has_dispersion, start_bpm_dispersion, end_bpm_dispersion = _get_dispersion_parameters(input_data, start_bpm_name, end_bpm_name)
 
         element_has_coupling, f_ini, f_end = _get_coupling_parameters(input_data, start_bpm_name, end_bpm_name)
@@ -265,6 +269,18 @@ def gather_data(input_data, startbpm, endbpm):
     return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
 
 
+def gather_data_amplitude(input_data, startbpm, endbpm):
+    start_bpm_horizontal_data = [input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[startbpm]],
+                                 input_data.beta_x.ALFX[input_data.beta_x.indx[startbpm]]]
+    start_bpm_vertical_data = [input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[startbpm]],
+                               input_data.beta_y.ALFY[input_data.beta_y.indx[startbpm]]]
+    end_bpm_horizontal_data = [input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[endbpm]],
+                               input_data.beta_x.ALFX[input_data.beta_x.indx[endbpm]]]
+    end_bpm_vertical_data = [input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[endbpm]],
+                             input_data.beta_y.ALFY[input_data.beta_y.indx[endbpm]]]
+    return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
+
+
 def _get_dispersion_parameters(input_data, startbpm, endbpm):
     start_bpm_dispersion = [0, 0, 0, 0]
     end_bpm_dispersion = [0, 0, 0, 0]
@@ -378,13 +394,16 @@ def _get_kmod_files():
 
 
 def _get_calibrated_betas(plane):
-    amplitude_beta = None
     calibration_data = None
     try:
-        amplitude_beta = _get_twiss_for_one_of("getampbeta" + plane + "_free.out", "getampbeta" + plane + ".out")
-        calibration_data = twiss(_join_output_with("calibration_" + plane + ".out"))
+        amplitude_beta = _get_twiss_for_one_of("getampbeta{}_free.out".format(plane),
+                                               "getampbeta{}.out".format(plane))
     except IOError:
         return None
+    try:
+        calibration_data = twiss(_join_output_with("calibration_" + plane + ".out"))
+    except IOError:
+        return amplitude_beta
     calibrated_betas = CalibratedBetas(plane)
     index_counter = 0
     for bpm_name in calibration_data.NAME:
@@ -399,7 +418,7 @@ def _get_calibrated_betas(plane):
             try:
                 err_amp_beta = getattr(amplitude_beta, "STDBET" + plane.upper())[amp_index]
             except AttributeError:
-                err_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "STD")[amp_index]
+                err_amp_beta = getattr(amplitude_beta, "ERRBET" + plane.upper())[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "STD").append(err_amp_beta)
             mdl_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "MDL")[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "MDL").append(mdl_amp_beta)
