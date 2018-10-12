@@ -1,3 +1,11 @@
+"""
+Module plotshop.plot_tfs
+-------------------------
+
+Wrapper to easily plot tfs-files. With entrypoint functionality.
+"""
+
+
 import sys
 from os.path import abspath, join, pardir
 sys.path.append(abspath(join(__file__, pardir, pardir)))
@@ -6,7 +14,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import pyplot as plt, gridspec, rcParams
 
 from utils.entrypoint import EntryPointParameters, entrypoint
-from utils.plotting import plot_style as ps
+from plotshop import plot_style as ps
 from tfs_files import tfs_pandas as tfs
 from utils import logging_tools
 
@@ -432,8 +440,9 @@ def _create_single_plot(x_cols, y_cols, e_cols, twiss_data, legends, labels,
                     ps.show_ir(ir_pos, ax, mode='outside')
 
         if not no_legend and plt_idx == 0:
-            ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
-                          fancybox=True, shadow=True, ncol=3)
+            leg = ax.legend(loc='upper center', fancybox=True, shadow=True, ncol=3)
+            # use _set_loc, makes finding the location later on easier
+            leg._set_loc((.3 if len(x_cols) == 1 else .12, 1.05))
     return fig
 
 

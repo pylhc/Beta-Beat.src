@@ -18,8 +18,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from utils import logging_tools
 from tfs_files import tfs_pandas as tfs
-from utils.plotting import plot_style as ps
-from utils.plotting.plot_style import MarkerList
+from plotshop import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -585,7 +584,7 @@ def get_color(idx, marker=False):
 
 def get_marker(idx, change):
     if change:
-        return MarkerList.get_marker(idx)
+        return ps.MarkerList.get_marker(idx)
     else:
         return rcParams['lines.marker']
 
