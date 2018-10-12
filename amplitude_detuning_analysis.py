@@ -408,14 +408,7 @@ def analyse_with_bbq_corrections(opt):
         # add corrected values to kickac
         kickac_df = _add_corrected_natural_tunes(kickac_df)
 
-        # output kickac and bbq data
-        if opt.kickac_out:
-            tfs.write_tfs(opt.kickac_out, kickac_df, save_index=COL_TIME())
-
-        if opt.bbq_out:
-            tfs.write_tfs(opt.bbq_out, bbq_df.loc[x_interval[0]:x_interval[1]],
-                          save_index=COL_TIME())
-
+        # BBQ plots
         if opt.bbq_plot_out or opt.bbq_plot_show:
             if opt.bbq_plot_full:
                 figs["bbq"] = bbq_tools.plot_bbq_data(
@@ -435,13 +428,17 @@ def analyse_with_bbq_corrections(opt):
                 )
 
         # amplitude detuning analysis
-        for other_plane in PLANES:
-            labels = ta_const.get_paired_lables(opt.plane, other_plane)
-            id_str = "J{:s}_Q{:s}".format(opt.plane.upper(), other_plane.upper())
+        for tune_plane in PLANES:
+            labels = ta_const.get_paired_lables(opt.plane, tune_plane)
+            id_str = "J{:s}_Q{:s}".format(opt.plane.upper(), tune_plane.upper())
 
             # get proper data
-            columns = ta_const.get_paired_columns(opt.plane, other_plane)
+            columns = ta_const.get_paired_columns(opt.plane, tune_plane)
             data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
+
+            # make the odr
+            odr_fit = detuning_tools.do_linear_odr(**data)
+            kickac_df = _add_odr_to_kickac(kickac_df, odr_fit, opt.plane, tune_plane)
 
             # plotting
             try:
@@ -451,7 +448,8 @@ def analyse_with_bbq_corrections(opt):
                 output = None
 
             figs[id_str] = detuning_tools.plot_detuning(
-                odr_plot=detuning_tools.linear_odr_plot,
+                odr_fit=odr_fit,
+                odr_plot=detuning_tools.plot_linear_odr,
                 labels={"x": labels[0], "y": labels[1], "line": opt.label},
                 output=output,
                 show=opt.ampdet_plot_show,
@@ -462,8 +460,17 @@ def analyse_with_bbq_corrections(opt):
                 **data
             )
 
+    # show plots if needed
     if opt.bbq_plot_show or opt.ampdet_plot_show:
         plt.show()
+
+    # output kickac and bbq data
+    if opt.kickac_out:
+        tfs.write_tfs(opt.kickac_out, kickac_df, save_index=COL_TIME())
+
+    if opt.bbq_out:
+        tfs.write_tfs(opt.bbq_out, bbq_df.loc[x_interval[0]:x_interval[1]],
+                      save_index=COL_TIME())
 
     return figs
 
@@ -613,6 +620,14 @@ def _add_corrected_natural_tunes(kickac_df):
     for plane in PLANES:
         kickac_df[COL_CORRECTED(plane)] = \
             kickac_df[COL_NATQ(plane)] - kickac_df[COL_MAV(plane)]
+    return kickac_df
+
+
+def _add_odr_to_kickac(kickac_df, odr_fit, j_plane, q_plane):
+    """ Adds the odr fit to the header of the kickac. """
+    kickac_df.headers[ta_const.get_odr_header_offset(j_plane, q_plane)] = odr_fit.beta[0]
+    kickac_df.headers[ta_const.get_odr_header_slope(j_plane, q_plane)] = odr_fit.beta[1]
+    kickac_df.headers[ta_const.get_odr_header_slope_std(j_plane, q_plane)] = odr_fit.sd_beta[1]
     return kickac_df
 
 
