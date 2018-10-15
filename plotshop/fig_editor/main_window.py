@@ -374,3 +374,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.canvas.set_pickers(self.picktol)
         self.canvas.draw()
 
+    def get_figure(self):
+        """ Return the currently used figure. """
+        return self.canvas.figure
+
