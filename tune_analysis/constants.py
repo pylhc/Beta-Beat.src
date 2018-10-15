@@ -77,10 +77,10 @@ def get_action_err_col(plane):
     return get_action_col("{:s}STD".format(plane))
 
 
-def get_paired_lables(plane, other_plane):
+def get_paired_lables(action_plane, tune_plane):
     """ Labels for the action/tune plots. """
-    return (r'$2J_{:s} \quad [\mu m]$'.format(plane.lower()),
-            r'$\Delta Q_{:s}$'.format(other_plane.lower()))
+    return (r'$2J_{:s} \quad [\mu m]$'.format(action_plane.lower()),
+            r'$\Delta Q_{:s}$'.format(tune_plane.lower()))
 
 
 def get_timber_bbq_key(plane, beam):
@@ -102,8 +102,3 @@ def get_odr_header_slope_std(j_plane, q_plane):
     """ Header key for odr slope standard deviation (i.e. sd_beta[1]) """
     return "ODR_J{:s}Q{:s}_SLOPE_STD".format(j_plane, q_plane)
 
-# Script Mode #################################################################
-
-
-if __name__ == '__main__':
-    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

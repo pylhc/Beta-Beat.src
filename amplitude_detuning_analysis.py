@@ -16,12 +16,14 @@ Also, plotting functionality is integrated, for the amplitude detuning as well a
 
 import datetime
 import os
-import numpy as np
 
 import matplotlib.pyplot as plt
 
+import tune_analysis.kickac_modifiers
 from tune_analysis import bbq_tools, timber_extract, detuning_tools
 import tune_analysis.constants as ta_const
+from tune_analysis.kickac_modifiers import (
+    add_moving_average, add_corrected_natural_tunes, add_odr, add_total_natq_std)
 from utils import logging_tools
 from tfs_files import tfs_pandas as tfs
 from utils.dict_tools import ParameterError
@@ -398,18 +400,18 @@ def analyse_with_bbq_corrections(opt):
         x_interval = _get_approx_bbq_interval(bbq_df, kickac_df.index, opt.window_length)
 
         # add moving average to kickac
-        kickac_df, bbq_df = _add_moving_average(kickac_df, bbq_df,
-                                                **opt.get_subdict([
+        kickac_df, bbq_df = add_moving_average(kickac_df, bbq_df,
+                                               **opt.get_subdict([
                                                     "window_length",
                                                     "tune_x_min", "tune_x_max",
                                                     "tune_y_min", "tune_y_max",
                                                     "fine_cut", "fine_window"]
                                                 )
-                                                )
+                                               )
 
         # add corrected values to kickac
-        kickac_df = _add_corrected_natural_tunes(kickac_df)
-        kickac_df = _add_total_natq_std(kickac_df)
+        kickac_df = add_corrected_natural_tunes(kickac_df)
+        kickac_df = add_total_natq_std(kickac_df)
 
         # BBQ plots
         if opt.bbq_plot_out or opt.bbq_plot_show:
@@ -433,11 +435,11 @@ def analyse_with_bbq_corrections(opt):
         # amplitude detuning odr and plotting
         for tune_plane in PLANES:
             # get the proper data
-            data = detuning_tools.get_ampdet_data_from_kickac(kickac_df, opt.plane, tune_plane)
+            data = tune_analysis.kickac_modifiers.get_ampdet_data_from_kickac(kickac_df, opt.plane, tune_plane)
 
             # make the odr
             odr_fit = detuning_tools.do_linear_odr(**data)
-            kickac_df = _add_odr(kickac_df, odr_fit, opt.plane, tune_plane)
+            kickac_df = add_odr(kickac_df, odr_fit, opt.plane, tune_plane)
 
             # plotting
             labels = ta_const.get_paired_lables(opt.plane, tune_plane)
@@ -597,52 +599,6 @@ def _get_timber_data(beam, input, output, kickac_df):
         tfs.write_tfs(output, data, save_index=COL_TIME())
 
     return data
-
-
-def _add_moving_average(kickac_df, bbq_df, **kwargs):
-    """ Adds the moving average of the bbq data to kickac_df and bbq_df. """
-    LOG.debug("Calculating moving average.")
-    for plane in PLANES:
-        tune = "tune_{:s}".format(plane.lower())
-        bbq_mav, bbq_std, mask = bbq_tools.get_moving_average(bbq_df[COL_BBQ(plane)],
-                                                              length=kwargs["window_length"],
-                                                              min_val=kwargs["{}_min".format(tune)],
-                                                              max_val=kwargs["{}_max".format(tune)],
-                                                              fine_length=kwargs["fine_window"],
-                                                              fine_cut=kwargs["fine_cut"],
-                                                              )
-        bbq_df[COL_MAV(plane)] = bbq_mav
-        bbq_df[COL_MAV_STD(plane)] = bbq_std
-        bbq_df[COL_IN_MAV(plane)] = ~mask
-        kickac_df = bbq_tools.add_to_kickac_df(kickac_df, bbq_mav, COL_MAV(plane))
-        kickac_df = bbq_tools.add_to_kickac_df(kickac_df, bbq_std, COL_MAV_STD(plane))
-    return kickac_df, bbq_df
-
-
-def _add_corrected_natural_tunes(kickac_df):
-    """ Adds the corrected natural tunes to kickac """
-    for plane in PLANES:
-        kickac_df[COL_CORRECTED(plane)] = \
-            kickac_df[COL_NATQ(plane)] - kickac_df[COL_MAV(plane)]
-    return kickac_df
-
-
-def _add_odr(kickac_df, odr_fit, j_plane, q_plane):
-    """ Adds the odr fit to the header of the kickac. """
-    kickac_df.headers[ta_const.get_odr_header_offset(j_plane, q_plane)] = odr_fit.beta[0]
-    kickac_df.headers[ta_const.get_odr_header_slope(j_plane, q_plane)] = odr_fit.beta[1]
-    kickac_df.headers[ta_const.get_odr_header_slope_std(j_plane, q_plane)] = odr_fit.sd_beta[1]
-    return kickac_df
-
-
-def _add_total_natq_std(kickac_df):
-    """ Add the total standard deviation of the natural tune to the kickac. """
-    for plane in PLANES:
-        kickac_df[ta_const.get_total_natq_std_col(plane)] = np.sqrt(
-            np.power(kickac_df[ta_const.get_natq_err_col(plane)], 2) +
-            np.power(kickac_df[ta_const.get_mav_std_col(plane)], 2)
-        )
-    return kickac_df
 
 
 def _get_timber_keys_and_bbq_columns(beam):

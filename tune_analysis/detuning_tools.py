@@ -82,30 +82,6 @@ def plot_linear_odr(ax, odr_fit, lim):
             label='${:.4f}\, \pm\, {:.4f}$'.format(odr_fit.beta[1], odr_fit.sd_beta[1]))
 
 
-# Data Extraction ##############################################################
-
-
-def get_ampdet_data_from_kickac(kickac_df, action_plane, tune_plane):
-    """ Extract the data needed for odr and plotting from the kickac dataframe.
-
-    Args:
-        kickac_df: Dataframe containing the data
-        action_plane: Plane of the action
-        tune_plane: Plane of the tune
-
-    Returns:
-        Dictionary containing x,y, x_err and y_err
-
-    """
-    columns = {"x": const.get_action_col(action_plane),
-               "x_err": const.get_action_err_col(action_plane),
-               "y": const.get_natq_corr_col(tune_plane),
-               "y_err": const.get_total_natq_std_col(tune_plane),
-               }
-    data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
-    return data
-
-
 # General Plotting #############################################################
 
 
@@ -169,9 +145,3 @@ def plot_detuning(x, y, x_err, y_err, labels, x_min=None, x_max=None, y_min=None
 
     return fig
 
-
-# Script Mode #################################################################
-
-
-if __name__ == '__main__':
-    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))

@@ -20,13 +20,11 @@ from plotshop import plot_style as ps
 
 TIMEZONE = const.get_experiment_timezone()
 
-TIME_COL = const.get_time_col()
 PLANES = const.get_planes()
 
 COL_MAV = const.get_mav_col
 COL_IN_MAV = const.get_used_in_mav_col
 COL_BBQ = const.get_bbq_col
-COL_MAV_STD = const.get_mav_std_col
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -76,29 +74,6 @@ def get_moving_average(data_series, length=20,
         data_mav, std_mav = _get_interpolated_moving_average(data_series, cut_mask, fine_length)
 
     return data_mav, std_mav, cut_mask
-
-
-def add_to_kickac_df(kickac_df, bbq_series, column):
-    """ Add bbq values from series to kickac dataframe into column.
-
-    Args:
-        kickac_df: kickac dataframe
-                  (needs to contain column "TIME_COL" or has time as index)
-        bbq_series: series of bbq data with time as index
-        column: column name to add the data into
-
-    Returns: modified kickac dataframe
-
-    """
-    time_indx = kickac_df.index
-    if TIME_COL in kickac_df:
-        time_indx = kickac_df[TIME_COL]
-
-    values = []
-    for time in time_indx:
-        values.append(bbq_series.iloc[bbq_series.index.get_loc(time, method="nearest")])
-    kickac_df[column] = values
-    return kickac_df
 
 
 def plot_bbq_data(bbq_df,
@@ -217,10 +192,3 @@ def _is_empty_mask(mask):
     """ Checks if mask is empty. """
     if sum(mask) == 0:
         raise ValueError("All points have been filtered. Maybe wrong tune, cutoff?")
-
-
-# Script Mode #################################################################
-
-
-if __name__ == '__main__':
-    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
