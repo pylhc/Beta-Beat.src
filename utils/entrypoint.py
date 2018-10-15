@@ -551,7 +551,8 @@ class CreateParamHelp(object):
 
     """
     def __init__(self):
-        logtools.get_logger("__main__", fmt="%(message)s")
+        logtools.getLogger("").handlers = []  # remove all handlers from root-logger
+        logtools.get_logger("__main__", fmt="%(message)s")  # set up new
 
     def __call__(self, module, param_fun=None):
         if param_fun is None:
