@@ -31,10 +31,12 @@ def main(fig=None):
     form = MainWindow(fig)
     form.show()
     app.exec_()
+    return form.get_figure()
 
 
 # Script Mode #################################################################
 
 
 if __name__ == "__main__":
-    main(_quick_figure())
+    # main(_quick_figure())
+    main()
