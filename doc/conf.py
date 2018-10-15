@@ -12,6 +12,13 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+# ignore numpy warnings, see:
+# https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -89,6 +96,8 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
+
+smartquotes_action = "qe"  # renders only quotes and ellipses (...) but not dashes (option: D)
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -170,5 +179,12 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
+# -- Autodoc Configuration ---------------------------------------------------
 
+# Add here all modules to be mocked up. When the dependencies are not met
+# at building time. Here used to have PyQT mocked.
+autodoc_mock_imports = ['PyQt5', 'PyQt5.QtGui', 'PyQt5.QtCore', 'PyQt5.QtWidgets',
+                        "matplotlib.backends.backend_qt5agg",
+                        "numpy.random",  # caused an error for unused footnote in ADDbpmerror
+                        ]
 

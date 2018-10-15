@@ -2,6 +2,7 @@
 
 """
 import copy
+import six
 from utils import logging_tools
 LOG = logging_tools.get_logger(__name__)
 
@@ -110,7 +111,7 @@ class Parameter(object):
         self._validate()
 
     def _validate(self):
-        if not isinstance(self.name, basestring):
+        if not isinstance(self.name, six.string_types):
             raise ParameterError("Parameter '{:s}': ".format(str(self.name)) +
                                  "Name is not a valid string.")
 
@@ -124,12 +125,13 @@ class Parameter(object):
                     raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                          "Default value not found in choices.")
 
-                if self.type:
+                if self.type or self.subtype:
+                    check = self.type if self.subtype is None else self.subtype
                     for choice in self.choices:
-                        if not isinstance(choice, self.type):
-                            raise ParameterError("Choice '{:s}'".format(choice) +
+                        if not isinstance(choice, check):
+                            raise ParameterError("Choice '{}' ".format(choice) +
                                                  "of parameter '{:s}': ".format(self.name) +
-                                                 "is not of type '{:s}'.".format(self.type))
+                                                 "is not of type '{:s}'.".format(check.__name__))
             except TypeError:
                 raise ParameterError("Parameter '{:s}': ".format(self.name) +
                                      "Choices seem to be not iterable.")
@@ -246,9 +248,17 @@ class DictParser(object):
                                     idx, key, param.subtype.__name__) +
                                 ".\nHelp: {:s}".format(param.help))
 
-            if param.choices and opt not in param.choices:
-                raise ArgumentError("'{:s}' needs to be one of {:s}.\nHelp: {:s}".format(
-                    key, param.choices, param.help)
+                if param.choices and any([o for o in opt if o not in param.choices]):
+                    raise ArgumentError(
+                        "All elements of '{:s}' need to be one of {:s},".format(key,
+                                                                                param.choices) +
+                        " instead the list was {:s}.\nHelp: {:s}".format(str(opt), param.help)
+                    )
+
+            elif param.choices and opt not in param.choices:
+                raise ArgumentError(
+                    "'{:s}' needs to be one of {:s}, instead it was {:s}.\nHelp: {:s}".format(
+                    key, param.choices, str(opt), param.help)
                 )
         return opt
 
@@ -454,6 +464,12 @@ class DictParser(object):
 
     def _convert_config_items(self, items):
         """ Converts items list to a dictionary with types already in place """
+        def list_check(value, level):
+            s = value.replace(" ", "")
+            if not (s.startswith("[" * (level+1)) or s.startswith(("["*level) + "range")):
+                value = "[" + value + "]"
+            return value
+
         def evaluate(name, item):
             try:
                 return eval(item)  # sorry for using that
@@ -462,7 +478,7 @@ class DictParser(object):
                     "Could not evaluate argument '{:s}', unknown '{:s}'".format(name, item))
 
         def eval_type(my_type, item):
-            if issubclass(my_type, basestring):
+            if issubclass(my_type, six.string_types):
                 return my_type(item.strip("\'\""))
             if issubclass(my_type, bool):
                 return bool(eval(item))
@@ -474,8 +490,9 @@ class DictParser(object):
             if name in self.dictionary:
                 arg = self.dictionary[name]
                 if arg.type == list:
-                    if not value.startswith("["):
-                        value = "[" + value + "]"
+                    value = list_check(value, level=0)
+                    if arg.subtype == list:
+                        value = list_check(value, level=1)
                     value = evaluate(name, value)
                     if arg.subtype:
                         for idx, entry in enumerate(value):

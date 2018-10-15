@@ -10,7 +10,7 @@ import pytimber
 
 import constants as const
 from utils import logging_tools
-from utils import tfs_pandas as tfs
+from tfs_files import tfs_pandas as tfs
 
 TIME_COL = const.get_time_col()
 START_TIME = const.get_tstart_head()
@@ -32,7 +32,22 @@ def lhc_fill_to_tfs(fill_number, keys=None, names=None):
     """
     db = pytimber.LoggingDB()
     t_start, t_end = get_fill_times(db, fill_number)
+    out_df = extract_between_times(t_start, t_end, keys, names)
+    return out_df
 
+
+def extract_between_times(t_start, t_end, keys=None, names=None):
+    """ Extracts data for keys between t_start and t_end from timber.
+
+    Args:
+        t_start: starting time in UTC format
+        t_end: end time in UTC format
+        keys: list of data to extract
+        names: dict to map keys to column names
+
+    Returns: tfs pandas dataframe.
+    """
+    db = pytimber.LoggingDB()
     if keys is None:
         keys = get_tune_and_coupling_variables(db)
 

@@ -1,8 +1,10 @@
-import os
-import numpy as np
 import math
-from utils import tfs_file_writer
-from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+import os
+
+import numpy as np
+
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+from tfs_files import tfs_file_writer
 
 
 def write_coupling(element_name, is_element, measured_coupling, input_model, propagated_models, save_path, coupling_summary_file):

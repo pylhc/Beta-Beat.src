@@ -1,7 +1,4 @@
-import os
-from .matcher import Matcher
-
-CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+from sbs_general_matcher.matchers.matcher import Matcher
 
 
 class PhaseMatcher(Matcher):

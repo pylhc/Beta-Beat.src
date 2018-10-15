@@ -14,9 +14,13 @@ for free motion and for driven motion. The twisses should contain the chromatic 
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from os.path import join
-import __init__
-from utils.tfs_pandas import write_tfs, read_tfs
+import sys
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
+from tfs_files.tfs_pandas import write_tfs, read_tfs
 
 
 def optics_measurement_test_files(modeldir, outpath):

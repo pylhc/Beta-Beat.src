@@ -81,9 +81,9 @@ def beta_from_Tune(Q, TdQ, l, Dk):
     return abs(beta_av)
 
 
-def simplex(Q, dq_foc, dq_def, l_foc, l_def, k_foc, k_def, dk_foc, dk_def, L_star_left, L_star_right, guess):
-    beta_av_foc = beta_from_Tune(Q, dq_foc, l_foc, dk_foc)
-    beta_av_def = beta_from_Tune(abs(Q), abs(dq_def), abs(l_def), abs(dk_def))
+def simplex(Q_foc, Q_def, dq_foc, dq_def, l_foc, l_def, k_foc, k_def, dk_foc, dk_def, L_star_left, L_star_right, guess):
+    beta_av_foc = beta_from_Tune(Q_foc, dq_foc, l_foc, dk_foc)
+    beta_av_def = beta_from_Tune(abs(Q_def), abs(dq_def), abs(l_def), abs(dk_def))
 
     fun = lambda x: chi2(x, L_star_left, L_star_right, np.sqrt(abs(k_foc)) * l_foc, np.sqrt(abs(k_foc)), np.sqrt(abs(k_def)) * l_def, np.sqrt(abs(k_def)), beta_av_foc,
                          beta_av_def)
@@ -92,18 +92,10 @@ def simplex(Q, dq_foc, dq_def, l_foc, l_def, k_foc, k_def, dk_foc, dk_def, L_sta
     return res.x[0], res.x[1], beta_av_foc, beta_av_def
 
 
-def analysis(Q1, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_foc, edq_foc, dq_def, edq_def, ek_foc, ek_def, cminus, beta_star_guess, waist_guess, label, log, logfile):
+def analysis(Q1_foc, Q1_def, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_foc, edq_foc, dq_def, edq_def, ek_foc, ek_def, cminus, beta_star_guess, waist_guess, label, log, logfile):
 
     guess = [beta_star_guess, waist_guess]
 
-    if log == True:
-        logfile.write('Label: %s \n' %label)
-        logfile.write('L_star +/- misalignment : %s +/- %s, Length focussing/defocussing magnet: %s / %s  \n' % (L_star, m, l_foc, l_def))
-        logfile.write('Tune: %s, dQ focussing magnet: %s +/- %s, dQ defocussing magnet: %s +/- %s \n' % (Q1, dq_foc, edq_foc, dq_def,  edq_def))
-        logfile.write('K focussing magnet: %s +/- %s,  K defocussing magnet: %s +/- %s, dK focussing / defocussing magnet: %s / %s \n' % (k_foc, ek_foc, k_def, ek_def, dk_foc, dk_def))
-        logfile.write('C- : %s, Error from coupling in %% focussing/defocussing: %s / %s \n' %( cminus, tune_error_from_coupling(cminus, Q1, Q2, abs(dq_foc)) * 100 , tune_error_from_coupling(cminus, Q1, Q2, abs(dq_def)) * 100 ))
-        logfile.write('Betastar guess: %s, Waistshift guess: %s \n' %(beta_star_guess, waist_guess))
-        logfile.write('\n')
 
     DQs = np.zeros([17, 6])
 
@@ -113,20 +105,20 @@ def analysis(Q1, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_f
     DQs[3] = dq_foc, dq_def + edq_def, k_foc, k_def, L_star, L_star
     DQs[4] = dq_foc, dq_def - edq_def, k_foc, k_def, L_star, L_star
 
-    DQs[5] = dq_foc, dq_def, k_foc + ek_foc, k_def, L_star, L_star
-    DQs[6] = dq_foc, dq_def, k_foc - ek_foc, k_def, L_star, L_star
-    DQs[7] = dq_foc, dq_def, k_foc, k_def + ek_def, L_star, L_star
-    DQs[8] = dq_foc, dq_def, k_foc, k_def - ek_def, L_star, L_star
+    DQs[5] = dq_foc, dq_def, k_foc + k_foc*ek_foc, k_def, L_star, L_star
+    DQs[6] = dq_foc, dq_def, k_foc - k_foc*ek_foc, k_def, L_star, L_star
+    DQs[7] = dq_foc, dq_def, k_foc, k_def + k_def*ek_def, L_star, L_star
+    DQs[8] = dq_foc, dq_def, k_foc, k_def - k_def*ek_def, L_star, L_star
 
     DQs[9] = dq_foc, dq_def, k_foc, k_def, L_star + m, L_star
     DQs[10] = dq_foc, dq_def, k_foc, k_def, L_star - m, L_star
     DQs[11] = dq_foc, dq_def, k_foc, k_def, L_star, L_star + m
     DQs[12] = dq_foc, dq_def, k_foc, k_def, L_star, L_star - m
 
-    DQs[13] = dq_foc + dq_foc * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_foc)), dq_def, k_foc, k_def, L_star, L_star
-    DQs[14] = dq_foc - dq_foc * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_foc)), dq_def, k_foc, k_def, L_star, L_star
-    DQs[15] = dq_foc, dq_def + dq_def * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_def)), k_foc, k_def, L_star, L_star 
-    DQs[16] = dq_foc, dq_def - dq_def * tune_error_from_coupling(cminus, Q1, Q2, abs(dq_def)), k_foc, k_def, L_star, L_star 
+    DQs[13] = dq_foc + dq_foc * tune_error_from_coupling(cminus, Q1_foc, Q2, abs(dq_foc)), dq_def, k_foc, k_def, L_star, L_star
+    DQs[14] = dq_foc - dq_foc * tune_error_from_coupling(cminus, Q1_foc, Q2, abs(dq_foc)), dq_def, k_foc, k_def, L_star, L_star
+    DQs[15] = dq_foc, dq_def + dq_def * tune_error_from_coupling(cminus, Q1_foc, Q2, abs(dq_def)), k_foc, k_def, L_star, L_star 
+    DQs[16] = dq_foc, dq_def - dq_def * tune_error_from_coupling(cminus, Q1_foc, Q2, abs(dq_def)), k_foc, k_def, L_star, L_star 
 
     resb = np.zeros(17)
     resw = np.zeros(17)
@@ -135,7 +127,7 @@ def analysis(Q1, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_f
     resbavd = np.zeros(17)
 
     for i in range(17):
-        resb[i], resw[i], resbavf[i], resbavd[i] = simplex(Q1, DQs[i, 0], DQs[i, 1], l_foc, l_def, DQs[i, 2], DQs[i, 3],
+        resb[i], resw[i], resbavf[i], resbavd[i] = simplex(Q1_foc, Q1_def, DQs[i, 0], DQs[i, 1], l_foc, l_def, DQs[i, 2], DQs[i, 3],
                                                            dk_foc, dk_def, DQs[i, 4], DQs[i, 5], guess)
 
     stdb = math.sqrt(max(abs(resb[1] - resb[0]), abs(resb[2] - resb[0])) ** 2 +
@@ -173,6 +165,20 @@ def analysis(Q1, Q2, L_star, m, k_foc, dk_foc, l_foc, k_def, dk_def, l_def, dq_f
                         max(abs(resbavd[11] - resbavd[0]), abs(resbavd[12] - resbavd[0])) ** 2 +
                         max(abs(resbavd[13] - resbavd[0]), abs(resbavd[14] - resbavd[0])) ** 2 +
                         max(abs(resbavd[15] - resbavd[0]), abs(resbavd[16] - resbavd[0])) ** 2 )
+
+    if log == True:
+        logfile.write('Label: %s \n' %label)
+        logfile.write('L_star +/- misalignment : %s +/- %s, Length focussing/defocussing magnet: %s / %s  \n' % (L_star, m, l_foc, l_def))
+        logfile.write('Tune: %s, dQ focussing magnet: %s +/- %s \n' % (Q1_foc, dq_foc, edq_foc))
+        logfile.write('Tune: %s, dQ defocussing magnet: %s +/- %s \n' % (Q1_def, dq_def, edq_def))
+        logfile.write('K focussing magnet: %s +/- %s,  K defocussing magnet: %s +/- %s, dK focussing / defocussing magnet: %s / %s \n' % (k_foc, ek_foc, k_def, ek_def, dk_foc, dk_def))
+        logfile.write('C- : %s, Error from coupling in %% focussing/defocussing: %s / %s \n' %( cminus, tune_error_from_coupling(cminus, Q1_foc, Q2, abs(dq_foc)) * 100 , tune_error_from_coupling(cminus, Q1_foc, Q2, abs(dq_def)) * 100 ))
+        logfile.write('Betastar guess: %s, Waistshift guess: %s \n' %(beta_star_guess, waist_guess))
+        logfile.write('dQx/dK: %s, Error: %s \n' %(dq_foc/dk_foc, edq_foc/dk_foc))
+        logfile.write('dQy/dK: %s, Error: %s \n' %(dq_def/dk_def, edq_def/dk_def))
+        logfile.write('Average Beta focussing Quad: %s +/- %s \n' %(resbavf[0], stdbavf))
+        logfile.write('Average Beta defocussing Quad: %s +/- %s \n' %(resbavd[0], stdbavd))
+        logfile.write('\n')
 
     return label, resb[0], stdb, resw[0], stdw, resbavf[0], stdbavf, resbavd[0], stdbavd
 

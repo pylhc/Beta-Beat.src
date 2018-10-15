@@ -1,4 +1,4 @@
-Documentation Segment by Segment
+Segment by Segment
 *********************************
 
 Entry Points Segment by Segment

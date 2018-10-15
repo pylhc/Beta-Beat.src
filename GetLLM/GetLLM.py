@@ -1,3 +1,8 @@
+import sys
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 import GetLLM
 r'''
 .. module: GetLLM.GetLLM
@@ -81,7 +86,6 @@ import sys
 import traceback
 import math
 
-import __init__  # @UnusedImport init will include paths
 import Python_Classes4MAD.metaclass
 from tfs_utils_getllm import GetllmTfsFile
 import algorithms.helper
@@ -185,10 +189,10 @@ def _parse_args():
                     default=USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE, dest="use_only_three_bpms_for_beta_from_phase")
     parser.add_option("-j", "--numbpm",
                     help="Number of different BPM combinations for beta-calculation, default = 10",
-                    metavar="NUMBER_OF_BPMS", default=NUMBER_OF_BPMS, dest="number_of_bpms")
+                    metavar="NUMBER_OF_BPMS", type=int, default=NUMBER_OF_BPMS, dest="number_of_bpms")
     parser.add_option("-i", "--range",
                     help="Range of BPM for beta-calculation (>=3 and odd), default = 11",
-                    metavar="RANGE_OF_BPMS", default=RANGE_OF_BPMS, dest="range_of_bpms")
+                    metavar="RANGE_OF_BPMS", type=int, default=RANGE_OF_BPMS, dest="range_of_bpms")
     parser.add_option("-r", "--average_tune",
                     help="Set to 1 to use average tune for all BPMs instead of specific for each one.",
                     metavar="AVERAGE_TUNE", type="int", default=AVERAGE_TUNE, dest="use_average")
@@ -787,7 +791,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
             if use_average:
                 twiss_file_x.MUX = twiss_file_x.AVG_MUX
             if calibration_twiss is not None:
-                twiss_file_x.AMPX, twiss_file_x.ERRAMPX = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
+                twiss_file_x.AMPX, twiss_file_x.ERRAMPX, twiss_file_x.CALIBRATION, twiss_file_x.ERROR_CALIBRATION = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
             try:
                 dppi = getattr(twiss_file_x, "DPP", 0.0)
             except AttributeError:
@@ -865,7 +869,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
             if use_average:
                 twiss_file_y.MUY = twiss_file_y.AVG_MUY
             if calibration_twiss is not None:
-                twiss_file_y.AMPY, twiss_file_y.ERRAMPY = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
+                twiss_file_y.AMPY, twiss_file_y.ERRAMPY, twiss_file_y.CALIBRATION, twiss_file_y.ERROR_CALIBRATION = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
             try:
                 dppi = getattr(twiss_file_y, "DPP", 0.0)
             except AttributeError:
@@ -1151,20 +1155,47 @@ def _calculate_kick(kick_times, getllm_d, twiss_d, phase_d, beta_d, mad_twiss, m
 
 
 def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
-    calibration_file = calibration_twiss[plane]
-    cal_amplitudes = []
-    err_cal_amplitudes = []
-    for bpm_name in drive_file.NAME:
-        drive_index = drive_file.indx[bpm_name]
-        cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
-        err_cal_amplitude = 0.
-        if bpm_name in calibration_file.NAME:
-            cal_index = calibration_file.indx[bpm_name]
-            cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
-            err_cal_amplitude = calibration_file.ERROR_CALIBRATION[cal_index]
-        cal_amplitudes.append(cal_amplitude)
-        err_cal_amplitudes.append(err_cal_amplitude)
-    return array(cal_amplitudes), array(err_cal_amplitudes)
+   calibration_file = calibration_twiss[plane]
+   cal_amplitudes = []
+   err_cal_amplitudes = []
+   calibration_value = []
+   calibration_error = []
+   if plane == "X":
+      tune = "Q1"
+      tune_rms = "Q1RMS"
+      natural_tune = "NATQ1"
+      natural_tune_rms = "NATQ1RMS"
+   elif plane == "Y":
+      tune = "Q2"
+      tune_rms = "Q2RMS"
+      natural_tune = "NATQ2"
+      natural_tune_rms = "NATQ2RMS"
+   tune_value = getattr(drive_file,tune)
+   #print "DRIVE TUNE"
+   #print tune_value
+   #print tune_value_rms
+   #print "NATURAL TUNE"
+   #print natural_tune_value
+   #print natural_tune_value_rms
+   tune_value_rms = getattr(drive_file,tune_rms)
+   natural_tune_value = getattr(drive_file,natural_tune_rms)
+   natural_tune_value_rms = getattr(drive_file,natural_tune_rms)
+   for bpm_name in drive_file.NAME:
+       drive_index = drive_file.indx[bpm_name]
+       cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
+       err_cal_amplitude = 0.
+       if bpm_name in calibration_file.NAME:
+           cal_index = calibration_file.indx[bpm_name]
+           cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
+           err_cal_amplitude = cal_amplitude * calibration_file.ERROR_CALIBRATION[cal_index]
+           calibration_value.append(calibration_file.CALIBRATION[cal_index])
+           calibration_error.append(calibration_file.ERROR_CALIBRATION[cal_index])
+       else:
+           calibration_value.append(1.)
+           calibration_error.append(0.)
+       cal_amplitudes.append(cal_amplitude)
+       err_cal_amplitudes.append(err_cal_amplitude)
+   return array(cal_amplitudes), array(err_cal_amplitudes),array(calibration_value),array(calibration_error)
 # END _get_calibrated_amplitudes --------------------------------------------------------------------
 
 

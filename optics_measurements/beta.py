@@ -23,7 +23,7 @@ import pandas as pd
 
 from scipy.linalg import circulant
 from model.accelerators.accelerator import AccExcitationMode
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 from utils import logging_tools
 
 __version__ = "2018.7.a"
@@ -175,7 +175,8 @@ def beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, rang
     LOGGER.info("Beta {} free calculation".format(plane))
     # remove BPMs that are not in the input
     free_model = free_model.loc[phase_adv_free["MEAS"].index]
-    if driven_model: driven_model = driven_model.loc[phase_adv_free["MEAS"].index]
+    if driven_model is not None:
+        driven_model = driven_model.loc[phase_adv_free["MEAS"].index]
     bk_model = bk_model.loc[phase_adv_free["MEAS"].index]
 
     # if DEBUG create a binary debugfile where the algorithm is writing matrices, beta-values,
@@ -830,8 +831,8 @@ def _add_header(df, header_dict, error_method, range_of_bpms):
     Adds common header elements to the headers of df
     df is an out parameter
     '''
-    for key, value in header_dict.iteritems():
-        df.headers[key] = value
+    for key in header_dict.keys():
+        df.headers[key] = header_dict[key]
     df.headers['BetaAlgorithmVersion'] = __version__
     df.headers['RCond'] = RCOND
     df.headers['ErrorsFrom'] = ID_TO_METHOD[error_method]

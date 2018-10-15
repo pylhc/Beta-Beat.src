@@ -8,16 +8,15 @@ Original paper: Liu, Fei Tony, Ting, Kai Ming and Zhou, Zhi-Hua. “Isolation fo
 '''
 from __future__ import print_function
 import os
-import sys
 import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3
-from matplotlib import cm
 import pandas
 import argparse
 from sklearn.ensemble import IsolationForest
-from utils import tfs_pandas, logging_tools
+from utils import logging_tools
+from tfs_files import tfs_pandas
 from model.accelerators import lhc
 
 

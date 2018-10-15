@@ -52,21 +52,24 @@ Usage in another Python module::
 """
 
 import argparse
-import os
-import sys
 import shutil
 import math
 import re
 import numpy as np
+import sys
+import os
+from os.path import abspath, join, dirname
 
-import __init__  # @UnusedImport init will include paths
+new_path = abspath(join(dirname(abspath(__file__)), os.pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
+
 import Python_Classes4MAD.metaclass as metaclass
 from utils import bpm as bpm_util
 from utils import logging_tools as logtools
 from utils.dict_tools import DotDict
-from utils import tfs_remove_nan
+from tfs_files import tfs_utils
 from model import manager, creator
-from model.accelerators.accelerator import AccExcitationMode
 
 LOG = logtools.get_logger(__name__)
 
@@ -210,7 +213,7 @@ def main(**kwargs):
     #TODO: HOPE THAT GETLLM DOES A BETTER JOB
     LOG.warn("Cleaning files of NAN! This should not be necessary!")
     all_files = os.listdir(options.output_path)
-    tfs_remove_nan.clean_files(
+    tfs_utils.remove_nan_from_files(
         [os.path.join(options.output_path, f) for f in all_files], replace=True)
 
     # adding data
@@ -659,11 +662,13 @@ def _get_tunes(model_file, fileslist):
 
 def linreg(X, Y):
     """
-    Summary
-        Linear regression of y = ax + b
-    Usage
-        real, real, real = linreg(list, list)
     Returns coefficients to the regression line "y=ax+b" from x[] and y[], and R^2 Value
+
+    Summary:
+        Linear regression of y = ax + b
+
+    Usage:
+        real, real, real = linreg(list, list)
     """
     if len(X) != len(Y):  raise ValueError, 'unequal length'
     N = len(X)

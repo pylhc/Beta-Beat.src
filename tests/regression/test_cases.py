@@ -1,14 +1,17 @@
-import sys
 import os
-from os.path import join, abspath, dirname
-import compare_utils
-import regression
 import filecmp
 import argparse
+from os.path import join, abspath, dirname, pardir
+import compare_utils
+import regression
 
-ABS_ROOT = abspath(join(dirname(__file__), "..", ".."))
-sys.path.append(ABS_ROOT)
-from utils import iotools
+# ignore numpy warnings, see:
+# https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
+ABS_ROOT = abspath(join(dirname(__file__), pardir, pardir))
 
 REGR_DIR = join("tests", "regression")
 TBTS = join("tests", "inputs", "tbt_files")
@@ -33,10 +36,10 @@ def _parse_args():
 TEST_CASES_HOLE_IN_ONE = (
     regression.TestCase(
         name="hole_in_one_test_flat_3dkick",
-        script=join("hole_in_one", "hole_in_one.py"),
+        script="hole_in_one.py",
         arguments=("--file={file} --model={model} --output={output} clean "
                    "harpy --tunex 0.27 --tuney 0.322 --tunez 4.5e-4 "
-                   "--nattunex 0.28 --nattuney 0.31".format(
+                   "--nattunex 0.28 --nattuney 0.31 --tolerance 0.005".format(
                        file=join(TBTS, "flat_beam1_3d.sdds"),
                        model=join(MODELS, "flat_beam1", "twiss.dat"),
                        output=join(REGR_DIR, "_out_hole_in_one_test_flat_3dkick"))),
@@ -105,7 +108,7 @@ TEST_CASES_RESPONSE_CREATION = (
         test_function=lambda d1, d2: filecmp.cmp(
             join(d1, "fullresponse"), join(d2, "fullresponse")
         ),
-        pre_hook=lambda dir: iotools.copy_item(
+        pre_hook=lambda dir: compare_utils.copy_item(
             join(MODELS, "25cm_beam1"),
             join(dir, REGR_DIR, "_out_create_response_test_madx", "model")
         )
@@ -131,7 +134,7 @@ TEST_CASES_RESPONSE_CREATION = (
         test_function=lambda d1, d2: filecmp.cmp(
             join(d1, "fullresponse"), join(d2, "fullresponse")
         ),
-        pre_hook=lambda dir: iotools.copy_item(
+        pre_hook=lambda dir: compare_utils.copy_item(
             join(MODELS, "25cm_beam1"),
             join(dir, REGR_DIR, "_out_create_response_test_twiss", "model")
         )
@@ -164,7 +167,7 @@ TEST_CASES_GLOBAL_CORRECTION = (
             ignore_files=[r".*\.log", "model"],
             ignore_words=["DATE", "TIME"],
         ),
-        pre_hook=lambda dir:  iotools.copy_item(
+        pre_hook=lambda dir:  compare_utils.copy_item(
             join(MODELS, "25cm_beam1"),
             join(dir, REGR_DIR, "_out_correct_iterative_test", "model")
         ),

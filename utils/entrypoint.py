@@ -20,18 +20,22 @@ Usage:
 ++++++++++++++++++++++++
 
 To be used as a decorator::
+
     @entrypoint(parameters)
     def some_function(options, unknown_options)
 
 Using **strict** mode (see below)::
+
     @entrypoint(parameters, strict=True)
     def some_function(options)
 
 It is also possible to use the EntryPoint Class similar to a normal parser::
+
     ep_parser = EntryPoint(parameters)
     options, unknown_options = ep_parser.parse(arguments)
 
 Using **strict** mode (see below)::
+
     ep_parser = EntryPoint(parameters, strict=True)
     options = ep_parser.parse(arguments)
 
@@ -56,6 +60,7 @@ Parameters need to be a list or a dictionary of dictionaries with the following 
  and the default to ``False`` and ``True`` respectively.
 
 
+
 The **strict** option changes the behaviour for unknown parameters:
 ``strict=True`` raises exceptions, ``strict=False`` loggs debug messages and returns the options.
 Hence a wrapped function with ``strict=True`` must accept one input, with ``strict=False`` two.
@@ -63,7 +68,7 @@ Default: ``False``
 
 """
 
-import ConfigParser
+import six
 import copy
 import json
 import argparse
@@ -81,9 +86,11 @@ from utils.contexts import silence
 
 try:
     # Python 2
+    from ConfigParser import ConfigParser
     from inspect import getargspec as getfullargspec
 except ImportError:
     # Python 3
+    from configparser import ConfigParser
     from inspect import getfullargspec
 
 LOG = logtools.get_logger(__name__)
@@ -178,7 +185,7 @@ class EntryPoint(object):
 
     def _create_config_parser(self):
         """ Creates the config parser. Maybe more to do here later with parameter. """
-        parser = ConfigParser.ConfigParser()
+        parser = ConfigParser()
         return parser
 
     #########################
@@ -209,7 +216,7 @@ class EntryPoint(object):
 
     def _handle_arg(self, arg):
         """ *args has been input """
-        if isinstance(arg, basestring):
+        if isinstance(arg, six.string_types):
             # assume config file
             options = self.dictparse.parse_config_items(self._read_config(arg))
         elif isinstance(arg, dict):
@@ -337,10 +344,10 @@ class entrypoint(EntryPoint):
                 def wrapper(other, *args, **kwargs):
                     return func(other, self.parse(*args, **kwargs))
             else:
-                ArgumentError("In strict mode, only one option-structure will be passed."
-                              " The entrypoint needs to have the following structure: "
-                              " ([self/cls,] options)."
-                              " Found: {:s}".format(getfullargspec(func).args))
+                raise ArgumentError("In strict mode, only one option-structure will be passed."
+                                    " The entrypoint needs to have the following structure: "
+                                    " ([self/cls,] options)."
+                                    " Found: {:s}".format(getfullargspec(func).args))
         else:
             if nargs == 2:
                 @wraps(func)
@@ -353,10 +360,10 @@ class entrypoint(EntryPoint):
                     options, unknown_options = self.parse(*args, **kwargs)
                     return func(other, options, unknown_options)
             else:
-                ArgumentError("Two option-structures will be passed."
-                              " The entrypoint needs to have the following structure: "
-                              " ([self/cls,] options, unknown_options)."
-                              " Found: {:s}".format(getfullargspec(func).args))
+                raise ArgumentError("Two option-structures will be passed."
+                                    " The entrypoint needs to have the following structure: "
+                                    " ([self/cls,] options, unknown_options)."
+                                    " Found: {:s}".format(getfullargspec(func).args))
         return wrapper
 
 
@@ -436,7 +443,10 @@ def add_params_to_generic(parser, params):
     """ Adds entry-point style parameter to either
     ArgumentParser, DictParser or EntryPointArguments
     """
-    params = copy.deepcopy(params)
+    try:
+        params = copy.deepcopy(params)
+    except TypeError:
+        pass  # Python 3
 
     if isinstance(params, dict):
         params = EntryPoint._dict2list_param(params)
@@ -452,7 +462,7 @@ def add_params_to_generic(parser, params):
             if flags is None:
                 parser.add_argument(**param)
             else:
-                if isinstance(flags, basestring):
+                if isinstance(flags, six.string_types):
                     flags = [flags]
                 parser.add_argument(*flags, **param)
 
@@ -527,6 +537,31 @@ def param_names(params):
     except AttributeError:
         names = [p["name"] for p in params]
     return names
+
+
+class CreateParamHelp(object):
+    """ Print params help quickly but changing the logging format first.
+
+    Usage Example::
+
+        import amplitude_detuning_analysis
+        help = CreateParamHelp()
+        help(amplitude_detuning_analysis)
+        help(amplitude_detuning_analysis, "_get_plot_params")
+
+    """
+    def __init__(self):
+        logtools.getLogger("").handlers = []  # remove all handlers from root-logger
+        logtools.get_logger("__main__", fmt="%(message)s")  # set up new
+
+    def __call__(self, module, param_fun=None):
+        if param_fun is None:
+            try:
+                module.get_params().help()
+            except AttributeError:
+                module._get_params().help()
+        else:
+            getattr(module, param_fun)().help()
 
 
 # Script Mode ##################################################################

@@ -1,11 +1,11 @@
-import __init__  # @UnusedImport
-import os
-import sbs_beta_writer
-import numpy as np
 import math
+import os
 
-from utils import tfs_file_writer
-from sbs_beta_writer import intersect
+import numpy as np
+
+from SegmentBySegment.sbs_writers import sbs_beta_writer
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect
+from tfs_files import tfs_file_writer
 
 FIRST_BPM_B1 = "BPMSW.1L2.B1"
 FIRST_BPM_B2 = "BPMSW.1L8.B2"
@@ -40,10 +40,7 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
     first_bpm_on_ring = measured_phase.NAME[np.argmin(measured_phase.S)]
     if first_bpm_on_ring in model_propagation.NAME:
         fix_start_s = model_propagation.S[model_propagation.indx[first_bpm_on_ring]]
-        if "LHCB1" in model_propagation.SEQUENCE and first_bpm_on_ring in model_propagation.NAME:
-            tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
-        elif "LHCB2" in model_propagation.SEQUENCE and first_bpm_on_ring in model_propagation.NAME:
-            tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
+        tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
 
     for bpm in bpms_list:
         bpm_s = bpm[0]

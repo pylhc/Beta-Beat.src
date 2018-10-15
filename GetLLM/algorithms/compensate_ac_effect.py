@@ -24,10 +24,7 @@ from collections import OrderedDict
 
 import utils.bpm
 import phase
-from SegmentBySegment.SegmentBySegment import get_good_bpms
-from __builtin__ import raw_input
 from constants import PI, TWOPI, kEPSILON
-from SegmentBySegment.sbs_writers.sbs_phase_writer import FIRST_BPM_B1
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -363,7 +360,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
     return result, muave, bpm
 
 
-def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):
+def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):#,calibration,calibration_error):
     #-- Select common BPMs
     all_bpms = utils.bpm.model_intersect(
         utils.bpm.intersect(Files),
@@ -376,7 +373,7 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
     print ("skowron: Please fix me !!!! ")
     print ("skowron: op is sometimes the machine name and sometimes lhcphase1 flag  ")
     print "op"
-    print op
+    print op 
     if op == "1": 
         print "here"
         good_bpms_for_kick = intersect_bpm_list_with_arc_bpms(bpms)
@@ -427,11 +424,28 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
 
     #-- Loop for files
     betall = np.zeros((len(all_bpms), len(Files)))
+    betall_err = np.zeros((len(all_bpms), len(Files)))
     for i in range(len(Files)):
         if plane == 'H':
             amp = np.array(
                 [2 * Files[i].AMPX[Files[i].indx[b[1]]] for b in all_bpms]
             )
+            try:
+                 amp_err = np.array(
+                    [Files[i].ERRAMPX[Files[i].indx[b[1]]] for b in all_bpms]
+                )
+                 print "CALIBRATION"
+                 print Files[i].CALIBRATION
+                 calibration = np.array(
+                    [Files[i].CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
+                )
+                 calibration_error = np.array(
+                    [Files[i].ERROR_CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
+                )
+            except AttributeError:
+                  amp_err = np.zeros(len(amp))
+                  calibration = np.ones(len(amp))
+                  calibration_error = np.zeros(len(amp))
             psid = bd * 2 * np.pi * np.array(
                 [Files[i].MUX[Files[i].indx[b[1]]] for b in all_bpms]
             )  # bd flips B2 phase to B1 direction
@@ -442,8 +456,22 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
             psid = bd * 2 * np.pi * np.array(
                 [Files[i].MUY[Files[i].indx[b[1]]] for b in all_bpms]
             )  # bd flips B2 phase to B1 direction
-
-        # This loop is just to fix the phase jump at the beginning of the ring.
+            try:
+                 amp_err = np.array(
+                    [Files[i].ERRAMPY[Files[i].indx[b[1]]] for b in all_bpms]
+                )
+                 calibration = np.array(
+                    [Files[i].CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
+                )
+                 calibration_error = np.array(
+                    [Files[i].ERROR_CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
+                )
+            except AttributeError:
+                  amp_err = np.zeros(len(amp))
+                  calibration = np.ones(len(amp))
+                  calibration_error = np.zeros(len(amp))
+        
+# This loop is just to fix the phase jump at the beginning of the ring.
         for k in range(len(all_bpms)):
             try:
                 if all_bpms[k][0] > s_lastbpm:
@@ -456,17 +484,29 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
         Psid[k_bpmac:] = Psid[k_bpmac:] - 2 * np.pi * Qd
         bet = ((amp / sqrt2j[i]) ** 2 *
                (1 + r ** 2 + 2 * r * np.cos(2 * Psid)) / (1 - r ** 2))
+        print "BETA ERROR CALIBRATION"
+        print amp_err
+        #print bet_err
+        #bet_err = (2 * calibration * bet * calibration_error)**2 
+        bet_err = ((amp_err / sqrt2j[i]) ** 2 *
+               (1 + r ** 2 + 2 * r * np.cos(2 * Psid)) / (1 - r ** 2))
+        print "BETA ERROR"
+        print bet_err
+        print bet_err
         for bpm_index in range(len(all_bpms)):
             betall[bpm_index][i] = bet[bpm_index]
-
+            # betall_err[bpm_index][i] = bet_err[bpm_index]
+            betall_err[bpm_index][i] = 2 / calibration[bpm_index] * bet[bpm_index] * calibration_error[bpm_index]
     #-- Output
     result = {}
     bb = []
     for k in range(len(all_bpms)):
         betave = np.mean(betall[k])
+        bet_errave = np.mean(betall_err[k])
         betstd = np.std(betall[k])
+        bet_err_total = (bet_errave**2+betstd**2)**0.5
         bb.append((betave - betmdl[k]) / betmdl[k])
-        result[all_bpms[k][1]] = [betave, betstd, all_bpms[k][0]]
+        result[all_bpms[k][1]] = [betave, bet_err_total, all_bpms[k][0]]
     bb = math.sqrt(np.mean(np.array(bb) ** 2))
 
     return result, bb, all_bpms

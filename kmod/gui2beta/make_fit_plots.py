@@ -1,13 +1,6 @@
-
-import sys
-import numpy as np
-import matplotlib.pyplot as plt
-from Python_Classes4MAD import metaclass
 import os.path
 from pylab import *
-import matplotlib
 import os
-
 
 
 def plot_fitting(fitx_L,fitx_R,fity_L,fity_R,left_data,right_data,path):
@@ -59,7 +52,6 @@ def plot_fitting(fitx_L,fitx_R,fity_L,fity_R,left_data,right_data,path):
     fig1.tight_layout()
     savefig(os.path.join(path, 'fit_plots.pdf'))
     plt.show()
-
 
 
 if __name__=='__main__':

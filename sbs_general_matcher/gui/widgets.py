@@ -1,7 +1,7 @@
-import constants
 import logging
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSignal, Qt
+from sbs_general_matcher.gui import constants
 
 
 class FileSelectionDialogWidget(QtWidgets.QWidget):

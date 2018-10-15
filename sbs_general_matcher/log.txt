@@ -1,0 +1,6 @@
+root 16/08/2018 12:15:00 INFO Set up debug log file in: /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/sbs_general_matcher/log.txt
+gui.gui 16/08/2018 12:15:00 INFO -------------------- 
+gui.gui 16/08/2018 12:15:00 INFO Configuration:
+gui.gui 16/08/2018 12:15:00 INFO - LHC mode: lhc_runII
+gui.gui 16/08/2018 12:15:00 INFO - Match output path: /afs/cern.ch/work/j/jcoellod/public/Beta-Beat.src/sbs_general_matcher
+gui.gui 16/08/2018 12:15:00 INFO -------------------- 

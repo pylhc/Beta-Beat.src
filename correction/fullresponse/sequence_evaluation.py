@@ -11,11 +11,10 @@ import cPickle as pickle
 import math
 import multiprocessing
 import os
-from time import sleep
 
 import madx_wrapper
 from utils import logging_tools
-from utils import tfs_pandas
+from tfs_files import tfs_pandas
 from utils.contexts import timeit, suppress_exception
 from utils.iotools import create_dirs
 

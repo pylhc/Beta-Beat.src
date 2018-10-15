@@ -7,7 +7,12 @@ from __future__ import print_function
 import os
 
 # noinspection PyUnresolvedReferences
-import __init__
+import sys
+import os
+from os.path import abspath, join, dirname, pardir
+new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 from utils import logging_tools
 from utils.dict_tools import print_dict_tree
 from utils.entrypoint import ArgumentError

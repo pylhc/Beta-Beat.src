@@ -10,7 +10,8 @@ It computes beta* from phase.
 from os.path import join
 from numpy import sqrt, sin, cos, tan, pi
 import pandas as pd
-from utils import tfs_pandas, logging_tools
+from utils import logging_tools
+from tfs_files import tfs_pandas
 
 LOGGER = logging_tools.get_logger(__name__)
 PI2 = 2 * pi

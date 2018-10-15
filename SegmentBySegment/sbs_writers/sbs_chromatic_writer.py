@@ -1,6 +1,7 @@
-from utils import tfs_file_writer
-from sbs_beta_writer import intersect, weighted_average_for_SbS_elements
 import os
+
+from SegmentBySegment.sbs_writers.sbs_beta_writer import intersect, weighted_average_for_SbS_elements
+from tfs_files import tfs_file_writer
 
 
 def write_chromatic(element_name, is_element, measured_chromatic_wx, measured_chromatic_wy, input_model, propagated_models, save_path, chrom_summary_file):
@@ -131,7 +132,7 @@ def _write_chromatic_w_for_plane(file_chromatic, plane, element_name, bpms_list,
     return summary_data
 
 
-def  _write_summary_data(chrom_summary_file, summary_data_x, summary_data_y):
+def _write_summary_data(chrom_summary_file, summary_data_x, summary_data_y):
     chrom_summary_file.add_table_row([summary_data_x[0], summary_data_x[1],
                                       summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
                                       summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5],

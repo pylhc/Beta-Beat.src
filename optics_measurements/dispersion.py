@@ -10,7 +10,9 @@ It computes orbit, dispersion and normalised dispersion.
 from os.path import join
 import pandas as pd
 import numpy as np
-from utils import tfs_pandas, stats
+from utils import stats
+from tfs_files import tfs_pandas
+
 SCALES = {'um': 1.0e-6, 'mm': 1.0e-3, 'cm': 1.0e-2, 'm': 1.0}
 PLANES = ("X", "Y")
 
