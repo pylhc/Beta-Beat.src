@@ -260,8 +260,8 @@ def _beta_from_phase(madTwiss, madElements, phase, plane,
                                  beta_df.loc[:, 'BET' + plane + 'MDL'] - 1.0)
 
     # check if there were actually errors assigned
-    if (len(madElements["dK1"].nonzero()) + len(madElements["dX"].nonzero()) +
-        len(madElements["KdS"].nonzero())) > 0:
+    if (len(madElements["dK1"].nonzero()[0]) + len(madElements["dX"].nonzero()[0]) +
+        len(madElements["KdS"].nonzero()[0])) > 0:
         if -2 in beta_df["NCOMB"].values:
             LOGGER.warning("Analytical N-BPM method failed for at least one BPM. "
                            "Check debug log for more information.")
