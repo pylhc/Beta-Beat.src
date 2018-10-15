@@ -1,4 +1,8 @@
-""" Tools to extract data from timber.
+"""
+Module tune_analysis.timber_extract
+-------------------------------------
+
+Tools to extract data from timber.
 
 It is a bit heavy on the LHC-side at the moment.
 Feel free to make it more accelerator independent.

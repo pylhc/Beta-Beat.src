@@ -1,3 +1,8 @@
+"""
+Module tune_analysis.constants
+----------------------------------
+
+"""
 import pytz
 
 

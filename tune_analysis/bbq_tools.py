@@ -1,4 +1,8 @@
-""" Tools to handle BBQ data.
+"""
+Module tune_analysis.bbq_tools
+----------------------------------
+
+Tools to handle BBQ data.
 
 This package contains a collection of tools to handle and modify BBQ data:
  - Calculating moving average

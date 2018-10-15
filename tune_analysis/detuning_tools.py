@@ -1,4 +1,7 @@
 """
+Module tune_analysis.detuning_tools
+-------------------------------------
+
 Some tools for amplitude detuning, mainly plotting.
 
 Important Convention:

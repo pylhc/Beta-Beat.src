@@ -1,4 +1,7 @@
 """
+Module tune_analysis.kickac_modifiers
+--------------------------------------
+
 Functions to add data to or extract data from kick_ac files.
 """
 import numpy as np
