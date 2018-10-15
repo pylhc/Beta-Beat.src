@@ -84,6 +84,20 @@ def get_timber_bbq_key(plane, beam):
     return 'lhc.bofsu:eigen_freq_{:d}_b{:d}'.format({"X": 1, "Y": 2}[plane], beam)
 
 
+def get_odr_header_offset(j_plane, q_plane):
+    """ Header key for odr offset (i.e. beta[0]) """
+    return "ODR_J{:s}Q{:s}_OFFSET".format(j_plane, q_plane)
+
+
+def get_odr_header_slope(j_plane, q_plane):
+    """ Header key for odr slope (i.e. beta[1]) """
+    return "ODR_J{:s}Q{:s}_SLOPE".format(j_plane, q_plane)
+
+
+def get_odr_header_slope_std(j_plane, q_plane):
+    """ Header key for odr slope standard deviation (i.e. sd_beta[1]) """
+    return "ODR_J{:s}Q{:s}_SLOPE_STD".format(j_plane, q_plane)
+
 # Script Mode #################################################################
 
 

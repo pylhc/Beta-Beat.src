@@ -8,7 +8,7 @@ Currently starts a testing figure.
 """
 import sys
 from PyQt5 import QtWidgets
-from main_window import MainWindow
+from plotshop.fig_editor.main_window import MainWindow
 
 
 def _quick_figure():
@@ -31,10 +31,12 @@ def main(fig=None):
     form = MainWindow(fig)
     form.show()
     app.exec_()
+    return form.get_figure()
 
 
 # Script Mode #################################################################
 
 
 if __name__ == "__main__":
-    main(_quick_figure())
+    # main(_quick_figure())
+    main()
