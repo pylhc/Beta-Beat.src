@@ -1,6 +1,9 @@
 import os
 import pandas as pd
-from model.accelerators.accelerator import Accelerator
+from model.accelerators.accelerator import Accelerator,Element
+from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
+from utils import logging_tools
+from tfs_files import tfs_pandas
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
@@ -191,6 +194,24 @@ class Psbooster(Accelerator):
         return new_class
 
     # Public Methods ##########################################################
+    @classmethod
+    def get_segment(cls, label, first_elem, last_elem, optics_file):
+        segment_cls = type(cls.__name__ + "Segment",
+                          (_PsboosterSegmentMixin,cls),
+                          {})
+        segment_inst = segment_cls()
+        ring = cls.get_ring()
+        bpms_file = _get_file_for_ring(ring)
+        bpms_file_data = tfs_pandas.read_tfs(bpms_file).set_index("NAME")
+        first_elem_s = bpms_file_data.loc[first_elem, "S"]
+        last_elem_s = bpms_file_data.loc[last_elem, "S"]
+        segment_inst.label = label
+        segment_inst.start = Element(first_elem, first_elem_s)
+        segment_inst.end = Element(last_elem, last_elem_s)
+        segment_inst.optics_file = optics_file
+        segment_inst.fullresponse = None
+        return segment_inst    
+
 
     def verify_object(self):
         pass
@@ -198,6 +219,10 @@ class Psbooster(Accelerator):
     @classmethod
     def get_nominal_tmpl(cls):
         return os.path.join(PSB_DIR, "nominal.madx")
+
+    @classmethod
+    def get_segment_tmpl(cls):
+        return cls.get_file("segment.madx")
 
     @classmethod
     def get_iteration_tmpl(cls):
@@ -233,7 +258,18 @@ class Psbooster(Accelerator):
         return os.path.join(CURRENT_DIR, "psbooster", filename)
 
 
+class _PsboosterSegmentMixin(object):
+
+   def __init__(self):
+       self._start = None
+       self._end = None
+
+
     # Private Methods ##########################################################
+
+
+def _get_file_for_ring(ring):
+    return os.path.join(PSB_DIR, "twiss_ring" + str(ring) + ".dat")
 
 
 # Script Mode ##################################################################
