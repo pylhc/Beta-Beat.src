@@ -140,7 +140,7 @@ def plot_detuning(x, y, xerr, yerr, labels, xmin=None, xmax=None, ymin=None, yma
     ax.set_ylim(bottom=ymin, top=ymax)
 
     # lagends
-    ax.legend(loc='lower left', bbox_to_anchor=(0.0, 1.01), ncol=2,)
+    ax.legend(loc='lower right', bbox_to_anchor=(1.0, 1.01), ncol=2,)
     ax.ticklabel_format(style="sci", useMathText=True, scilimits=(-3, 3))
     fig.tight_layout()
     fig.tight_layout()  # needs two calls for some reason to look great
