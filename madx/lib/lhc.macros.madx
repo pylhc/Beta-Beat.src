@@ -92,40 +92,6 @@ set_default_crossing_scheme(): macro = {
     on_sol_atlas:=0;
     on_sol_alice:=0;
     on_sol_cms:=0;
-
-!**Exp. configuration in IR1, IR2, IR5 and IR8***
-!  on_x1  :=  160.000  ;
-!  on_sep1:=   -0.550  ;
-!  on_oh1 :=    0.000  ;
-!  on_ov1 :=    0.000  ;
-!  phi_IR1:=   90.000  ;
-!  on_ssep1:=on_sep1;
-!  on_xx1  := on_x1 ;
-!  on_x5  :=  160.000  ;
-!  on_sep5:=    0.550  ;
-!  on_oh5 :=    0.000  ;
-!  on_ov5 :=   0.000  ;
-!  phi_IR5:=    0.000  ;
-!  on_ssep5:=on_sep5;
-!  on_xx5  := on_x5 ;
-
- !**Spurious dispersion correction
-!on_disp  :=    0.000  ;
-
-!  on_x2  :=  200.000  ;
-!  on_sep2:=    1.000  ;
-!  on_a2  :=    0.000  ;
-!  on_o2  :=    0.000  ;
-!  on_oh2 :=    0.000  ;
-!  on_ov2 :=   -2.000  ;
-!  phi_IR2:=   90.000  ;
-!  on_x8  := -250.000  ;
-!  on_sep8:=   -1.000  ;
-!  on_a8  :=    0.000  ;
-!  on_o8  :=    0.000  ;
-!  on_oh8 :=    0.000  ;
-!  on_ov8 :=    0.000  ;
-!  phi_IR8:=  180.000  ;
 };
 
 /*
