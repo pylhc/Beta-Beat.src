@@ -457,10 +457,10 @@ def analyse_with_bbq_corrections(opt):
                 labels={"x": labels[0], "y": labels[1], "line": opt.label},
                 output=output,
                 show=opt.ampdet_plot_show,
-                x_min=opt.ampdet_plot_xmin,
-                x_max=opt.ampdet_plot_xmax,
-                y_min=opt.ampdet_plot_ymin,
-                y_max=opt.ampdet_plot_ymax,
+                xmin=opt.ampdet_plot_xmin,
+                xmax=opt.ampdet_plot_xmax,
+                ymin=opt.ampdet_plot_ymin,
+                ymax=opt.ampdet_plot_ymax,
                 **data
             )
 

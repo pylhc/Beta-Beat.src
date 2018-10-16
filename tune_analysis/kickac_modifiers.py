@@ -148,11 +148,11 @@ def get_odr_data_from_kickac(kickac_df, action_plane, tune_plane):
     """
     slope = kickac_df.headers[HEADER_SLOPE(action_plane, tune_plane)]
     slope_std = kickac_df.headers[HEADER_SLOPE_STD(action_plane, tune_plane)]
-    x = [0, max(kickac_df[COL_ACTION(action_plane)])*1.01]
+    x = [0, max(kickac_df[COL_ACTION(action_plane)])*1.05]
     y = [0, x[1] * slope]
     return {
-        "x:": x,
-        "y": y,
+        "x": np.array(x),
+        "y": np.array(y),
         "label": '${:.4f}\, \pm\, {:.4f}$'.format(slope, slope_std),
         "offset": kickac_df.headers[HEADER_OFFSET(action_plane, tune_plane)]
     }
@@ -171,9 +171,9 @@ def get_ampdet_data_from_kickac(kickac_df, action_plane, tune_plane):
 
     """
     columns = {"x": COL_ACTION(action_plane),
-               "x_err": COL_ACTION_ERR(action_plane),
+               "xerr": COL_ACTION_ERR(action_plane),
                "y": COL_CORRECTED(tune_plane),
-               "y_err": COL_NATQ_TOTSTD(tune_plane),
+               "yerr": COL_NATQ_TOTSTD(tune_plane),
                }
     data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
     return data
