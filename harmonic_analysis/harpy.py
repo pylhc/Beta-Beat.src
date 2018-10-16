@@ -36,7 +36,7 @@ RESONANCE_LISTS = {
           (-2, 1, 0), (1, 1, 0), (2, 0, 0), (-1, -2, 0), (3, 0, 0)),
     "Y": ((1, 0, 0), (-1, 1, 0), (-2, 0, 0), (1, -1, 0), (0, -2, 0),
           (0, -3, 0), (2, 1, 0), (-1, 3, 0), (1, 1, 0), (-1, 2, 0)),
-    "Z": ((0, 0, 1), (1, 0, 1), (0, 1, 1))
+    "Z": ((1, 0, 1), (0, 1, 1))
 }
 
 MAIN_LINES = {"X": (1, 0, 0), "Y": (0, 1, 0), "Z": (0, 0, 1)}
@@ -60,8 +60,8 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
              ("Y", bpm_matrix_y, usv_y))
     for plane, bpm_matrix, usv in cases:
         panda = pd.DataFrame(index=bpm_matrix.index, columns=OrderedDict())
-        if harpy_input.harpy_mode == "wind":
-            frequencies, coefficients = windowed_padded_fft(bpm_matrix, usv, 20, harpy_input)
+        if harpy_input.harpy_mode == "window":
+            frequencies, coefficients = windowed_padded_fft(bpm_matrix, usv, 21, harpy_input)
         else:
             frequencies, coefficients = harmonic_analysis(bpm_matrix, usv=usv,
                                                           mode=harpy_input.harpy_mode,
@@ -531,7 +531,7 @@ def windowed_padded_fft(matrix, svd, turn_bits, harpy_input):
     padded_length = np.power(2, turn_bits)
     ints2pi = 2. * np.pi * np.arange(length) / float(length)
     nuttal4 = 0.3125 - 0.46875 * np.cos(ints2pi) + 0.1875 * np.cos(2. * ints2pi) - 0.03125 * np.cos(3. * ints2pi)
-    norm=np.sum(nuttal4)
+    norm = np.sum(nuttal4)
     #nuttal3 = 0.375 - 0.5 * np.cos(ints2pi) + 0.125 * np.cos(2. * ints2pi)
     #norm = np.sum(nuttal3)
     s_vt_freq = np.fft.fft(for_freqs * nuttal4, n=padded_length)
@@ -542,24 +542,21 @@ def windowed_padded_fft(matrix, svd, turn_bits, harpy_input):
     new_coeffs = np.zeros((coefficients.shape[0], extended), dtype=np.complex128)
     new_freqs = np.zeros((coefficients.shape[0], extended))
     new_coeffs[:,:int(np.sum(mask))] = coefficients
-    coef=new_coeffs.reshape(new_coeffs.shape[0], int(extended/samples), samples)
+    coef = new_coeffs.reshape(new_coeffs.shape[0], int(extended/samples), samples)
     argsmax = np.outer(np.ones(new_coeffs.shape[0], dtype=np.int), np.arange(int(extended/samples))*samples) + np.argmax(np.abs(coef), axis=2)
     freqs = np.arange(np.power(2, turn_bits), dtype=np.float64)[mask] / float(np.power(2, turn_bits))
     new_freqs[:, :int(np.sum(mask))] = freqs
-    coeffs = pd.DataFrame(index=matrix.index, data=new_coeffs[np.arange(new_coeffs.shape[0])[:,None],argsmax] / norm)
-    frequencies = pd.DataFrame(index=coeffs.index, data=new_freqs[np.arange(new_freqs.shape[0])[:,None],argsmax])
+    coeffs = pd.DataFrame(index=matrix.index, data=new_coeffs[np.arange(new_coeffs.shape[0])[:, None], argsmax] / norm)
+    frequencies = pd.DataFrame(index=coeffs.index, data=new_freqs[np.arange(new_freqs.shape[0])[:, None], argsmax])
     return frequencies, coeffs
 
 
 def _get_mask(tol, length, harpy_input):
-    freqs = [(resonance_h * harpy_input.tunex) + (resonance_v * harpy_input.tuney) + (resonance_l * harpy_input.tunez)
-             for (resonance_h, resonance_v, resonance_l) in RESONANCE_LISTS["X"]]
-    freqs.extend([(resonance_h * harpy_input.tunex) + (resonance_v * harpy_input.tuney) + (resonance_l * harpy_input.tunez)
-             for (resonance_h, resonance_v, resonance_l) in RESONANCE_LISTS["Y"]])
-    freqs.extend([(resonance_h * harpy_input.tunex) + (resonance_v * harpy_input.tuney) + (
-                resonance_l * harpy_input.tunez)
-                  for (resonance_h, resonance_v, resonance_l) in RESONANCE_LISTS["Z"]])
-    freqs.extend([harpy_input.nattunex,harpy_input.nattuney])
+    freqs = [0.0]
+    for dim in ["X", "Y", "Z"]:
+        freqs.extend([(resonance_h * harpy_input.tunex) + (resonance_v * harpy_input.tuney) + (resonance_l * harpy_input.tunez)
+             for (resonance_h, resonance_v, resonance_l) in RESONANCE_LISTS[dim]])
+    freqs.extend([harpy_input.nattunex, harpy_input.nattuney, harpy_input.tunez])
     # Move to [0, 1] domain.
     freqs = [freq + 1. if freq < 0. else freq for freq in freqs]
     freqs = np.array(freqs) * length
