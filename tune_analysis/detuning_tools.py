@@ -19,7 +19,7 @@ import numpy as np
 from scipy.odr import RealData, Model, ODR
 
 import constants as const
-from utils import logging_tools
+from utils import logging_tools, math_tools, contexts
 from plotshop import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
@@ -121,7 +121,8 @@ def plot_detuning(x, y, xerr, yerr, labels, xmin=None, xmax=None, ymin=None, yma
     ax = fig.add_subplot(111)
 
     xmin = 0 if xmin is None else xmin
-    xmax = max(x + xerr) * 1.01 if xmax is None else xmax
+    xmax = max(x + xerr) * 1.05 if xmax is None else xmax
+
     offset = 0
     if odr_fit:
         odr_plot(ax, odr_fit, lim=[xmin, xmax])
@@ -129,15 +130,20 @@ def plot_detuning(x, y, xerr, yerr, labels, xmin=None, xmax=None, ymin=None, yma
 
     ax.errorbar(x, y - offset, xerr=xerr, yerr=yerr, label=labels.get("line", None))
 
-    default_labels = const.get_paired_lables("{}", "{}")
+    # labels
+    default_labels = const.get_paired_lables("", "")
     ax.set_xlabel(labels.get("x", default_labels[0]))
     ax.set_ylabel(labels.get("y", default_labels[1]))
 
+    # limits
     ax.set_xlim(left=xmin, right=xmax)
     ax.set_ylim(bottom=ymin, top=ymax)
 
-    plt.legend(loc='lower left', bbox_to_anchor=(0.0, 1.01), ncol=2,)
+    # lagends
+    ax.legend(loc='lower left', bbox_to_anchor=(0.0, 1.01), ncol=2,)
+    ax.ticklabel_format(style="sci", useMathText=True, scilimits=(-3, 3))
     fig.tight_layout()
+    fig.tight_layout()  # needs two calls for some reason to look great
 
     if output:
         fig.savefig(output)
