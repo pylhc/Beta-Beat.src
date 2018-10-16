@@ -20,18 +20,22 @@ Usage:
 ++++++++++++++++++++++++
 
 To be used as a decorator::
+
     @entrypoint(parameters)
     def some_function(options, unknown_options)
 
 Using **strict** mode (see below)::
+
     @entrypoint(parameters, strict=True)
     def some_function(options)
 
 It is also possible to use the EntryPoint Class similar to a normal parser::
+
     ep_parser = EntryPoint(parameters)
     options, unknown_options = ep_parser.parse(arguments)
 
 Using **strict** mode (see below)::
+
     ep_parser = EntryPoint(parameters, strict=True)
     options = ep_parser.parse(arguments)
 
@@ -54,6 +58,7 @@ Parameters need to be a list or a dictionary of dictionaries with the following 
  (commandline only, do not use ``REMAINDER``!)
 | **action** (*optional*): either ``store_true`` or ``store_false``, will set ``type`` to bool
  and the default to ``False`` and ``True`` respectively.
+
 
 
 The **strict** option changes the behaviour for unknown parameters:
@@ -532,6 +537,31 @@ def param_names(params):
     except AttributeError:
         names = [p["name"] for p in params]
     return names
+
+
+class CreateParamHelp(object):
+    """ Print params help quickly but changing the logging format first.
+
+    Usage Example::
+
+        import amplitude_detuning_analysis
+        help = CreateParamHelp()
+        help(amplitude_detuning_analysis)
+        help(amplitude_detuning_analysis, "_get_plot_params")
+
+    """
+    def __init__(self):
+        logtools.getLogger("").handlers = []  # remove all handlers from root-logger
+        logtools.get_logger("__main__", fmt="%(message)s")  # set up new
+
+    def __call__(self, module, param_fun=None):
+        if param_fun is None:
+            try:
+                module.get_params().help()
+            except AttributeError:
+                module._get_params().help()
+        else:
+            getattr(module, param_fun)().help()
 
 
 # Script Mode ##################################################################
