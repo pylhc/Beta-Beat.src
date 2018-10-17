@@ -22,11 +22,15 @@ COL_IN_MAV = const.get_used_in_mav_col
 
 COL_NATQ = const.get_natq_col
 COL_NATQ_STD = const.get_natq_err_col
-COL_CORRECTED = const.get_natq_corr_col
+COL_NATQ_CORR = const.get_natq_corr_col
 COL_NATQ_TOTSTD = const.get_total_natq_std_col
 
 COL_TIME = const.get_time_col
 COL_BBQ = const.get_bbq_col
+
+HEADER_CORR_OFFSET = const.get_odr_header_offset_corr
+HEADER_CORR_SLOPE = const.get_odr_header_slope_corr
+HEADER_CORR_SLOPE_STD = const.get_odr_header_slope_std_corr
 
 HEADER_OFFSET = const.get_odr_header_offset
 HEADER_SLOPE = const.get_odr_header_slope
@@ -91,13 +95,31 @@ def add_corrected_natural_tunes(kickac_df):
         Modified kick_ac
     """
     for plane in PLANES:
-        kickac_df[COL_CORRECTED(plane)] = \
+        kickac_df[COL_NATQ_CORR(plane)] = \
             kickac_df[COL_NATQ(plane)] - kickac_df[COL_MAV(plane)]
     return kickac_df
 
 
+def add_corrected_odr(kickac_df, odr_fit, action_plane, tune_plane):
+    """ Adds the odr fit of the corrected data to the header of the kickac.
+
+    Args:
+        kickac_df: Dataframe containing the data
+        odr_fit: odr-fit data (definitions see ``detuning_tools.py``)
+        action_plane: Plane of the action
+        tune_plane: Plane of the tune
+
+    Returns:
+        Modified kick_ac
+    """
+    kickac_df.headers[HEADER_CORR_OFFSET(action_plane, tune_plane)] = odr_fit.beta[0]
+    kickac_df.headers[HEADER_CORR_SLOPE(action_plane, tune_plane)] = odr_fit.beta[1]
+    kickac_df.headers[HEADER_CORR_SLOPE_STD(action_plane, tune_plane)] = odr_fit.sd_beta[1]
+    return kickac_df
+
+
 def add_odr(kickac_df, odr_fit, action_plane, tune_plane):
-    """ Adds the odr fit to the header of the kickac.
+    """ Adds the odr fit of the uncorrected data to the header of the kickac.
 
     Args:
         kickac_df: Dataframe containing the data
@@ -134,7 +156,7 @@ def add_total_natq_std(kickac_df):
 # Data Extraction ##############################################################
 
 
-def get_odr_data_from_kickac(kickac_df, action_plane, tune_plane):
+def get_odr_data(kickac_df, action_plane, tune_plane):
     """ Extract the data from odr.
 
     Args:
@@ -158,8 +180,9 @@ def get_odr_data_from_kickac(kickac_df, action_plane, tune_plane):
     }
 
 
-def get_ampdet_data_from_kickac(kickac_df, action_plane, tune_plane):
-    """ Extract the data needed for odr and plotting from the kickac dataframe.
+def get_corrected_ampdet_data(kickac_df, action_plane, tune_plane):
+    """ extract the data needed for plotting the corrected amplitude detuning
+    from the kickac dataframe.
 
     Args:
         kickac_df: Dataframe containing the data
@@ -172,10 +195,30 @@ def get_ampdet_data_from_kickac(kickac_df, action_plane, tune_plane):
     """
     columns = {"x": COL_ACTION(action_plane),
                "xerr": COL_ACTION_ERR(action_plane),
-               "y": COL_CORRECTED(tune_plane),
+               "y": COL_NATQ_CORR(tune_plane),
                "yerr": COL_NATQ_TOTSTD(tune_plane),
                }
     data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
     return data
 
 
+def get_ampdet_data(kickac_df, action_plane, tune_plane):
+    """ extract the data needed for plotting the uncorrected amplitude detuning
+    from the kickac dataframe.
+
+    Args:
+        kickac_df: Dataframe containing the data
+        action_plane: Plane of the action
+        tune_plane: Plane of the tune
+
+    Returns:
+        Dictionary containing x,y, x_err and y_err
+
+    """
+    columns = {"x": COL_ACTION(action_plane),
+               "xerr": COL_ACTION_ERR(action_plane),
+               "y": COL_NATQ(tune_plane),
+               "yerr": COL_NATQ_STD(tune_plane),
+               }
+    data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
+    return data
