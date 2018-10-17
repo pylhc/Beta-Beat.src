@@ -93,4 +93,24 @@ class PsboosterModelCreator(model_creator.ModelCreator):
         shutil.copy(src_path, dest_path)
         
         #os.link(src, dst) (file_path, link_path)
+
+
+class PsboosterSegmentCreator(model_creator.ModelCreator):
+    @classmethod
+    def get_madx_script(cls, instance, output_path):
+        with open(instance.get_segment_tmpl()) as textfile:
+            madx_template = textfile.read()
+        replace_dict = {
+            "FILES_DIR": instance.get_psb_dir(),
+            "RING": instance.get_ring(),
+            "LIB": instance.NAME, # "psbooster"
+            "OPTICS_PATH": instance.optics_file,
+            "PATH": output_path,
+            "OUTPUT": output_path,
+            "LABEL": instance.label,
+            "STARTFROM": instance.start.name,
+            "ENDAT": instance.end.name,
+        }
+        madx_script = madx_template % replace_dict
+        return madx_script
             

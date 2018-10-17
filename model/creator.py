@@ -13,7 +13,7 @@ from model.model_creators.lhc_model_creator import (  # noqa
     LhcSegmentCreator,
     LhcCouplingCreator,
 )
-from model_creators.psbooster_model_creator import PsboosterModelCreator
+from model_creators.psbooster_model_creator import PsboosterModelCreator,PsboosterSegmentCreator
 from model_creators.ps_model_creator import PsModelCreator
 import logging
 
@@ -25,7 +25,8 @@ CREATORS = {
             "best_knowledge": LhcBestKnowledgeCreator,
             "segment": LhcSegmentCreator,
             "coupling_correction": LhcCouplingCreator},
-    "psbooster": {"nominal": PsboosterModelCreator},
+    "psbooster": {"nominal": PsboosterModelCreator,
+                  "segment": PsboosterSegmentCreator},
     "ps": {"nominal": PsModelCreator},
 }
 
