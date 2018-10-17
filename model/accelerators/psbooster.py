@@ -204,6 +204,10 @@ class Psbooster(Accelerator):
         return cls.get_file("template.iterate.madx")
 
     @classmethod
+    def get_corrtest_tmpl(cls):
+        return cls.get_file("correction_test.madx")
+
+    @classmethod
     def get_psb_dir(cls):
         return PSB_DIR
 
