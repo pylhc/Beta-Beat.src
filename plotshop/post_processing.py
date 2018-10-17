@@ -31,6 +31,19 @@ def merge_two_plots(axes, keep_style=True):
     return fig
 
 
+def transpose_legend(leg):
+    """ Transposes the legend. Has some problems with the markers. """
+    nrow = leg._ncol
+    loc = leg._get_loc()
+    handles = np.array(leg.legendHandles)
+    ncol = int(np.ceil(len(handles) / float(nrow)))
+    order = np.array(range(ncol*nrow)).reshape(nrow, ncol).transpose().ravel()[0:len(handles)]
+    handles = handles[order]
+    new_leg = leg.axes.legend(handles, [h.get_label() for h in handles], ncol=ncol)
+    new_leg._set_loc(loc)
+    return new_leg
+
+
 # Data Extraction ##############################################################
 
 

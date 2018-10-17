@@ -16,10 +16,9 @@ import matplotlib.dates as mdates
 import numpy as np
 from matplotlib import pyplot as plt, gridspec
 from matplotlib.ticker import FormatStrFormatter
-
+from matplotlib import colors
 import constants as const
 from utils import logging_tools
-from utils.contexts import suppress_warnings
 from plotshop import plot_style as ps
 
 TIMEZONE = const.get_experiment_timezone()
@@ -102,7 +101,8 @@ def plot_bbq_data(bbq_df,
     """
     LOG.debug("Plotting BBQ data.")
 
-    ps.set_style("standard", {u"lines.marker": u""})
+    ps.set_style("standard", {u"lines.marker": u"",
+                              u"lines.linestyle": u""})
 
     fig = plt.figure()
 
@@ -116,23 +116,28 @@ def plot_bbq_data(bbq_df,
 
     bbq_df.index = [datetime.datetime.fromtimestamp(time, tz=TIMEZONE) for time in bbq_df.index]
 
+    handles = [None] * (3 * len(PLANES))
     for idx, plane in enumerate(PLANES):
         color = ps.get_mpl_color(idx)
         mask = bbq_df[COL_IN_MAV(plane)]
 
-        with suppress_warnings(UserWarning):  # caused by _nolegend_
-            bbq_df.plot(
-                y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.2,
-                label="_nolegend_"
-            )
-        bbq_df.loc[mask, :].plot(
-            y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.4,
-            label="$Q_{:s}$ filtered".format(plane.lower())
-        )
-        bbq_df.plot(
-            y=COL_MAV(plane), ax=ax[idx], color=color,
-            label="$Q_{:s}$ moving av.".format(plane.lower())
-        )
+        # plot and save handles for nicer legend
+        handles[idx] = ax[idx].plot(bbq_df.index, bbq_df[COL_BBQ(plane)],
+                                    color=ps.change_color_brightness(color, .4),
+                                    marker="o", markerfacecolor="None",
+                                    label="$Q_{:s}$".format(plane.lower(),)
+                                    )[0]
+        filtered_data = bbq_df.loc[mask, COL_BBQ(plane)].dropna()
+        handles[len(PLANES)+idx] = ax[idx].plot(filtered_data.index, filtered_data.values,
+                                                color=ps.change_color_brightness(color, .7),
+                                                marker=".",
+                                                label="filtered".format(plane.lower())
+                                                )[0]
+        handles[2*len(PLANES)+idx] = ax[idx].plot(bbq_df.index, bbq_df[COL_MAV(plane)],
+                                                  color=color,
+                                                  linestyle="-",
+                                                  label="moving av.".format(plane.lower())
+                                                  )[0]
 
         if ymin is None and two_plots:
             ax[idx].set_ylim(bottom=min(bbq_df.loc[mask, COL_BBQ(plane)]))
@@ -146,7 +151,11 @@ def plot_bbq_data(bbq_df,
             ax[idx].axvline(x=interval[0], color="red")
             ax[idx].axvline(x=interval[1], color="red")
 
-        ax[idx].set_ylabel('Tune')
+        if two_plots:
+            ax[idx].set_ylabel("$Q_{:s}$".format(PLANES[idx]))
+        else:
+            ax[idx].set_ylabel('Tune')
+
         ax[idx].set_ylim(bottom=ymin, top=ymax)
         ax[idx].yaxis.set_major_formatter(FormatStrFormatter('%.5f'))
 
@@ -154,13 +163,19 @@ def plot_bbq_data(bbq_df,
         ax[idx].set_xlabel('Time')
         ax[idx].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 
-        # don't show labels on upper plot (if two plots)
         if idx:
+            # don't show labels on upper plot (if two plots)
             # use the visibility to allow cursor x-position to be shown
             ax[idx].tick_params(labelbottom=False)
             ax[idx].xaxis.get_label().set_visible(False)
 
-    plt.tight_layout()
+        if not two_plots or idx:
+            # reorder legend
+            ax[idx].legend(handles, [h.get_label() for h in handles],
+                           loc='lower right', bbox_to_anchor=(1.0, 1.01), ncol=3,)
+
+    fig.tight_layout()
+    fig.tight_layout()
 
     if output:
         fig.savefig(output)
