@@ -56,9 +56,12 @@ from numpy import dot as matrixmultiply
 from numpy.linalg import inv as inverse
 from numpy.linalg import det as determinant
 from math import factorial
+import logging
 
 
 import sys
+
+LOGGER = logging.getLogger(__name__)
 
 I = complex(0, 1)
 E = numpy.e
@@ -160,7 +163,8 @@ class twiss:
                 is_line_parsed = True
             
             if not is_line_parsed and self.debug:
-                print >> sys.stderr,"Did not parse line ("," ".join(split_line),") in ",filename
+                LOGGER.debug("Did not parse line (%s) in %s"," ".join(split_line),filename)
+                #print >> sys.stderr,"Did not parse line ("," ".join(split_line),") in ",filename
 
         f.close()
         try:
