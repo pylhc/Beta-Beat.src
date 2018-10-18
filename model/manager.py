@@ -8,6 +8,7 @@ ACCELS = {
     esrf.Esrf.NAME: esrf.Esrf,
     psbooster.Psbooster.NAME: psbooster.Psbooster,
     skekb.SKekB.NAME: skekb.SKekB,
+    "JPARC": skekb.SKekB
 }
 
 
