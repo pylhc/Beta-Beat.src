@@ -8,6 +8,9 @@
 
 title, "PS Ring lattice";
 
+!@require beta_beat 
+!@require segments
+
 /******************************************************************************************
  * beam, use
  ******************************************************************************************/
@@ -36,31 +39,14 @@ BRHO      := BEAM->PC * 3.3356;
 
  Qx = %(NAT_TUNE_X)s;
  Qy = %(NAT_TUNE_Y)s;
- Qxd = %(DRV_TUNE_X)s;
- Qyd = %(DRV_TUNE_Y)s;
 
  
- hacmap21 = 0;
- vacmap43 = 0;
- hacmap: matrix, l=0, rm21 := hacmap21;
- vacmap: matrix, l=0, rm43 := vacmap43;
-
- seqedit, sequence=PS;
-  flatten;
-
-  install, element=hacmap, at=0.5, from=PR.KFB97;
-  install, element=vacmap, at=0.5, from=PR.KFB97;
-
-  cycle, start=PS43$START;
- endedit;
  
  use, sequence=PS;
 
 /******************************************************************************************
  * Match for new working point
  ******************************************************************************************/
-
-
 
 match, use_macro;
   vary,   name=kf, step=1.0E-6 ;
@@ -95,26 +81,30 @@ ENDMATCH;
  ************************************************************/
  select, flag=twiss, clear;
  select, flag=twiss, pattern="^PR.*BPM",column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
- twiss, chrom, DELTAP = %(DPP)s , sequence=PS, file="%(OUTPUT)s/twiss.dat";
+ twiss, chrom, sequence=PS;
 
- select, flag=twiss, clear;
- select, flag=twiss,column=name, s, keyword, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
- twiss, chrom, DELTAP = %(DPP)s , sequence=PS, file="%(OUTPUT)s/twiss_elements.dat";
 
-!  AC Dipole i
- ac_s = %(USE_ACD)s;
- 
- if (ac_s == 1) {
 
-      betxac = table(twiss, hacmap, betx);
-      betyac = table(twiss, vacmap, bety);
-     
-      hacmap21 := ac_s * (2*(cos(2*pi*Qxd)-cos(2*pi*Qx))/(betxac*sin(2*pi*Qx)));
-      vacmap43 := 2*(cos(2*pi*Qyd)-cos(2*pi*Qy))/(betyac*sin(2*pi*Qy));
+exec, save_initial_and_final_values(
+    ps,
+    %(STARTFROM)s,
+    %(ENDAT)s,
+    "%(PATH)s/measurement_%(LABEL)s.madx",
+    binips,
+    bendps
+);
 
-      value, betxac, betyac;
-      
-      select, flag=twiss, clear;
-      select, flag=twiss, pattern="^PR.*BPM",column=name, s, l, betx, bety, mux, muy, angle, k1l, k2l,k3l, x,y, r11, r12, r21, r22, alfx, alfy, dx, dpx,dpy,px,py,phix,phiy;
-      twiss, centre, DELTAP = 0, sequence=PS, file="%(OUTPUT)s/twiss_ac.dat";
- }
+exec, extract_segment_sequence(
+    ps,
+    front_ps, back_ps,
+    %(STARTFROM)s, %(ENDAT)s
+);
+
+
+exec, twiss_segment(front_ps, "%(PATH)s/twiss_%(LABEL)s.dat", binips);
+exec, twiss_segment(back_ps, "%(PATH)s/twiss_%(LABEL)s_back.dat", bendps);
+
+call, file="%(PATH)s/corrections_%(LABEL)s.madx";
+
+exec, twiss_segment(front_ps, "%(PATH)s/twiss_%(LABEL)s_cor.dat", binips);
+exec, twiss_segment(back_ps, "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", bendps);

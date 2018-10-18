@@ -53,10 +53,10 @@ Linux and windows have different requirements for names of subroutines in fortra
 Code works on assumption that other operating systems will work with the linux version, but if this
 is not the case then it is easy to add another OS to be used*/
  #ifdef _WIN32
-extern "C" { void SUSSIX4DRIVENOISE (double *, double*, double*, double*, double*, double*, double*, double*, char*); }
+extern "C" { void SUSSIX4DRIVENOISE (double *, double*, double*, double*, double*, double*, double*, double*, double*, double*, char*); }
 #define OS "Windows32"
 #else
-extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double*, double*, double*, double*, char*); }
+extern "C" { void sussix4drivenoise_(double *, double*, double*, double*, double*, double*, double*, double*, double*, double*, char*); }
 #define OS "linux"
 #endif
 
@@ -193,8 +193,11 @@ inline void createSpectrumFileForCurrentVerticalBpm(const int& verticalBpmIndex)
 
 double co, co2, noise1, maxfreq, maxmin, maxpeak, noiseAve;
 
-double allampsx[FREQS_PER_BPM], allampsy[FREQS_PER_BPM], allfreqsx[FREQS_PER_BPM], allfreqsy[FREQS_PER_BPM], amplitude[33],
-           doubleToSend[MAXTURNS4 + 4], phase[33], tune[2];
+double allampsx[FREQS_PER_BPM], allampsy[FREQS_PER_BPM];
+double allfreqsx[FREQS_PER_BPM], allfreqsy[FREQS_PER_BPM];
+double allphasx[FREQS_PER_BPM], allphasy[FREQS_PER_BPM];
+
+double  amplitude[33], doubleToSend[MAXTURNS4 + 4], phase[33], tune[2];
 
 int nslines=0;
 
@@ -210,7 +213,7 @@ struct BPM{ /*Structure for each BPM- has name, position, plane, if it's pickedu
 
 #pragma omp threadprivate(amplitude, doubleToSend, tune, phase,\
         noise1, noiseAve, maxpeak, maxfreq, maxmin, co, co2,\
-        allfreqsx, allampsx, allfreqsy, allampsy)
+        allfreqsx, allampsx, allphasx, allfreqsy, allampsy, allphasy)
 
 
 //======================================================================================================================
@@ -1107,9 +1110,9 @@ OutFilesHandler::~OutFilesHandler() {
 inline void callExternalFortranFunctionForHarmonicAnalysis() {
     /* This calls the external Fortran code (tbach)-Different name depending on OS (asherman)*/
     #ifdef _WIN32
-        SUSSIX4DRIVENOISE (&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], (char*)IoHelper::sussixInputFilePath.c_str());
+        SUSSIX4DRIVENOISE (&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allphasx[0], &allfreqsy[0], &allampsy[0], &allphasy[0], (char*)IoHelper::sussixInputFilePath.c_str());
     #else
-        sussix4drivenoise_(&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allfreqsy[0], &allampsy[0], (char*)IoHelper::sussixInputFilePath.c_str());
+        sussix4drivenoise_(&doubleToSend[0], &tune[0], &amplitude[0], &phase[0], &allfreqsx[0], &allampsx[0], &allphasx[0], &allfreqsy[0], &allampsy[0], &allphasy[0], (char*)IoHelper::sussixInputFilePath.c_str());
     #endif
 
 }
@@ -1143,14 +1146,14 @@ inline void calculateNaturalTune(CalculatedNaturalData* naturalData) {
 }
 
 
-inline void writeSpectrumToFile(std::string& spectrumFilePath, const double* allFrequencies, const double* allAmplitudes) {
+inline void writeSpectrumToFile(std::string& spectrumFilePath, const double* allFrequencies, const double* allAmplitudes, const double* allPhases) {
     if(IoHelper::cannotOpenFile(spectrumFilePath,'o')){
         exit(EXIT_FAILURE);
     }
     std::ofstream spectrumFile(spectrumFilePath.c_str());
-    spectrumFile << "* FREQ AMP\n$ %le %le\n";
+    spectrumFile << "* FREQ AMP PHASE\n$ %le %le %le\n";
     for (int j = 0; j < FREQS_PER_BPM; ++j)
-        spectrumFile << std::scientific << allFrequencies[j] << ' ' << allAmplitudes[j] << std::endl;
+        spectrumFile << std::scientific << allFrequencies[j] << ' ' << allAmplitudes[j] << ' ' << allPhases[j] << std::endl;
     spectrumFile.close();
 }
 inline void createSpectrumFileForCurrentHorizontalBpm(const int& horizontalBpmIndex) {
@@ -1159,7 +1162,7 @@ inline void createSpectrumFileForCurrentHorizontalBpm(const int& horizontalBpmIn
         return;
     }*/
     std::string spectrumFilePath = IoHelper::workingDirectoryPath+"/BPM/"+BPMs[horizontalBpmIndex].bpmName+".x";
-    writeSpectrumToFile(spectrumFilePath, allfreqsx, allampsx);
+    writeSpectrumToFile(spectrumFilePath, allfreqsx, allampsx, allphasx);
 }
 inline void createSpectrumFileForCurrentVerticalBpm(const int& verticalBpmIndex) {
     /* Horizontal Spectrum output */
@@ -1167,6 +1170,6 @@ inline void createSpectrumFileForCurrentVerticalBpm(const int& verticalBpmIndex)
         return;
     }*/
     std::string spectrumFilePath = IoHelper::workingDirectoryPath+"/BPM/"+BPMs[verticalBpmIndex].bpmName+".y";
-    writeSpectrumToFile(spectrumFilePath, allfreqsy, allampsy);
+    writeSpectrumToFile(spectrumFilePath, allfreqsy, allampsy, allphasy);
 }
 

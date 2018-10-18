@@ -75,3 +75,28 @@ class PsModelCreator(model_creator.ModelCreator):
         dest_path = os.path.join(output_path, "error_deff.txt")
         #print("error file: src=%s dst=%s"%(src_path,dest_path))
         shutil.copy(src_path, dest_path)
+
+class PsSegmentCreator(model_creator.ModelCreator):
+    @classmethod
+    def get_madx_script(cls, instance, output_path):
+        """ instance is Ps class
+        """
+        
+        LOGGER.info('instance.energy %f',instance.energy)
+        
+        with open(instance.get_segment_tmpl()) as textfile:
+            madx_template = textfile.read()
+        replace_dict = {
+            "KINETICENERGY": instance.energy,
+            "NAT_TUNE_X": instance.nat_tune_x,
+            "NAT_TUNE_Y": instance.nat_tune_y,
+            "FILES_DIR": instance.get_ps_dir(),
+            "OPTICS_PATH": instance.optics_file,
+            "PATH": output_path,
+            "LABEL": instance.label,
+            "STARTFROM": instance.start.name,
+            "ENDAT": instance.end.name,
+        }
+        madx_script = madx_template % replace_dict
+        return madx_script
+            

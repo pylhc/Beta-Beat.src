@@ -161,7 +161,7 @@ XCOMP       :  MULTIPOLE; ! Used as skew sextupoles
  O802       :  MULTIPOLE; CC802:=4330.E-3/(BRHO);                 !OST
 ! MTE octupoles: calibration coefficient from measurement of M. Buzio
  OMTE       :  MULTIPOLE;
-!CCMTE:= 9.03/(BRHO);     ! OMTE design
+CCMTE:= 9.03/(BRHO);     ! OMTE design
 !K3OCT39:=Ioct39*CCMTE;   ! OCT39,OCT55: ideal linear curve
 !K3OCT55:=Ioct55*CCMTE;   ! OCT39,OCT55: ideal linear curve
  CCMT1:= 9.17/(BRHO);     ! OMTE meas. order 1
