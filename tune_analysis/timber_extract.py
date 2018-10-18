@@ -1,4 +1,8 @@
-""" Tools to extract data from timber.
+"""
+Module tune_analysis.timber_extract
+-------------------------------------
+
+Tools to extract data from timber.
 
 It is a bit heavy on the LHC-side at the moment.
 Feel free to make it more accelerator independent.
@@ -97,8 +101,4 @@ def get_fill_times(db, fill_number):
     """
     fill = db.getLHCFillData(fill_number)
     return fill['startTime'], fill['endTime']
-
-
-if __name__ == '__main__':
-    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
 
