@@ -374,7 +374,7 @@ def get_data(path, mainnode, subnode):
 
     elif subnode == "diff_NDisp_NDMdl":
         data_x = get_norm_disp_diff(path, "x")
-        data_y = get_norm_disp_mdl(path, "x")
+        data_y = get_norm_disp_diff(path, "y")
 
     elif subnode == "Beta_BMdl":
         data_x = get_beta_mdl(path, "x", mainnode)
