@@ -377,7 +377,7 @@ class Lhc(Accelerator):
     # Public Methods ##########################################################
 
     @classmethod
-    def get_segment(cls, label, first_elem, last_elem, optics_file):
+    def get_segment(cls, label, first_elem, last_elem, optics_file, twiss_file):
         segment_cls = type(cls.__name__ + "Segment",
                            (_LhcSegmentMixin, cls),
                            {})

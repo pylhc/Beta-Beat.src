@@ -37,6 +37,8 @@ from SegmentBySegment.sbs_writers import (
     sbs_special_element_writer,
 )
 
+import logging
+
 
 #===================================================================================================
 # parse_args()-function
@@ -98,7 +100,9 @@ def main(accel_cls, options):
     :Return: int
         0 if execution was successful otherwise !=0
     '''
-
+    if (sys.flags.debug):
+        logging.basicConfig(level=logging.INFO)
+        
     print("+++ Starting Segment by Segment +++")
     print("Using accelerator class: " + accel_cls.__name__)
     measurement_path = options.path
@@ -150,7 +154,8 @@ def main(accel_cls, options):
             element_name,
             start_bpm_name,
             end_bpm_name,
-            os.path.join(save_path, "modifiers.madx")
+            os.path.join(save_path, "modifiers.madx"),
+            twiss_file
         )
 
         if not options.madpass:

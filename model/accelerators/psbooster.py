@@ -4,7 +4,6 @@ from model.accelerators.accelerator import Accelerator,Element
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 from utils import logging_tools
 from tfs_files import tfs_pandas
-from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 
 CURRENT_DIR = os.path.dirname(__file__)
 PSB_DIR = os.path.join(CURRENT_DIR, "psbooster")
@@ -195,7 +194,7 @@ class Psbooster(Accelerator):
 
     # Public Methods ##########################################################
     @classmethod
-    def get_segment(cls, label, first_elem, last_elem, optics_file):
+    def get_segment(cls, label, first_elem, last_elem, optics_file, twiss_file):
         segment_cls = type(cls.__name__ + "Segment",
                           (_PsboosterSegmentMixin,cls),
                           {})
