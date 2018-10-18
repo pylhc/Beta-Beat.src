@@ -189,6 +189,7 @@ def plot_bbq_data(bbq_df,
 
 # Private methods ############################################################
 
+
 def _get_interpolated_moving_average(data_series, clean_mask, length):
     """ Returns the moving average of data series with a window of length and interpolated NaNs"""
     data = data_series.copy()

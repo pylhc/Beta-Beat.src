@@ -19,11 +19,8 @@ import os
 
 import matplotlib.pyplot as plt
 
-import tune_analysis.kickac_modifiers
-from tune_analysis import bbq_tools, timber_extract, detuning_tools
+from tune_analysis import bbq_tools, timber_extract, detuning_tools, kickac_modifiers
 import tune_analysis.constants as ta_const
-from tune_analysis.kickac_modifiers import (
-    add_moving_average, add_corrected_natural_tunes, add_odr, add_total_natq_std)
 from utils import logging_tools
 from tfs_files import tfs_pandas as tfs
 from utils.dict_tools import ParameterError
@@ -400,18 +397,18 @@ def analyse_with_bbq_corrections(opt):
         x_interval = _get_approx_bbq_interval(bbq_df, kickac_df.index, opt.window_length)
 
         # add moving average to kickac
-        kickac_df, bbq_df = add_moving_average(kickac_df, bbq_df,
-                                               **opt.get_subdict([
-                                                    "window_length",
-                                                    "tune_x_min", "tune_x_max",
-                                                    "tune_y_min", "tune_y_max",
-                                                    "fine_cut", "fine_window"]
-                                                )
-                                               )
+        kickac_df, bbq_df = kickac_modifiers.add_moving_average(kickac_df, bbq_df,
+                                                                **opt.get_subdict([
+                                                                    "window_length",
+                                                                    "tune_x_min", "tune_x_max",
+                                                                    "tune_y_min", "tune_y_max",
+                                                                    "fine_cut", "fine_window"]
+                                                                )
+                                                                )
 
         # add corrected values to kickac
-        kickac_df = add_corrected_natural_tunes(kickac_df)
-        kickac_df = add_total_natq_std(kickac_df)
+        kickac_df = kickac_modifiers.add_corrected_natural_tunes(kickac_df)
+        kickac_df = kickac_modifiers.add_total_natq_std(kickac_df)
 
         # BBQ plots
         if opt.bbq_plot_out or opt.bbq_plot_show:
@@ -434,35 +431,40 @@ def analyse_with_bbq_corrections(opt):
 
         # amplitude detuning odr and plotting
         for tune_plane in PLANES:
-            # get the proper data
-            data = tune_analysis.kickac_modifiers.get_ampdet_data_from_kickac(kickac_df, opt.plane, tune_plane)
+            for corr in ["", "_corrected"]:
+                fun_get_data = getattr(kickac_modifiers, "get{}_ampdet_data".format(corr))
+                fun_add_odr = getattr(kickac_modifiers, "add{}_odr".format(corr))
 
-            # make the odr
-            odr_fit = detuning_tools.do_linear_odr(**data)
-            kickac_df = add_odr(kickac_df, odr_fit, opt.plane, tune_plane)
+                # get the proper data
+                data = fun_get_data(kickac_df, opt.plane, tune_plane)
 
-            # plotting
-            labels = ta_const.get_paired_lables(opt.plane, tune_plane)
-            id_str = "J{:s}_Q{:s}".format(opt.plane.upper(), tune_plane.upper())
+                # make the odr
+                odr_fit = detuning_tools.do_linear_odr(**data)
+                kickac_df = fun_add_odr(kickac_df, odr_fit, opt.plane, tune_plane)
 
-            try:
-                output = os.path.splitext(opt.ampdet_plot_out)
-                output = "{:s}_{:s}{:s}".format(output[0], id_str, output[1])
-            except AttributeError:
-                output = None
+                # plotting
+                labels = ta_const.get_paired_lables(opt.plane, tune_plane)
+                id_str = "J{:s}_Q{:s}{:s}".format(opt.plane.upper(), tune_plane.upper(), corr)
 
-            figs[id_str] = detuning_tools.plot_detuning(
-                odr_fit=odr_fit,
-                odr_plot=detuning_tools.plot_linear_odr,
-                labels={"x": labels[0], "y": labels[1], "line": opt.label},
-                output=output,
-                show=opt.ampdet_plot_show,
-                xmin=opt.ampdet_plot_xmin,
-                xmax=opt.ampdet_plot_xmax,
-                ymin=opt.ampdet_plot_ymin,
-                ymax=opt.ampdet_plot_ymax,
-                **data
-            )
+                try:
+                    output = os.path.splitext(opt.ampdet_plot_out)
+                except AttributeError:
+                    output = None
+                else:
+                    output = "{:s}_{:s}{:s}".format(output[0], id_str, output[1])
+
+                figs[id_str] = detuning_tools.plot_detuning(
+                    odr_fit=odr_fit,
+                    odr_plot=detuning_tools.plot_linear_odr,
+                    labels={"x": labels[0], "y": labels[1], "line": opt.label},
+                    output=output,
+                    show=opt.ampdet_plot_show,
+                    xmin=opt.ampdet_plot_xmin,
+                    xmax=opt.ampdet_plot_xmax,
+                    ymin=opt.ampdet_plot_ymin,
+                    ymax=opt.ampdet_plot_ymax,
+                    **data
+                )
 
     # show plots if needed
     if opt.bbq_plot_show or opt.ampdet_plot_show:
