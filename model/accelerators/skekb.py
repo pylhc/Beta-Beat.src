@@ -16,6 +16,7 @@ LOGGER = logging_tools.get_logger(__name__)
 class SKekB(Accelerator):
     """
     KEK's SuperKEKB accelerator.
+    Beam direction inverted for now for using with HER.
 
     Minimal working example. Needed accelerator functions are still to be determined.
     """
@@ -247,7 +248,7 @@ class SKekB(Accelerator):
         self._errordefspath = path
 
     def get_beam_direction(self):
-        return 1
+        return -1
 
     def get_s_first_BPM(self):
         return 0
@@ -258,6 +259,24 @@ class SKekB(Accelerator):
     def get_model_tfs(self):
         return self._model
         
+    @classmethod
+    def get_element_types_mask(cls, list_of_elements, types):
+        """
+        Return boolean mask for elements in list_of_elements that belong
+        to any of the specified types.
+        Needs to handle: "bpm", "magnet", "arc_bpm"
+
+        Args:
+            list_of_elements: List of elements
+            types: Kinds of elements to look for
+
+        Returns:
+            Boolean array of elements of specified kinds.
+
+        """
+
+        return list_of_elements == list_of_elements
+
     def get_elements_tfs(self):
         return self._elements
 

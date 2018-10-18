@@ -88,6 +88,10 @@ Module utils.logging_tools
     :members:
 
 
+.. automodule:: utils.math_tools
+    :members:
+
+
 Module utils.outliers
 -------------------------------------------------
 

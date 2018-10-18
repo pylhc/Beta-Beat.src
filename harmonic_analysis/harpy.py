@@ -3,12 +3,6 @@ This module is the actual implementation of the resonance search for
 turn-by-turn data.
 It uses a combination of the laskar method with SVD decomposition to speed up
 the search of resonances.
-
-TODOs:
-    - Mising nattunez - not needed yet
-    - Improve search of higher order resonances smaller tolerance
-    - Other option of noise estimate is to take average of to take average
-      amplitude of fft of few last taken or first not taken modes
 """
 from __future__ import print_function
 import multiprocessing
@@ -66,12 +60,12 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
              ("Y", bpm_matrix_y, usv_y))
     for plane, bpm_matrix, usv in cases:
         panda = pd.DataFrame(index=bpm_matrix.index, columns=OrderedDict())
-        frequencies, coefficients = harmonic_analysis(
-            bpm_matrix,
-            usv=usv,
-            mode=harpy_input.harpy_mode,
-            sequential=harpy_input.sequential,
-        )
+        if harpy_input.harpy_mode == "window":
+            frequencies, coefficients = windowed_padded_fft(bpm_matrix, usv, 21, harpy_input)
+        else:
+            frequencies, coefficients = harmonic_analysis(bpm_matrix, usv=usv,
+                                                          mode=harpy_input.harpy_mode,
+                                                          sequential=harpy_input.sequential, )
         spectr[plane] = _get_bpms_spectr(bpm_matrix,
                                          coefficients,
                                          frequencies)
@@ -469,7 +463,7 @@ def _fft_method(tbt, num_harmonics):
     frequencies = indices / n
     coefficients = dft_data[indices] / n
     return frequencies, coefficients
- 
+
 
 def _compute_coef_simple(samples, kprime):
     """
@@ -521,4 +515,48 @@ def _which_compute_coef():
     LOGGER.debug("Using compiled Numba functions.")
     return jit(_compute_coef_goertzel, nopython=True, nogil=True)
 
+
 _compute_coef = _which_compute_coef()
+
+
+def windowed_padded_fft(matrix, svd, turn_bits, harpy_input):
+    # TODO fft is used just once on real data -> rfft can be used and together with np.conj() when needed
+    for_freqs = np.dot(np.diag(svd[1]), svd[2])
+    length = for_freqs.shape[1]
+    padded_length = np.power(2, turn_bits)
+    ints2pi = 2. * np.pi * np.arange(length) / float(length)
+    nuttal4 = 0.3125 - 0.46875 * np.cos(ints2pi) + 0.1875 * np.cos(2. * ints2pi) - 0.03125 * np.cos(3. * ints2pi)
+    norm = np.sum(nuttal4)
+    #nuttal3 = 0.375 - 0.5 * np.cos(ints2pi) + 0.125 * np.cos(2. * ints2pi)
+    #norm = np.sum(nuttal3)
+    s_vt_freq = np.fft.fft(for_freqs * nuttal4, n=padded_length)
+    samples = np.power(2, turn_bits - 13)
+    mask = _get_mask(harpy_input.tolerance, s_vt_freq.shape[1], harpy_input)
+    extended = int(np.ceil(np.sum(mask) / float(samples)) * samples)
+    coefficients = np.dot(svd[0], s_vt_freq[:, mask])
+    new_coeffs = np.zeros((coefficients.shape[0], extended), dtype=np.complex128)
+    new_freqs = np.zeros((coefficients.shape[0], extended))
+    new_coeffs[:,:int(np.sum(mask))] = coefficients
+    coef = new_coeffs.reshape(new_coeffs.shape[0], int(extended/samples), samples)
+    argsmax = np.outer(np.ones(new_coeffs.shape[0], dtype=np.int), np.arange(int(extended/samples))*samples) + np.argmax(np.abs(coef), axis=2)
+    freqs = np.arange(np.power(2, turn_bits), dtype=np.float64)[mask] / float(np.power(2, turn_bits))
+    new_freqs[:, :int(np.sum(mask))] = freqs
+    coeffs = pd.DataFrame(index=matrix.index, data=new_coeffs[np.arange(new_coeffs.shape[0])[:, None], argsmax] / norm)
+    frequencies = pd.DataFrame(index=coeffs.index, data=new_freqs[np.arange(new_freqs.shape[0])[:, None], argsmax])
+    return frequencies, coeffs
+
+
+def _get_mask(tol, length, harpy_input):
+    freqs = [0.0]
+    for dim in ["X", "Y", "Z"]:
+        freqs.extend([(resonance_h * harpy_input.tunex) + (resonance_v * harpy_input.tuney) + (resonance_l * harpy_input.tunez)
+             for (resonance_h, resonance_v, resonance_l) in RESONANCE_LISTS[dim]])
+    freqs.extend([harpy_input.nattunex, harpy_input.nattuney, harpy_input.tunez])
+    # Move to [0, 1] domain.
+    freqs = [freq + 1. if freq < 0. else freq for freq in freqs]
+    freqs = np.array(freqs) * length
+    tolerance = tol * length
+    mask = np.zeros(length, dtype=bool)
+    for res in freqs:
+        mask[max(0, int(res - tolerance)):min(length, int(res + tolerance))] = True
+    return mask

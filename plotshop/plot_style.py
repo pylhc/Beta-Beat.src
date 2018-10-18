@@ -1,15 +1,22 @@
 """
+Module plotshop.plot_style
+----------------------------
+
 Helper functions to make the most awesome* plots out there.
 
 * please feel free to add more stuff
 """
 
-import pandas as pd
+import colorsys
+from itertools import cycle
+
 import matplotlib
+import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
+import pandas as pd
+
 from tfs_files import tfs_pandas as tfs
-from itertools import cycle
 
 
 class ArgumentError(Exception):
@@ -368,6 +375,25 @@ def rgb_plotly_to_mpl(rgb_string):
     rgb = eval(rgb_string)
     rgb_norm = [c/255. for c in rgb]
     return rgb_norm
+
+
+def change_color_brightness(color, amount=0.5):
+    """
+    Lightens the given color by multiplying (1-luminosity) by the given amount.
+    Input can be matplotlib color string, hex string, or RGB tuple.
+    An amount of 1 equals to no change. 0 is very bright (white) and 2 is very dark.
+    By Ian Hincks
+    Source: https://stackoverflow.com/questions/37765197/darken-or-lighten-a-color-in-matplotlib
+    """
+    if not (0<=amount<=2):
+        raise ValueError("The brightness change has to be between 0 and 2."
+                         " Instead it was {}".format(amount))
+    try:
+        c = mc.cnames[color]
+    except KeyError:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], 1-amount * (1-c[1]), c[2])
 
 
 # Labels #####################################################################

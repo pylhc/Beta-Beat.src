@@ -1,5 +1,16 @@
 """
+Module tune_analysis.detuning_tools
+-------------------------------------
+
 Some tools for amplitude detuning, mainly plotting.
+
+Important Convention:
+    The beta-parameter in the ODR models go upwards with order, i.e.
+    |  beta[0] = y-Axis offset
+    |  beta[1] = slope
+    |  beta[2] = quadratic term
+    |  etc.
+
 """
 import os
 
@@ -8,10 +19,13 @@ import numpy as np
 from scipy.odr import RealData, Model, ODR
 
 import constants as const
-from utils import logging_tools
-from utils.plotting import plot_style as ps
+from utils import logging_tools, math_tools, contexts
+from plotshop import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
+
+
+# Linear ODR ###################################################################
 
 
 def linear_model(beta, x):
@@ -25,20 +39,22 @@ def linear_model(beta, x):
     return beta[0] + beta[1] * x
 
 
-def do_linear_odr(x, y, x_err, y_err):
+def do_linear_odr(x, y, xerr, yerr):
     """ Returns linear odr fit.
+
+    Important: In contrast to "normal" ODR, this function uses x_err and y_err as weights
+    instead of their squares.
 
     Args:
         x: Series of x data
         y: Series of y data
-        x_err: Series of x data errors
-        y_err: Series of y data errors
+        xerr: Series of x data errors
+        yerr: Series of y data errors
 
-    Returns: Linear odr fit.
-
+    Returns: Linear odr fit. Betas see ``linear_model()``.
     """
     lin_model = Model(linear_model)
-    data = RealData(x, y, sx=x_err, sy=y_err)
+    data = RealData(x, y, sx=xerr, sy=yerr)
     odr_fit = ODR(data, lin_model, beta0=[0., 1.]).run()
     print_odr_result(LOG.debug, odr_fit)
     return odr_fit
@@ -60,39 +76,33 @@ def print_odr_result(printer, odr_out):
                 printer('  {}'.format(r).replace("\n", ""))
 
 
-def linear_odr_plot(ax, x, y, x_err, y_err, lim=None):
+def plot_linear_odr(ax, odr_fit, lim):
     """ Adds a linear odr fit to axes.
-
-    Returns: Linear offset.
     """
-    odr_fit = do_linear_odr(x, y, x_err, y_err)
-
-    lim = lim if lim is not None else [min(x - x_err - odr_fit.sd_beta[1]),
-                                       max(x + x_err + odr_fit.sd_beta[1])]
-
-    x_fit = np.linspace(lim[0],  lim[1], 2)
+    x_fit = np.linspace(lim[0], lim[1], 2)
     line_fit = odr_fit.beta[1] * x_fit
-
     ax.plot(x_fit, line_fit, marker="", linestyle='--', color='k',
             label='${:.4f}\, \pm\, {:.4f}$'.format(odr_fit.beta[1], odr_fit.sd_beta[1]))
 
-    return odr_fit.beta[0]
+
+# General Plotting #############################################################
 
 
-def plot_detuning(x, y, x_err, y_err, labels, x_min=None, x_max=None, y_min=None, y_max=None,
-                  odr_plot=linear_odr_plot, output=None, show=True):
+def plot_detuning(x, y, xerr, yerr, labels, xmin=None, xmax=None, ymin=None, ymax=None,
+                  odr_fit=None, odr_plot=plot_linear_odr, output=None, show=True):
     """ Plot amplitude detuning.
 
     Args:
         x: Action data.
         y: Tune data.
-        x_err: Action error.
-        y_err: Tune error.
-        x_min: Lower action range to plot.
-        x_max: Upper action range to plot.
-        y_min: Lower tune range to plot.
-        y_max: Upper tune range to plot.
-        odr_plot: function to add a odr fitting line to axes (e.g. see linear_odr_plot)
+        xerr: Action error.
+        yerr: Tune error.
+        xmin: Lower action range to plot.
+        xmax: Upper action range to plot.
+        ymin: Lower tune range to plot.
+        ymax: Upper tune range to plot.
+        odr_fit: results of the odr-fit (e.g. see do_linear_odr)
+        odr_plot: function to plot odr_fit (e.g. see plot_linear_odr)
         labels: Dict of labels to use for the data ("line"), the x-axis ("x") and the y-axis ("y")
         output: Output file of the plot.
         show: Show the plot in window.
@@ -110,21 +120,30 @@ def plot_detuning(x, y, x_err, y_err, labels, x_min=None, x_max=None, y_min=None
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    x_min = 0 if x_min is None else x_min
-    x_max = max(x + x_err)*1.01 if x_max is None else x_max
+    xmin = 0 if xmin is None else xmin
+    xmax = max(x + xerr) * 1.05 if xmax is None else xmax
 
-    offset = odr_plot(ax, x, y, x_err, y_err, lim=[x_min, x_max])
-    ax.errorbar(x, y-offset, xerr=x_err, yerr=y_err, label=labels.get("line", None))
+    offset = 0
+    if odr_fit:
+        odr_plot(ax, odr_fit, lim=[xmin, xmax])
+        offset = odr_fit.beta[0]
 
-    default_labels = const.get_paired_lables("{}", "{}")
+    ax.errorbar(x, y - offset, xerr=xerr, yerr=yerr, label=labels.get("line", None))
+
+    # labels
+    default_labels = const.get_paired_lables("", "")
     ax.set_xlabel(labels.get("x", default_labels[0]))
     ax.set_ylabel(labels.get("y", default_labels[1]))
 
-    ax.set_xlim(left=x_min, right=x_max)
-    ax.set_ylim(bottom=y_min, top=y_max)
+    # limits
+    ax.set_xlim(left=xmin, right=xmax)
+    ax.set_ylim(bottom=ymin, top=ymax)
 
-    plt.legend(loc='lower left', bbox_to_anchor=(0.0, 1.01), ncol=2,)
+    # lagends
+    ax.legend(loc='lower right', bbox_to_anchor=(1.0, 1.01), ncol=2,)
+    ax.ticklabel_format(style="sci", useMathText=True, scilimits=(-3, 3))
     fig.tight_layout()
+    fig.tight_layout()  # needs two calls for some reason to look great
 
     if output:
         fig.savefig(output)
@@ -135,9 +154,3 @@ def plot_detuning(x, y, x_err, y_err, labels, x_min=None, x_max=None, y_min=None
 
     return fig
 
-
-# Script Mode #################################################################
-
-
-if __name__ == '__main__':
-    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
