@@ -32,10 +32,8 @@ use, sequence=psb%(RING)s;
  * Match for new working point
  ******************************************************************************************/
 
-Qx = 3.379;
-Qy = 5.425;
-Qxd = 0.375;
-Qyd = 0.429;
+Qx = %(NAT_TUNE_X)s;
+Qy = %(NAT_TUNE_Y)s;
 
 
 hacmap21 = 0;
