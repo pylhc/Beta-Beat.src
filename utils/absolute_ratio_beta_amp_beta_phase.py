@@ -69,8 +69,8 @@ def _configure_plots():
 
 
 
-def plotting_automatic_beta_ratio_abs(file_input,file_output,plane,freeNo):
-    name_output = os.path.join(file_output,"beta_beating_ratio_abs" + str(plane.lower()) + ".pdf")
+def plotting_automatic_beta_ratio_abs(input_dir,output_dir,plane,freeNo):
+    name_output = os.path.join(output_dir,"beta_beating_ratio_abs" + str(plane.lower()) + ".pdf")
     gs = gridspec.GridSpec(1, 1,height_ratios=[1])
     ax1 = subplot(gs[0])
     beta = "BET" + str(plane.upper())
@@ -92,9 +92,11 @@ def plotting_automatic_beta_ratio_abs(file_input,file_output,plane,freeNo):
     
     print("freeNo = ",freeNo)
     print("freeVer = ",freeVer)
+    print("input_dir = ",input_dir)
+    print("output_dir = ",output_dir)
         
-    beta_file_phase = tfs_pandas.read_tfs(os.path.join(file_input,"getbeta" + str(plane.lower()) + freeVer))
-    beta_file_amplitude = tfs_pandas.read_tfs(os.path.join(file_input,"getampbeta" + str(plane.lower()) + freeVer))
+    beta_file_phase = tfs_pandas.read_tfs(os.path.join(input_dir,"getbeta" + str(plane.lower()) + freeVer))
+    beta_file_amplitude = tfs_pandas.read_tfs(os.path.join(input_dir,"getampbeta" + str(plane.lower()) + freeVer))
     beta_error_phase_values = getattr(beta_file_phase,beta_error_phase)
     beta_error_amplitude_values = getattr(beta_file_amplitude,beta_error_amplitude)
     
@@ -130,10 +132,14 @@ def plotting_automatic_beta_ratio_abs(file_input,file_output,plane,freeNo):
     savefig(name_output)
 
 
-def main(file_results,plane_to_analyze,output_path,freeNo):
-    plotting_automatic_beta_ratio_abs(file_results,output_path,plane_to_analyze,freeNo)
+def main(dir_results,plane_to_analyze,output_path,freeNo):
+    if output_path is None:
+        output_path = "./"
+    if dir_results is None:
+        dir_results = "./"
+    plotting_automatic_beta_ratio_abs(dir_results,output_path,plane_to_analyze,freeNo)
     
 if __name__ == "__main__":
-    (_file_results,_plane_to_analyze,_output_path,_freeNo) = _parse_args()
-    main(_file_results,_plane_to_analyze,_output_path,_freeNo)
+    (_dir_results,_plane_to_analyze,_output_path,_freeNo) = _parse_args()
+    main(_dir_results,_plane_to_analyze,_output_path,_freeNo)
       

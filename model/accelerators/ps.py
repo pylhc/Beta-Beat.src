@@ -1,7 +1,13 @@
 import os
 import datetime as dt
-from accelerator import Accelerator
+from accelerator import Accelerator,Element
+from tfs_files import tfs_pandas
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
+from Python_Classes4MAD.metaclass import twiss
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 CURRENT_DIR = os.path.dirname(__file__)
 CURRENT_YEAR = dt.datetime.now().year
 PS_DIR = os.path.join(CURRENT_DIR, "ps")
@@ -37,7 +43,7 @@ class Ps(Accelerator):
     """
     NAME = "ps"
     MACROS_NAME = "ps"
-    
+    YEAR = CURRENT_YEAR
     
     @staticmethod
     def get_class_parameters():
@@ -138,9 +144,9 @@ class Ps(Accelerator):
         # optional w/o default
         self.energy = opt.get("energy", None)
 
-        self.year_opt = opt.year_opt
-        if self.year_opt is None:
-            self.year_opt = CURRENT_YEAR
+        Ps.YEAR = opt.year_opt
+        if Ps.YEAR is None:
+            Ps.YEAR = CURRENT_YEAR
 
         self.dpp = opt.get("dpp", 0.0)
         
@@ -192,6 +198,35 @@ class Ps(Accelerator):
 
     # Public Methods ##########################################################
 
+    @classmethod
+    def get_segment(cls, label, first_elem, last_elem, optics_file, twiss_file):
+        # this creates a new class called PsSegment
+        segment_cls = type(cls.__name__ + "Segment",
+                          (_PsSegmentMixin,cls),
+                          {})
+        segment_inst = segment_cls()
+        
+        bpms_file = os.path.join(PS_DIR,str(CURRENT_YEAR),"sequence/bpms.tfs")
+        bpms_file_data = tfs_pandas.read_tfs(bpms_file).set_index("NAME")
+        first_elem_s = bpms_file_data.loc[first_elem, "S"]
+        last_elem_s = bpms_file_data.loc[last_elem, "S"]
+        segment_inst.label = label
+        segment_inst.start = Element(first_elem, first_elem_s)
+        segment_inst.end = Element(last_elem, last_elem_s)
+        segment_inst.optics_file = optics_file
+        segment_inst.fullresponse = None
+        
+        LOGGER.debug('twiss_file is <%s>',twiss_file)
+        tw = twiss(twiss_file)
+        
+        LOGGER.debug('twiss_file has tunes %f %f ',tw.Q1,tw.Q2)
+
+        segment_inst.nat_tune_x = tw.Q1
+        segment_inst.nat_tune_y = tw.Q2
+        segment_inst.energy = tw.ENERGY
+        
+        return segment_inst    
+
     def verify_object(self):
         pass
 
@@ -199,9 +234,10 @@ class Ps(Accelerator):
     def get_nominal_tmpl(cls):
         return os.path.join(PS_DIR, "nominal.madx")
 
-    def get_ps_dir(self):
+    @classmethod
+    def get_ps_dir(cls):
         #print('Year of the optics', self.year_opt)
-        return os.path.join(PS_DIR,str(self.year_opt));
+        return os.path.join(PS_DIR,str(cls.YEAR));
 
     @classmethod
     def get_element_types_mask(cls, list_of_elements, types):
@@ -227,11 +263,25 @@ class Ps(Accelerator):
     @classmethod
     def get_iteration_tmpl(cls):
         return cls.get_file("template.iterate.madx")
+
+    @classmethod
+    def get_segment_tmpl(cls):
+        return cls.get_file("segment.madx")
     
     @classmethod
     def get_file(cls, filename):
         return os.path.join(CURRENT_DIR, "ps", filename)
     
+    # Private Methods ##########################################################
+
+class _PsSegmentMixin(object):
+
+   def __init__(self):
+       self._start = None
+       self._end = None
+       self.energy = None
+
+
     # Private Methods ##########################################################
 
 

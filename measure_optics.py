@@ -130,6 +130,7 @@ def print_time():
 class InputFiles(dict):
     """
     Stores the input files, provides methods to gather quantity specific data
+
     Public methods:
         get_dpps(plane)
         get_joined_frame(plane, columns, zero_dpp=False, how='inner')

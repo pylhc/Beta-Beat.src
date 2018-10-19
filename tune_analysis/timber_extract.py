@@ -1,4 +1,8 @@
-""" Tools to extract data from timber.
+"""
+Module tune_analysis.timber_extract
+-------------------------------------
+
+Tools to extract data from timber.
 
 It is a bit heavy on the LHC-side at the moment.
 Feel free to make it more accelerator independent.
@@ -32,7 +36,22 @@ def lhc_fill_to_tfs(fill_number, keys=None, names=None):
     """
     db = pytimber.LoggingDB()
     t_start, t_end = get_fill_times(db, fill_number)
+    out_df = extract_between_times(t_start, t_end, keys, names)
+    return out_df
 
+
+def extract_between_times(t_start, t_end, keys=None, names=None):
+    """ Extracts data for keys between t_start and t_end from timber.
+
+    Args:
+        t_start: starting time in UTC format
+        t_end: end time in UTC format
+        keys: list of data to extract
+        names: dict to map keys to column names
+
+    Returns: tfs pandas dataframe.
+    """
+    db = pytimber.LoggingDB()
     if keys is None:
         keys = get_tune_and_coupling_variables(db)
 
@@ -82,8 +101,4 @@ def get_fill_times(db, fill_number):
     """
     fill = db.getLHCFillData(fill_number)
     return fill['startTime'], fill['endTime']
-
-
-if __name__ == '__main__':
-    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
 

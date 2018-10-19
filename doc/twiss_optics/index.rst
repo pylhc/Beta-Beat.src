@@ -1,4 +1,4 @@
-Documentation Twiss Optics
+Twiss Optics
 **************************
 
 

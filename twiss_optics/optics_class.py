@@ -45,7 +45,7 @@ from utils import logging_tools as logtool
 from tfs_files import tfs_pandas as tfs
 from utils.contexts import timeit
 from utils.dict_tools import DotDict
-from utils.plotting import plot_style as pstyle
+from plotshop import plot_style as pstyle
 
 LOG = logtool.get_logger(__name__)
 

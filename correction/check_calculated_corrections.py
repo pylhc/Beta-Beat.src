@@ -3,14 +3,14 @@ import re
 import sys
 
 import numpy as np
-from os.path import abspath, join, dirname, pardir
+from os.path import abspath, join, pardir
 sys.path.append(abspath(join(__file__, pardir)))
 
 import madx_wrapper
 
 from utils.entrypoint import EntryPointParameters, entrypoint
 from utils import logging_tools
-from utils.plotting import plot_tfs
+from plotshop import plot_tfs
 from model import manager
 from utils import iotools
 from tfs_files import tfs_pandas

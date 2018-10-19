@@ -18,8 +18,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from utils import logging_tools
 from tfs_files import tfs_pandas as tfs
-from utils.plotting import plot_style as ps
-from utils.plotting.plot_style import MarkerList
+from plotshop import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -375,7 +374,7 @@ def get_data(path, mainnode, subnode):
 
     elif subnode == "diff_NDisp_NDMdl":
         data_x = get_norm_disp_diff(path, "x")
-        data_y = get_norm_disp_mdl(path, "x")
+        data_y = get_norm_disp_diff(path, "y")
 
     elif subnode == "Beta_BMdl":
         data_x = get_beta_mdl(path, "x", mainnode)
@@ -585,7 +584,7 @@ def get_color(idx, marker=False):
 
 def get_marker(idx, change):
     if change:
-        return MarkerList.get_marker(idx)
+        return ps.MarkerList.get_marker(idx)
     else:
         return rcParams['lines.marker']
 

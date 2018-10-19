@@ -1,4 +1,8 @@
-""" Tools to handle BBQ data.
+"""
+Module tune_analysis.bbq_tools
+----------------------------------
+
+Tools to handle BBQ data.
 
 This package contains a collection of tools to handle and modify BBQ data:
  - Calculating moving average
@@ -12,15 +16,13 @@ import matplotlib.dates as mdates
 import numpy as np
 from matplotlib import pyplot as plt, gridspec
 from matplotlib.ticker import FormatStrFormatter
-
+from matplotlib import colors
 import constants as const
 from utils import logging_tools
-from utils.contexts import suppress_warnings
-from utils.plotting import plot_style as ps
+from plotshop import plot_style as ps
 
 TIMEZONE = const.get_experiment_timezone()
 
-TIME_COL = const.get_time_col()
 PLANES = const.get_planes()
 
 COL_MAV = const.get_mav_col
@@ -64,38 +66,17 @@ def get_moving_average(data_series, length=20,
         max_mask = np.zeros(data_series.size, dtype=bool)
 
     cut_mask = min_mask | max_mask
-    data_mav = _get_interpolated_moving_average(data_series, cut_mask, length)
+    _is_empty_mask(~cut_mask)
+    data_mav, std_mav = _get_interpolated_moving_average(data_series, cut_mask, length)
 
     if fine_length is not None:
         min_mask = data_series <= (data_mav - fine_cut)
         max_mask = data_series >= (data_mav + fine_cut)
         cut_mask = min_mask | max_mask
-        data_mav = _get_interpolated_moving_average(data_series, cut_mask, fine_length)
+        _is_empty_mask(~cut_mask)
+        data_mav, std_mav = _get_interpolated_moving_average(data_series, cut_mask, fine_length)
 
-    return data_mav, cut_mask
-
-
-def add_to_kickac_df(kickac_df, bbq_series, column):
-    """ Add bbq values from series to kickac dataframe into column.
-
-    Args:
-        kickac_df: kickac dataframe
-                  (needs to contain column "TIME_COL" or has time as index)
-        bbq_series: series of bbq data with time as index
-        column: column name to add the data into
-
-    Returns: modified kickac dataframe
-
-    """
-    time_indx = kickac_df.index
-    if TIME_COL in kickac_df:
-        time_indx = kickac_df[TIME_COL]
-
-    values = []
-    for time in time_indx:
-        values.append(bbq_series.iloc[bbq_series.index.get_loc(time, method="nearest")])
-    kickac_df[column] = values
-    return kickac_df
+    return data_mav, std_mav, cut_mask
 
 
 def plot_bbq_data(bbq_df,
@@ -120,7 +101,8 @@ def plot_bbq_data(bbq_df,
     """
     LOG.debug("Plotting BBQ data.")
 
-    ps.set_style("standard", {u"lines.marker": u""})
+    ps.set_style("standard", {u"lines.marker": u"",
+                              u"lines.linestyle": u""})
 
     fig = plt.figure()
 
@@ -134,23 +116,28 @@ def plot_bbq_data(bbq_df,
 
     bbq_df.index = [datetime.datetime.fromtimestamp(time, tz=TIMEZONE) for time in bbq_df.index]
 
+    handles = [None] * (3 * len(PLANES))
     for idx, plane in enumerate(PLANES):
         color = ps.get_mpl_color(idx)
         mask = bbq_df[COL_IN_MAV(plane)]
 
-        with suppress_warnings(UserWarning):  # caused by _nolegend_
-            bbq_df.plot(
-                y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.2,
-                label="_nolegend_"
-            )
-        bbq_df.loc[mask, :].plot(
-            y=COL_BBQ(plane), ax=ax[idx], color=color, alpha=.4,
-            label="$Q_{:s}$ filtered".format(plane.lower())
-        )
-        bbq_df.plot(
-            y=COL_MAV(plane), ax=ax[idx], color=color,
-            label="$Q_{:s}$ moving av.".format(plane.lower())
-        )
+        # plot and save handles for nicer legend
+        handles[idx] = ax[idx].plot(bbq_df.index, bbq_df[COL_BBQ(plane)],
+                                    color=ps.change_color_brightness(color, .4),
+                                    marker="o", markerfacecolor="None",
+                                    label="$Q_{:s}$".format(plane.lower(),)
+                                    )[0]
+        filtered_data = bbq_df.loc[mask, COL_BBQ(plane)].dropna()
+        handles[len(PLANES)+idx] = ax[idx].plot(filtered_data.index, filtered_data.values,
+                                                color=ps.change_color_brightness(color, .7),
+                                                marker=".",
+                                                label="filtered".format(plane.lower())
+                                                )[0]
+        handles[2*len(PLANES)+idx] = ax[idx].plot(bbq_df.index, bbq_df[COL_MAV(plane)],
+                                                  color=color,
+                                                  linestyle="-",
+                                                  label="moving av.".format(plane.lower())
+                                                  )[0]
 
         if ymin is None and two_plots:
             ax[idx].set_ylim(bottom=min(bbq_df.loc[mask, COL_BBQ(plane)]))
@@ -164,7 +151,11 @@ def plot_bbq_data(bbq_df,
             ax[idx].axvline(x=interval[0], color="red")
             ax[idx].axvline(x=interval[1], color="red")
 
-        ax[idx].set_ylabel('Tune')
+        if two_plots:
+            ax[idx].set_ylabel("$Q_{:s}$".format(PLANES[idx]))
+        else:
+            ax[idx].set_ylabel('Tune')
+
         ax[idx].set_ylim(bottom=ymin, top=ymax)
         ax[idx].yaxis.set_major_formatter(FormatStrFormatter('%.5f'))
 
@@ -172,13 +163,19 @@ def plot_bbq_data(bbq_df,
         ax[idx].set_xlabel('Time')
         ax[idx].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
 
-        # don't show labels on upper plot (if two plots)
         if idx:
+            # don't show labels on upper plot (if two plots)
             # use the visibility to allow cursor x-position to be shown
             ax[idx].tick_params(labelbottom=False)
             ax[idx].xaxis.get_label().set_visible(False)
 
-    plt.tight_layout()
+        if not two_plots or idx:
+            # reorder legend
+            ax[idx].legend(handles, [h.get_label() for h in handles],
+                           loc='lower right', bbox_to_anchor=(1.0, 1.01), ncol=3,)
+
+    fig.tight_layout()
+    fig.tight_layout()
 
     if output:
         fig.savefig(output)
@@ -192,21 +189,26 @@ def plot_bbq_data(bbq_df,
 
 # Private methods ############################################################
 
+
 def _get_interpolated_moving_average(data_series, clean_mask, length):
     """ Returns the moving average of data series with a window of length and interpolated NaNs"""
-    data_mav = data_series.copy()
-    data_mav[clean_mask] = np.NaN
+    data = data_series.copy()
+    data[clean_mask] = np.NaN
 
     # 'interpolate' fills nan based on index/values of neighbours
-    data_mav = data_mav.interpolate("index").fillna(method="bfill").fillna(method="ffill")
+    data = data.interpolate("index").fillna(method="bfill").fillna(method="ffill")
 
     shift = -int((length-1)/2)  # Shift average to middle value
-    return data_mav.rolling(length).mean().shift(shift).fillna(
+
+    # calculate mean and std, fill NaNs at the ends
+    data_mav = data.rolling(length).mean().shift(shift).fillna(
         method="bfill").fillna(method="ffill")
+    std_mav = data.rolling(length).std().shift(shift).fillna(
+        method="bfill").fillna(method="ffill")
+    return data_mav, std_mav
 
 
-# Script Mode #################################################################
-
-
-if __name__ == '__main__':
-    raise EnvironmentError("{:s} is not supposed to run as main.".format(__file__))
+def _is_empty_mask(mask):
+    """ Checks if mask is empty. """
+    if sum(mask) == 0:
+        raise ValueError("All points have been filtered. Maybe wrong tune, cutoff?")

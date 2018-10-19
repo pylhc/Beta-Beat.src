@@ -5,7 +5,8 @@ C  For the number of cores enter: setenv OMP_NUM_THREADS n
 C  where n is from 1 (use for validation runs) to the number available.
 C  Tests show the optimum is about 12 - probably due to i/o issues.
 C
-      subroutine sussix4drivenoise(xy,tunexy,amplitude,phase,ox,ax,oy,ay
+      subroutine sussix4drivenoise(xy,tunexy,amplitude,phase 
+     &, ox,ax,phix, oy,ay,phiy
      &, path)
 C
 C Parallelised version of sussix4drivexxNoO.f of 15/05/2011 using Openmp.
@@ -136,7 +137,7 @@ C
       parameter (maxturns=10000)
       double precision eps,etune,tunex,tuney,tunez, xy(maxturns*4+4),
      &tunexy(2),amplitude(33), phase(33), ox(1600), ax(1600), oy(1600), 
-     &ay(1600)
+     &ay(1600),phix(1600),phiy(1600)
       parameter(mterm=1600)
       dimension lr(100),mr(100),kr(100),etune(3)
       character*200 ch,ch1
@@ -401,7 +402,7 @@ C            open(iunit,file=filename,form='formatted',status='unknown')
      &           imeth,narm,nrc,iana)
             call ordres(eps,narm,nrc,ir,idam,iunit,nturn,
      &             -tunex,-tuney,-tunez,istune,etune, 
-     &           tunexy, amplitude, phase, ox, ax, oy,ay)
+     &           tunexy, amplitude, phase, ox,ax,phix, oy,ay,phiy)
 C            close(iunit)
           enddo
         endif
@@ -915,11 +916,11 @@ C....WRITES THE REMAINING SIGNAL
         ss=dble(zss(k))
         ssp=dimag(zss(k))
         if(idams.eq.1) then
-          write(nfile,'(2(G21.15,1X))')xx,xxp
+          write(nfile,'(2(G22.15,1X))')xx,xxp
         elseif(idams.eq.2) then
-          write(nfile,'(4(G21.15,1X))')xx,xxp,yy,yyp
+          write(nfile,'(4(G22.15,1X))')xx,xxp,yy,yyp
         elseif(idams.eq.3) then
-          write(nfile,'(6(G21.15,1X))')xx,xxp,yy,yyp,ss,ssp
+          write(nfile,'(6(G22.15,1X))')xx,xxp,yy,yyp,ss,ssp
         endif
       enddo
  
@@ -928,7 +929,7 @@ C....WRITES THE REMAINING SIGNAL
       end
       subroutine ordres(eps,narm,nr,ir,idam,iunit,nturn,tunex,
      &                  tuney,tunez,istune,etune, tunexy,
-     &                  amplitude, phase, ox, ax, oy, ay)
+     &                  amplitude, phase, ox, ax, phix, oy, ay, phiy)
 C=======================================================================
 C
 C  ORDERS THE HARMONICS FOUND BY SPECTRUM
@@ -971,7 +972,7 @@ C=======================================================================
      &ordcy,ordcz,pi,px,pxt,pxti,pxtr,py,pyt,pyti,pytr,pz,pzt,pzti,pztr,
      &tunex,tuney,tunez,tx,txt,ty,tyt,tz,tzt, tunexy(2), 
      &amplitude(33), phase(33), ox(1600), ax(1600),
-     &oy(1600), ay(1600)
+     &oy(1600), ay(1600), phix(1600), phiy(1600)
       double complex zpx,zpy,zpz
       parameter(mterm=1600)
       double precision tsa,txa,tya
@@ -1256,6 +1257,7 @@ C.....check for the lowest possible order of combination
             pxti=dimag(zxpes(n))/px
             fx=atan2(pxti,pxtr)
             fx=fx/pi*1.8d+2
+            phix(n)=-fx
 c...  Insertion, to return parameters
 c            write(*,*) l1, m1, k1, j1, flagad(1), tx(n)
             if(l1.eq.1.and.m1.eq.0.and.k1.eq.0.and.
@@ -1388,6 +1390,7 @@ c...  End of Insertion
 C            write(30,100)n,-tx(n),px,-fx,epsx,l1,m1,k1,j1
           elseif(px.eq.0) then
 C            write(30,100)n,-tx(n),px,0,0
+             phix(n)=0.0
           endif
         elseif(isearx.eq.0) then
           imissx=imissx+1
@@ -1575,10 +1578,12 @@ c              write(*,*)"p32 ", fy, py, ty(n)
 c...  End of Insertion
             oy(n)=-ty(n)
             ay(n)=py
+            phiy(n)=-fy
 C            write(30,100)n,-ty(n),py,-fy,epsy,l1,m1,k1,j1
           elseif(py.eq.0) then
             oy(n)=-ty(n)
             ay(n)=py
+            phiy(n)=0.0
 C            write(30,100)n,-ty(n),py,0,0
           endif
         elseif(iseary.eq.0) then
@@ -1591,10 +1596,12 @@ C            write(30,100)n,-ty(n),py,0,0
             fy=fy/pi*1.8d+2
             oy(n)=-ty(n)
             ay(n)=py
+            phiy(n)=-fy
 C            write(30,100)n,-ty(n),py,-fy,eps
           elseif(py.eq.0) then
             oy(n)=-ty(n)
             ay(n)=py
+            phiy(n)=0.0
 C            write(30,100)n,-ty(n),py,0,0
           endif
         endif
@@ -1717,7 +1724,7 @@ C        write(6,*)'WARNING: TRY A LARGER NUMBER OF TURNS'
 C      write(6,*)'WROTE IN FORT.300 THE SPECTRAL ANALYSIS OF CASE:',iunit
 C      write(6,*)'================================================'
  
-100   format(i3,1x,f19.16,2(1x,e18.12),1x,e17.11,:,4(1x,i3))
+100   format(i3,1x,f20.16,2(1x,e20.12),1x,e18.11,:,4(1x,i3))
  
       return
       end
@@ -2276,8 +2283,8 @@ C -1,1 line and h2001
  
       enddo
  
- 100  format(1x,a4,4(1x,e19.13))
- 200  format(1x,a4,2(1x,e19.13))
+ 100  format(1x,a4,4(1x,e20.13))
+ 200  format(1x,a4,2(1x,e20.13))
       return
       end
       subroutine readdt4(imin,imax,narm,idam,idamx,iout)
@@ -2603,8 +2610,8 @@ C 0,3 line and h1003
         write(iout,200)'0130',a1003,-f1003
       enddo
  
- 100  format(1x,a4,4(1x,e19.13))
- 200  format(1x,a4,2(1x,e19.13))
+ 100  format(1x,a4,4(1x,e20.13))
+ 200  format(1x,a4,2(1x,e20.13))
       return
       end
       subroutine readsme(imin,imax,narm,idam,idamx,iusm)
@@ -3072,11 +3079,11 @@ C--OBEY DEMANDED ORDER OF PHASE SPACE
         f1=zero
       endif
       if(ntwin.eq.1) then
-          write(nfile0,'(6(G21.15,1X))') c,d,e,f,g,h
+          write(nfile0,'(6(G22.15,1X))') c,d,e,f,g,h
       endif
       if(ntwin.eq.2) then
-          write(nfile0,'(6(G21.15,1X))') c,d,e,f,g,h
-          write(nfile1,'(6(G21.15,1X))') c1,d1,e1,f1,g1,h1
+          write(nfile0,'(6(G22.15,1X))') c,d,e,f,g,h
+          write(nfile1,'(6(G22.15,1X))') c1,d1,e1,f1,g1,h1
       endif
  150  continue
  999  continue

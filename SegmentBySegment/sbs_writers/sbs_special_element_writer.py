@@ -7,6 +7,9 @@ from SegmentBySegment.sbs_writers.sbs_beta_writer import weighted_average_for_Sb
 from tfs_files import tfs_file_writer
 
 
+NAN = float("nan")
+
+
 def _get_ip_tfs_files(save_path):
     file_ip_parabola = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_para.out"))
 
@@ -217,13 +220,13 @@ def _get_ip_from_parabola(bpmleft, bpmright, betax, betay, phasex, phasey):
 
     else:
         print "WARN: Will not calculate horizontal IP"
-        phix="NIM"
-        betastar_h="NIM"
-        location_h="NIM"
-        errbx="NIM"
-        errsx="NIM"
-        betastar_h_phase="NIM"
-        betastar_h_phase_e="NIM"
+        phix=NAN
+        betastar_h=NAN
+        location_h=NAN
+        errbx=NAN
+        errsx=NAN
+        betastar_h_phase=NAN
+        betastar_h_phase_e=NAN
     #vertical
     if (vrp==1) and (vlp==1)and (pyp==1):
 
@@ -247,13 +250,13 @@ def _get_ip_from_parabola(bpmleft, bpmright, betax, betay, phasex, phasey):
         errsy=0
     else:
         print "WARN: Will not calculate vertical IP"
-        phiy="NIM"
-        betastar_v="NIM"
-        location_v="NIM"
-        errby="NIM"
-        errsy="NIM"
-        betastar_v_phase="NIM"
-        betastar_v_phase_e="NIM"
+        phiy=NAN
+        betastar_v=NAN
+        location_v=NAN
+        errby=NAN
+        errsy=NAN
+        betastar_v_phase=NAN
+        betastar_v_phase_e=NAN
 
     return betastar_h,errbx,location_h,errsx,betastar_v,errby,location_v,errsy,betastar_h_phase,betastar_h_phase_e,betastar_v_phase,betastar_v_phase_e
 
