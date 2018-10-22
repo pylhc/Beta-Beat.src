@@ -81,9 +81,9 @@ def _get_optics_parser():
     parser.add_argument("--calibrationdir", dest="calibrationdir", type=str,
                         default=OpticsInput.DEFAULTS["calibrationdir"],
                         help="Directory where the calibration files are stored")
-    parser.add_argument("--coupling_method", dest="coupling_method", type=int, choices=(1, 2),
+    parser.add_argument("--coupling_method", dest="coupling_method", type=int, choices=(0, 1, 2),
                         default=OpticsInput.DEFAULTS["coupling_method"],
-                        help="Analysis option for coupling, 1 BPM or 2 BPMs")
+                        help="Analysis option for coupling: disabled, 1 BPM or 2 BPMs")
     parser.add_argument("--orbit_unit", dest="orbit_unit", type=str,
                         choices=("um", "mm", "cm", "m"),
                         default=OpticsInput.DEFAULTS["orbit_unit"], help="Unit of orbit position.")
