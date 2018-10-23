@@ -166,7 +166,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-                    if amp1 == 0 and amp2 == 0:
+                    if amp1 == 0 or amp2 == 0:
                         line_amp, line_amp_e, line_phase, line_phase_e = 0,0,0,0
                     else:
                         line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
@@ -181,7 +181,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-                    if amp1 == 0 and amp2 == 0:
+                    if amp1 == 0 or amp2 == 0:
                         line_amp, line_amp_e, line_phase, line_phase_e = 0,0,0,0
                     else:
                         line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
