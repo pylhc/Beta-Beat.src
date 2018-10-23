@@ -34,10 +34,14 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
             'f0220V', 'f0211V', 'f0040V', 'f0013V',
             'f3001H', 'f1210H', 'f0130V', 'f1012V',  #Skew Octupolar
             'f3010H', 'f2101V', 'f1030V', 'f1021V',  #Skew Octupolar
-            'f1220H', 'f3002H', 'f1130H', 'f2003H'
+            'f1220H', 'f3002H', 'f1130H', 'f2003H',
+            'f0050V', 'f0014V', 'f0140V', 'f0113V',
+#             'f6000H', 'f1500H', 'f8000H', 'f1700H',
 #             'f0220V', 'f2011V', 'f1201H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
 #             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
             ]
+
+RDT_LIST = ['f4000H', 'f1300H']
 
 def determine_lines(rdt):
     r = list(rdt)
@@ -142,8 +146,15 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             
             bpm2 = bpm_pair_data[0]
             rdt_phases_per_bpm = []
+            line_phases = []
+            line_amplitudes = []
+            line_phases_err = []
+            line_amplitudes_err = []
             
+            print("Processing %s <--> %s\n"%(bpm1,bpm2))
             for j in range(0,len(list_zero_dpp)):
+                
+                print("  Lin data %d\n"%(j))
                 
                 ph_H10 = getattr(linx_data[j], "MUX")[linx_data[j].indx[bpm1]]
                 ph_V01 = getattr(liny_data[j], "MUY")[liny_data[j].indx[bpm1]]
@@ -166,8 +177,10 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-                
-                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
+                    if amp1 == 0 and amp2 == 0:
+                        line_amp, line_amp_e, line_phase, line_phase_e = 0,0,0,0
+                    else:
+                        line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
                     out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
                     line_amplitudes.append(line_amp)
                     line_amplitudes_err.append(line_amp_e)
@@ -182,8 +195,10 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     amp2 = amp_line[list_zero_dpp[j].indx[bpm2]]
                     phase1 = phase_line[list_zero_dpp[j].indx[bpm1]]
                     phase2 = phase_line[list_zero_dpp[j].indx[bpm2]]
-                    
-                    line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
+                    if amp1 == 0 and amp2 == 0:
+                        line_amp, line_amp_e, line_phase, line_phase_e = 0,0,0,0
+                    else:
+                        line_amp, line_phase, line_amp_e, line_phase_e = helper.ComplexSecondaryLineExtended(delta,edelta, amp1, amp2, phase1, phase2)
                     out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
                     line_amplitudes.append(line_amp)
                     line_amplitudes_err.append(line_amp_e)
@@ -192,18 +207,24 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     
                         
                          
+                rdt_phases = calculate_rdt_phases(rdt, line_phases, line_amplitudes, ph_H10, ph_V01)%1
+                print(rdt_phases)
                 
-                rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, line_amp, ph_H10, ph_V01)%1)
+                rdt_phases_per_bpm.append(rdt_phases)
+
 
             
-            phases = np.array(rdt_phases_per_bpm)
+            phases = np.array(rdt_phases_per_bpm)*2*np.pi
             
             # was 
             #rdt_phases_averaged.append(np.average(phases))
             
             # skowron October 2018
-            rdt_cosphases = np.cos(2*np.pi*phases)
-            rdt_sinphases = np.sin(2*np.pi*phases)
+            
+            print(phases)
+            
+            rdt_cosphases = np.cos( phases )
+            rdt_sinphases = np.sin( phases )
             
             phase2 = np.arctan2(np.average(rdt_sinphases),np.average(rdt_cosphases))/(2*np.pi)
             rdt_phases_averaged.append(np.average(phase2))
@@ -244,15 +265,15 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_angles[k], rdt_phases_averaged_std[k], res[0]*real_part[k], res[0]*imag_part[k]])
 
 
-def calculate_rdt_phases(rdt, line_phase, line_amp, ph_H10, ph_V01):
+def calculate_rdt_phases(rdt, line_phase, line_amplitudes, ph_H10, ph_V01):
     r = list(rdt)
     j, k, l, m, plane = int(r[1]), int(r[2]), int(r[3]), int(r[4]), r[5]
     if plane == 'H':
         rdt_phase = line_phase - (k-j+1)*ph_H10 - (m-l)*ph_V01 + 0.25
     elif plane == 'V':
         rdt_phase = line_phase - (k-j)*ph_H10 - (m-l+1)*ph_V01 + 0.25
-    
-    return rdt_phase
+    mask = np.array(line_amplitudes)!=0
+    return rdt_phase*mask 
 
 
 def rdt_function_gen(rdt, plane):
