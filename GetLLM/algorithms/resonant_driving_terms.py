@@ -142,6 +142,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             
             bpm2 = bpm_pair_data[0]
             rdt_phases_per_bpm = []
+            
             for j in range(0,len(list_zero_dpp)):
                 
                 ph_H10 = getattr(linx_data[j], "MUX")[linx_data[j].indx[bpm1]]
@@ -190,11 +191,34 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     line_phases_err.append(line_phase_e)
     
                         
+                         
                 
-                rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01)%1)
+                rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, line_amp, ph_H10, ph_V01)%1)
 
-            rdt_phases_averaged.append(np.average(np.array(rdt_phases_per_bpm)))
-            rdt_phases_averaged_std.append(np.std(np.array(rdt_phases_per_bpm)))
+            
+            phases = np.array(rdt_phases_per_bpm)
+            
+            # was 
+            #rdt_phases_averaged.append(np.average(phases))
+            
+            # skowron October 2018
+            rdt_cosphases = np.cos(2*np.pi*phases)
+            rdt_sinphases = np.sin(2*np.pi*phases)
+            
+            phase2 = np.arctan2(np.average(rdt_sinphases),np.average(rdt_cosphases))/(2*np.pi)
+            rdt_phases_averaged.append(np.average(phase2))
+            
+            # error propagation for atan2 if we had phase errors from Sussix/HarPy            
+            # D(phi) =  D(atan(x/y)) = ( D(x)*y + D(y)*x )/ (x^2 + y^2)
+            #phaseerr =            np.abs(np.multiply(np.std(rdt_cosphases),rdt_sinphases)) 
+            #phaseerr = phaseerr + np.abs(np.multiply(np.std(rdt_sinphases),rdt_cosphases))
+            #sumsquares = np.square(rdt_cosphases) + np.square(rdt_sinphases)
+            #phaseerr = np.divide(phaseerr/sumsquares) 
+            
+            
+            # was
+            # rdt_phases_averaged_std.append(np.std(np.array(rdt_phases_per_bpm)))
+            rdt_phases_averaged_std.append(np.std(phase2))
 
     else:
         print >> sys.stderr, "Could not find line for %s !" %rdt
@@ -220,14 +244,15 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_angles[k], rdt_phases_averaged_std[k], res[0]*real_part[k], res[0]*imag_part[k]])
 
 
-def calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01):
+def calculate_rdt_phases(rdt, line_phase, line_amp, ph_H10, ph_V01):
     r = list(rdt)
     j, k, l, m, plane = int(r[1]), int(r[2]), int(r[3]), int(r[4]), r[5]
     if plane == 'H':
         rdt_phase = line_phase - (k-j+1)*ph_H10 - (m-l)*ph_V01 + 0.25
     elif plane == 'V':
         rdt_phase = line_phase - (k-j)*ph_H10 - (m-l+1)*ph_V01 + 0.25
-    return rdt_phase 
+    
+    return rdt_phase
 
 
 def rdt_function_gen(rdt, plane):
