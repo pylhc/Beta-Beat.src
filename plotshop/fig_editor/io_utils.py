@@ -43,13 +43,14 @@ def load_tfs():
                 column_selector = ColumnSelectorDialog(df.columns.tolist())
                 selected = column_selector.get_selected_columns()
                 if selected:
-                    fig = plot_tfs.plot_single_file(
+                    fig = plot_tfs.plot(
                         files=paths,
                         x_cols=[s["x"] for s in selected],
                         y_cols=[s["y"] for s in selected],
                         e_cols=[s["e"] for s in selected],
                         labels=[s["l"] for s in selected],
                         no_show=True,
+                        single_fig=True,
                     )
         return fig
     LOG.debug("No files chosen.")

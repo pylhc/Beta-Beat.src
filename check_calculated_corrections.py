@@ -1,10 +1,8 @@
 import os
 import re
-import sys
 
+from matplotlib import pyplot as plt
 import numpy as np
-from os.path import abspath, join, pardir
-sys.path.append(abspath(join(__file__, pardir)))
 
 import madx_wrapper
 
@@ -93,6 +91,7 @@ def get_params():
         help="Names of the parameter to cut. Only for specifying the cutting order.",
         name="params",
         nargs="+",
+        default=[],
         type=basestring,
     )
     params.add_parameter(
@@ -101,6 +100,7 @@ def get_params():
               "corresponding input."),
         name="model_cut",
         nargs="+",
+        default=[],
         type=float,
     )
     params.add_parameter(
@@ -109,6 +109,7 @@ def get_params():
               "corresponding input."),
         name="error_cut",
         nargs="+",
+        default=[],
         type=float,
     )
     params.add_parameter(
@@ -202,7 +203,7 @@ def main(opt, accel_opt):
     corrections = _get_all_corrections(opt.corrections_dir, opt.file_pattern)
     _call_madx(accel_inst, corrections)
     _get_diffs(corrections, opt.meas_dir, opt.file_pattern, opt.beta_file_name)
-    _plot(corrections, opt.corrections_dir, opt.show_plots, opt.change_marker, opt.auto_scale, masks)
+    figs = _plot(corrections, opt.corrections_dir, opt.show_plots, opt.change_marker, opt.auto_scale, masks)
 
     if opt.clean_up:
         _clean_up(opt.corrections_dir, corrections)
@@ -277,6 +278,7 @@ def _plot(corrections, source_dir, show_plots, change_marker, auto_scale, masks)
     sort_correct = sorted(corrections.keys())
     legends = ["Measurement"] + [d.replace(source_dir + os.sep, "") for d in sort_correct]
 
+    figs_dict = {}
     for data in column_map.keys():
         meas = column_map[data]['meas']
         expect = column_map[data]['expect']
@@ -302,21 +304,26 @@ def _plot(corrections, source_dir, show_plots, change_marker, auto_scale, masks)
             # with open(output + "_rms.json", "w") as f:
             #     f.write(json.dumps(rms_d))
 
-            plot_tfs.plot(
+            figs = plot_tfs.plot(
                 files=data_paths,
                 y_cols=[expect],
                 e_cols=[error],
-                legends=legends,
-                labels=[data],
+                source_names=legends,
+                labels=[column_map[data]["twissname"]],
                 output=output,
-                no_show=not show_plots,
+                no_show=True,
                 change_marker=change_marker,
                 auto_scale=auto_scale,
             )
+            figs_dict[data] = figs
 
         except IOError:
             LOG.info("Could not plot parameter '{:s}'. ".format(data) +
                      "Probably not calculated by GetLLM.")
+    if show_plots:
+        plt.show()
+
+    return figs_dict
 
 
 def _clean_up(source_dir, corrections):
@@ -466,7 +473,7 @@ def _get_column_mapping():
             'expect': 'Cf1001r_prediction',
             'error': 'Cf1001rERR',
             'file': 'chromatic_coupling',
-            'twissname': '',
+            'twissname': 'CF1001R',
         },
         'chromatic_coupling_i': {
             'meas': 'Cf1001i',
@@ -474,7 +481,7 @@ def _get_column_mapping():
             'expect': 'Cf1001i_prediction',
             'error': 'Cf1001iERR',
             'file': 'chromatic_coupling',
-            'twissname': '',
+            'twissname': 'CF1001I',
         },
         'phasex': {
             'meas': 'DIFF',
