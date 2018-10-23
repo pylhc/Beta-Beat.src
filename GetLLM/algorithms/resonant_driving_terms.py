@@ -41,8 +41,6 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
 #             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
             ]
 
-RDT_LIST = ['f4000H', 'f1300H']
-
 def determine_lines(rdt):
     r = list(rdt)
     j, k, l, m, plane = int(r[1]), int(r[2]), int(r[3]), int(r[4]), r[5]
@@ -111,8 +109,6 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
 
     line_amplitudes = []
     line_amplitudes_err = []
-    line_phases = []
-    line_phases_err = []
     rdt_phases_averaged = []
     rdt_phases_averaged_std = []
 
@@ -136,7 +132,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         print >> sys.stderr, "Opposite line (%s, %s) not found!" % (-line[0],-line[1])
         
     if use_line or use_opposite_line:  
-        for i in range(len(dbpms)-4):
+        for i in range(len(dbpms)):
             bpm1 = dbpms[i][1].upper()
             try:
                 bpm_pair_data = phase_data[bpm1][7], phase_data[bpm1][8], phase_data[bpm1][9]
@@ -146,6 +142,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             
             bpm2 = bpm_pair_data[0]
             rdt_phases_per_bpm = []
+            
             for j in range(0,len(list_zero_dpp)):
                 
                 ph_H10 = getattr(linx_data[j], "MUX")[linx_data[j].indx[bpm1]]
@@ -176,9 +173,6 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
                     line_amplitudes.append(line_amp)
                     line_amplitudes_err.append(line_amp_e)
-                    line_phases.append(line_phase)
-                    line_phases_err.append(line_phase_e)
-    
 
                 if beam==-1:
                     delta, edelta = bpm_pair_data[1:]
@@ -194,15 +188,16 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                     out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
                     line_amplitudes.append(line_amp)
                     line_amplitudes_err.append(line_amp_e)
-                    line_phases.append(line_phase)
-                    line_phases_err.append(line_phase_e)
-    
-                        
                 
-                rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phases, line_amplitudes, ph_H10, ph_V01)%1)
+                if line_amp != 0:
+                    rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01)%1)
 
-            rdt_phases_averaged.append(np.average(np.array(rdt_phases_per_bpm)))
-            rdt_phases_averaged_std.append(np.std(np.array(rdt_phases_per_bpm)))
+            if rdt_phases_per_bpm:
+                rdt_phases_averaged.append(np.average(np.array(rdt_phases_per_bpm)))
+                rdt_phases_averaged_std.append(np.std(np.array(rdt_phases_per_bpm)))
+            else:
+                rdt_phases_averaged.append(0.0)
+                rdt_phases_averaged_std.append(0.0)
 
     else:
         print >> sys.stderr, "Could not find line for %s !" %rdt
@@ -213,11 +208,13 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     rdt_angles = np.mod(np.array(rdt_phases_averaged), np.ones(len(rdt_phases_averaged)))
     real_part = np.cos(2*np.pi*rdt_angles)
     imag_part = np.sin(2*np.pi*rdt_angles)
-
+    inv_x = np.array(inv_x)
+    inv_y = np.array(inv_x)
+    
     for k in range(len(line_amplitudes)/len(list_zero_dpp)):
         num_meas = len(list_zero_dpp)
         bpm_name = dbpms[k][1].upper()
-        bpm_rdt_data = line_amplitudes[k*num_meas:(k+1)*num_meas]
+        bpm_rdt_data = np.array(line_amplitudes[k*num_meas:(k+1)*num_meas])
         res, res_err = do_fitting(bpm_rdt_data, inv_x, inv_y, rdt, plane)
         
         #print "skowron EAMP", res_err[0]
@@ -228,15 +225,14 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_angles[k], rdt_phases_averaged_std[k], res[0]*real_part[k], res[0]*imag_part[k]])
 
 
-def calculate_rdt_phases(rdt, line_phase, line_amplitudes, ph_H10, ph_V01):
+def calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01):
     r = list(rdt)
     j, k, l, m, plane = int(r[1]), int(r[2]), int(r[3]), int(r[4]), r[5]
     if plane == 'H':
         rdt_phase = line_phase - (k-j+1)*ph_H10 - (m-l)*ph_V01 + 0.25
     elif plane == 'V':
         rdt_phase = line_phase - (k-j)*ph_H10 - (m-l+1)*ph_V01 + 0.25
-    mask = np.array(line_amplitudes)!=0
-    return rdt_phase*mask 
+    return rdt_phase 
 
 
 def rdt_function_gen(rdt, plane):
@@ -256,10 +252,15 @@ def rdt_function_gen(rdt, plane):
 
 
 def do_fitting(bpm_rdt_data, kick_x, kick_y, rdt, plane):
-    func = rdt_function_gen(rdt, plane)
-    kick_data = np.vstack((np.transpose(kick_x)[0]**2, np.transpose(kick_y)[0]**2))
-    popt, pcov = curve_fit(func, kick_data, bpm_rdt_data)
-    perr = np.sqrt(np.diag(pcov))
+    mask = bpm_rdt_data!=0
+    
+    if sum(mask)!=0:
+        func = rdt_function_gen(rdt, plane)
+        kick_data = np.vstack((np.transpose(kick_x[mask])[0]**2, np.transpose(kick_y[mask])[0]**2))
+        popt, pcov = curve_fit(func, kick_data, bpm_rdt_data[mask])
+        perr = np.sqrt(np.diag(pcov))
+    else:
+        popt, perr = [0], [0]
     return popt, perr
 
 
