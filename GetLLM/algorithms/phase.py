@@ -786,7 +786,9 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
         for i in range(len(p_i)):
             phase_advances_all_bpms[i] = p_i[i+1]
             phase_advances_all_bpms_std[i] = p_std[i+1]
-
+        
+        # find next bpm with 0.25 phase advance
+        print("skowron phase.py  phase looping") 
         best_bpm_idx = (np.abs(phase_advances_all_bpms[:3]-0.25)).argmin()
         
         best_90degrees_bpm = bpms[best_bpm_idx + 1]
