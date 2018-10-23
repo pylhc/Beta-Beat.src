@@ -33,6 +33,7 @@ Only works properly for on-orbit twiss files.
 
 """
 
+from __future__ import print_function
 from math import factorial
 
 import numpy as np
@@ -88,13 +89,13 @@ class TwissOptics(object):
     @staticmethod
     def _get_model_df(model_path_or_tfs):
         """ Check if DataFrame given, if not load model from file  """
-        if isinstance(model_path_or_tfs, basestring):
+        if isinstance(model_path_or_tfs, str):
             LOG.debug("Creating TwissOptics from '{:s}'".format(model_path_or_tfs))
             df = tfs.read_tfs(model_path_or_tfs, index="NAME")
         else:
             LOG.debug("Creating TwissOptics from input DataFrame")
             df = model_path_or_tfs
-            if (len(df.index.values) == 0) or not isinstance(df.index.values[0], basestring):
+            if (len(df.index.values) == 0) or not isinstance(df.index.values[0], str):
                 raise IndexError("Index of DataFrame needs to be the element names."
                                  "This does not seem to be the case.")
         return df
@@ -285,11 +286,12 @@ class TwissOptics(object):
                     j, k, l, m = int(rdt[1]), int(rdt[2]), int(rdt[3]), int(rdt[4])
                     n = j + k + l + m
 
+
                     assertion(n >= 2, ValueError(
                         "The RDT-order has to be >1 but was {:d} for {:s}".format(n, rdt)))
 
-                    denom = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m) *
-                                  2**n * (1. - np.exp(i2pi * ((j-k) * tw.Q1 + (l-m) * tw.Q2))))
+                    denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m) *2**n)
+                    denom2 = 1./(1. - np.exp(i2pi * ((j-k) * tw.Q1 + (l-m) * tw.Q2)))
 
                     if (l + m) % 2 == 0:
                         src = 'K' + str(n-1) + 'L'
@@ -318,13 +320,170 @@ class TwissOptics(object):
                                     tw.loc[mask_in, 'BETX'] ** ((j+k) / 2.) * \
                                     tw.loc[mask_in, 'BETY'] ** ((l+m) / 2.)
 
+                        res.loc[:, rdt.upper().replace('F','H')] = sign * phase_term.multiply(
+                            beta_term, axis="index").sum(axis=0).transpose() * denom1
+
                         res.loc[:, rdt.upper()] = sign * phase_term.multiply(
-                            beta_term, axis="index").sum(axis=0).transpose() * denom
+                            beta_term, axis="index").sum(axis=0).transpose() * denom1 * denom2
 
                         LOG.debug("  Average RDT amplitude |{:s}|: {:g}".format(rdt, np.mean(
                             np.abs(res.loc[:, rdt.upper()]))))
 
         self._log_added(*rdt_list)
+
+
+    ################################
+    #   AC Dipole Driving Terms
+    ################################
+
+
+    def calc_ac_dipole_driving_terms(self, order_or_terms, spectral_line, plane, ac_tunes, acd_name):
+        """ Calculates the Hamiltonian Terms under Forced Motion.
+        
+        Args:
+            order_or_terms: int, string or list of strings
+                If an int is given all Resonance Driving Terms up to this order
+                will be calculated.
+                The strings are assumed to be the desired driving term names, e.g. "F1001"
+            spectral_line: tuple
+                Needed to determine what phase advance is needed before and after AC dipole location, depends on detal+ and delta-.
+                Sample input: (2,-1)
+            plane: string
+                Either 'H' or 'V' to determine phase term of AC dipole before and after ACD location.
+            ac_tunes: tuple
+                Contains horizontal and vertical AC dipole tunes, i.e. (0.302, 0.33)
+        """
+        if isinstance(order_or_terms, int):
+            rdt_list = get_all_rdts(order_or_terms)
+        elif not isinstance(order_or_terms, list):
+            rdt_list = [order_or_terms]
+        else:
+            rdt_list = order_or_terms
+
+        LOG.debug("Calculating RDTs: {:s}.".format(str(rdt_list)[1:-1]))
+        with timeit(lambda t:
+                    LOG.debug("  RDTs calculated in {:f}s".format(t))):
+
+            i2pi = 2j * np.pi
+            tw = self.twiss_df
+            print('STARTING phase advance calculation...')
+            phs_adv = self.get_phase_adv()
+            print('phase advance calculation done...')
+            res = self._results_df
+
+            for rdt in rdt_list:
+                assertion(len(rdt) == 5 and rdt[0].upper() == 'F',
+                          ValueError("'{:s}' does not seem to be a valid RDT name.".format(rdt)))
+
+                conj_rdt = ''.join(['F', rdt[2], rdt[1], rdt[4], rdt[3]])
+
+                if conj_rdt in self._results_df:
+                    res[rdt.upper()] = np.conjugate(self._results_df[conj_rdt])
+                else:
+                    j, k, l, m = int(rdt[1]), int(rdt[2]), int(rdt[3]), int(rdt[4])
+                    n = j + k + l + m
+
+                    assertion(n >= 2, ValueError(
+                        "The RDT-order has to be >1 but was {:d} for {:s}".format(n, rdt)))
+
+                    if (l + m) % 2 == 0:
+                        src = 'K' + str(n-1) + 'L'
+                        sign = -(1j ** (l+m))
+                    else:
+                        src = 'K' + str(n-1) + 'SL'
+                        sign = -(1j ** (l+m+1))
+
+                    
+                    if spectral_line[1] < 0:
+                        c, d = 0, abs(spectral_line[1])
+                    elif spectral_line[1] > 0:
+                        c, d = abs(spectral_line[1]), 0
+                    elif spectral_line[1] == 0:
+                        c, d = 0, 0
+                    
+                    Qx_min  = ac_tunes[0]-tw.Q1 
+                    Qy_min  = ac_tunes[1]-tw.Q2 
+                    Qx_plus = ac_tunes[0]+tw.Q1 
+                    Qy_plus = ac_tunes[1]+tw.Q2 
+                    
+                    if plane == 'H':
+                        if spectral_line[0] == (k-j+1):
+                            a, b = 0, 0 
+                        elif spectral_line[0] == -(k-j+1):
+                            a, b = j-1, k
+                        else:
+                            print("Line of different order than main driving term")
+                        
+                        if spectral_line[1] == (m-l):
+                            c, d = 0, 0 
+                        elif spectral_line[1] == -(m-l):
+                            c, d = l, m
+                        else:
+                            print("Line of different order than main driving term")
+                        
+                        acd_ph = np.exp(i2pi*( (k-j+1+a-b)*Qx_min + (b-a)*Qx_plus + (m-l+c-d)*Qy_min + (d-c)*Qy_plus ))
+                        # acd_ph = np.exp(i2pi*( (k-j+1)*Qx_min + (m-l)*Qy_min ))
+                        denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m)*2**n)
+                        denom2 = 1./(1. - np.exp(-i2pi * (-tw.Q1 + spectral_line[0]*ac_tunes[0] + spectral_line[1]*ac_tunes[1] )))
+                        # denom2 = 1./(1. - np.exp(i2pi * ((j-k)*tw.Q1 + (l-m)*tw.Q2 )))
+                    elif plane == 'V':
+                        if spectral_line[0] == (k-j):
+                            a, b = 0, 0 
+                        elif spectral_line[0] == -(k-j):
+                            a, b = j-1, k
+                        else:
+                            print("Line of different order than main driving term")
+                        
+                        if spectral_line[1] == (m-l+1):
+                            a, b = 0, 0 
+                        elif spectral_line[1] == -(m-l+1):
+                            a, b = j-1, k
+                        else:
+                            print("Line of different order than main driving term")
+                        
+                        acd_ph = np.exp(i2pi*( (k-j+a-b)*Qx_min + (b-a)*Qx_plus + (m-l+1+c-d)*Qy_min + (d-c)*Qy_plus ))
+                        denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m)*2**n)
+                        denom2 = 1./(1. - np.exp(i2pi * (-tw.Q2 + spectral_line[0]*ac_tunes[0] + spectral_line[1]*ac_tunes[1] )))
+                    
+
+                    try:
+                        mask_in = (tw[src] != 0) | (tw.index == acd_name)
+                        if sum(mask_in) == 0:
+                            raise KeyError
+                    except KeyError:
+                        # either src is not in tw or all k's are zero.
+                        LOG.warning("  All {:s} == 0. RDT '{:s}' will be zero.".format(src, rdt))
+                        res.loc[:, rdt.upper()] = 0
+                    else:
+                        # the next three lines determine the main order of speed, hence
+                        # - mask as much as possible
+                        # - additions are faster than multiplications (-> applymap last)
+                        phx = dphi(phs_adv['X'].loc[mask_in, :], tw.Q1)
+                        phy = dphi(phs_adv['Y'].loc[mask_in, :], tw.Q2)
+                        
+                        phs_acd = pd.DataFrame(columns=phs_adv['X'].loc[mask_in, :].columns, index=phs_adv['X'].loc[mask_in, :].index)
+                        phs_acd[:] = acd_ph
+                        mk_acd = phs_adv['X'].loc[mask_in, :] > 0
+                        phs_acd.where(mk_acd, 1., inplace=True) 
+
+                        phase_term = ((j-k) * phx + (l-m) * phy).applymap(lambda p: np.exp(i2pi*p))
+                        total_phase_term = phase_term.multiply(phs_acd)
+
+                        beta_term = tw.loc[mask_in, src] * \
+                                    tw.loc[mask_in, 'BETX'] ** ((j+k) / 2.) * \
+                                    tw.loc[mask_in, 'BETY'] ** ((l+m) / 2.)
+                        
+                        res.loc[:, rdt.upper().replace('F','HAC')] = sign * total_phase_term.multiply(
+                            beta_term, axis="index").sum(axis=0).transpose() * denom1
+
+                        res.loc[:, rdt.upper().replace('F','FAC')] = sign * total_phase_term.multiply(
+                            beta_term, axis="index").sum(axis=0).transpose() * denom1 * denom2
+
+                        LOG.debug("  Average RDT amplitude |{:s}|: {:g}".format(rdt, np.mean(
+                            np.abs(res.loc[:, rdt.upper()]))))
+
+        self._log_added(*rdt_list)
+
 
     def get_rdts(self, rdt_names=None):
         """ Return Resonance Driving Terms. """

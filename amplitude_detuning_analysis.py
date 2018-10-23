@@ -563,7 +563,7 @@ def _get_approx_bbq_interval(bbq_df, time_array, window_length):
                   0
                   )
     i_end = min(bbq_tmp.index.get_loc(time_array[-1], method='nearest') + int(window_length/2.),
-                len(bbq_tmp.index)
+                len(bbq_tmp.index)-1
                 )
 
     return bbq_tmp.index[i_start], bbq_tmp.index[i_end]

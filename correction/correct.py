@@ -227,6 +227,8 @@ def _handle_data_for_accel(accel):
 
         f.close()
         g.close()
+        
+        
     if "LHC" in accel:  # .knob should always exist to be sent to LSA!
         src = os.path.join(os.path.join(_InputData.output_path, "changeparameters.tfs"))
         dst = os.path.join(os.path.join(_InputData.output_path, "changeparameters.knob"))
@@ -255,6 +257,36 @@ def _handle_data_for_accel(accel):
 
         mad_corr.write("return;")
         mad_corr.close()
+
+    if "PSBOOSTER" in accel:  # .knob should always exist to be sent to LSA!
+        src = os.path.join(os.path.join(_InputData.output_path, "changeparameters.tfs"))
+        dst = os.path.join(os.path.join(_InputData.output_path, "changeparameters.knob"))
+        utils.iotools.copy_item(src, dst)  # madx table
+        b = Python_Classes4MAD.metaclass.twiss(os.path.join(_InputData.output_path, "changeparameters.tfs"))
+        mad_script = open(os.path.join(_InputData.output_path, "changeparameters.madx"), "w")
+        names = getattr(b, "NAME", [])
+        delta = getattr(b, "DELTA", [])
+        for i in range(len(names)):
+            if cmp(delta[i], 0) == 1:
+                mad_script.write(names[i] + " = " + names[i] + " " + str(-delta[i]) + ";\n")
+            else:
+                mad_script.write(names[i] + " = " + names[i] + " + " + str(-delta[i]) + ";\n")                
+
+        mad_script.write("return;")
+        mad_script.close()
+        
+        mad_corr = open(os.path.join(_InputData.output_path, "changeparameters_correct.madx"), "w")
+        names = getattr(b, "NAME", [])
+        delta = getattr(b, "DELTA", [])
+        for i in range(len(names)):
+            if cmp(delta[i], 0) == 1:
+                mad_corr.write(names[i] + " = " + names[i] + " + " + str(delta[i]) + ";\n")
+            else:
+                mad_corr.write(names[i] + " = " + names[i] + " " + str(delta[i]) + ";\n")                
+
+        mad_corr.write("return;")
+        mad_corr.close()
+
 
 
 def _load_input_files():
