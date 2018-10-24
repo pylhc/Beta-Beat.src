@@ -375,10 +375,10 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
     print "op"
     print op 
     if op == "1": 
-        print "here"
+        print "Calling intersect_bpm_list_with_arc_bpms(bpms)"
         good_bpms_for_kick = intersect_bpm_list_with_arc_bpms(bpms)
     else:
-        print "CONDITION"
+        print "Calling intersect_bpm_list_inj(bpms,op)"
         good_bpms_for_kick = intersect_bpm_list_inj(bpms,op)
         
 
@@ -484,15 +484,19 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
         Psid[k_bpmac:] = Psid[k_bpmac:] - 2 * np.pi * Qd
         bet = ((amp / sqrt2j[i]) ** 2 *
                (1 + r ** 2 + 2 * r * np.cos(2 * Psid)) / (1 - r ** 2))
-        print "BETA ERROR CALIBRATION"
-        print amp_err
+        if DEBUG:
+            print "BETA ERROR CALIBRATION"
+            print amp_err
+            
         #print bet_err
         #bet_err = (2 * calibration * bet * calibration_error)**2 
         bet_err = ((amp_err / sqrt2j[i]) ** 2 *
                (1 + r ** 2 + 2 * r * np.cos(2 * Psid)) / (1 - r ** 2))
-        print "BETA ERROR"
-        print bet_err
-        print bet_err
+        if DEBUG:
+            print "BETA ERROR"
+            print bet_err
+            print bet_err
+            
         for bpm_index in range(len(all_bpms)):
             betall[bpm_index][i] = bet[bpm_index]
             # betall_err[bpm_index][i] = bet_err[bpm_index]
@@ -710,7 +714,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
             psih=psih-(psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]) 
             psiv=psiv-(psiv[k_bpmac_v]-psiv_ac2bpmac[bpmac_v]) 
-            print('the phase to the device', k_bpmac_h, psih[k_bpmac_h], bpmac_h, (psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]))
+            #print('the phase to the device', k_bpmac_h, psih[k_bpmac_h], bpmac_h, (psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]))
             Psih=psih-np.pi*Qh
             Psih[:k_bpmac_h]=Psih[:k_bpmac_h]+2*np.pi*Qh
             Psiv=psiv-np.pi*Qv
