@@ -168,15 +168,18 @@ def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, ran
     Qf = tunes[plane]["QF"]
     Qmdl = tunes[plane]["QM"]
     Qmdlf = tunes[plane]["QFM"]
+    LOGGER.info("Beta {} free calculation".format(plane))
     phase_adv_free = phases[plane]["F"]
     phase_adv_driven = phases[plane]["D"]
-    LOGGER.info("Beta {} free calculation".format(plane))
+    phase_adv = phases[plane]["D"]
     # remove BPMs that are not in the input
     if phase_adv_driven is not None:
         comp_model = free_model.loc[phase_adv_driven["MEAS"].index]
         model = driven_model.loc[phase_adv_free["MEAS"].index]
     else:
         model = free_model.loc[phase_adv_free["MEAS"].index]
+        phase_adv = phase_adv_free
+
 
     bk_model = bk_model.loc[phase_adv_free["MEAS"].index]
 
@@ -187,7 +190,7 @@ def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, ran
             "getbeta{}.bdebug".format(plane_for_file)  # TODO change working path
         )
 
-    beta_df = _beta_from_phase(model, elements, phase_adv_free, plane, range_of_bpms,
+    beta_df = _beta_from_phase(model, elements, phase_adv, plane, range_of_bpms,
                                error_method, Qf, Qmdlf % 1.0)
 
     beta_df.headers["FILENAME"] = "getbeta{}.out".format(plane_for_file)
