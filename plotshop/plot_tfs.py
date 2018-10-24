@@ -291,7 +291,7 @@ class _LoopGenerator:
         self.figs = {}
         for idx_col in range(len(self.x_cols)):
             fig, axs = self._get_fig()
-            p_title = self.y_cols[idx_col]
+            p_title = self.labels[idx_col]
             if self.xy:
                 p_title += "_dualPlane"
             fig.canvas.set_window_title("Parameter '{:s}'".format(p_title))

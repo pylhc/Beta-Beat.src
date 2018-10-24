@@ -191,7 +191,6 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 
                 if line_amp != 0:
                     rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01)%1)
-
             
             #rdt_phases_per_bpm = [0.55, 0.55, 0.55, 0.55]
             
