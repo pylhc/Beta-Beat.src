@@ -689,7 +689,7 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             tune = np.average(tunem)
 
     for i in range(length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
-        bpms = [str.upper(commonbpms[j % length_commonbpms][1]) for j in range(i, i+11)] # seven consecutive monitors
+        bpms = [str.upper(commonbpms[j % length_commonbpms][1]) for j in range(i, i+11)] # eleven consecutive monitors
         p_i = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[]} # dict for the six bpm pairs i.e. p_i[1] is for pair bpm[0], bpm[1]
         
         
@@ -788,9 +788,8 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             phase_advances_all_bpms_std[i] = p_std[i+1]
         
         # find next bpm with 0.25 phase advance
-        print("skowron phase.py  phase looping") 
-        best_bpm_idx = (np.abs(phase_advances_all_bpms[:3]-0.25)).argmin()
         
+        best_bpm_idx = (np.abs(phase_advances_all_bpms[:3]-0.25)).argmin()
         best_90degrees_bpm = bpms[best_bpm_idx + 1]
         best_90degrees_phase = phase_advances_all_bpms[best_bpm_idx]
         best_90degrees_phase_std = phase_advances_all_bpms_std[best_bpm_idx]
