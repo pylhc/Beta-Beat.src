@@ -1,5 +1,10 @@
-#!/afs/cern.ch/work/o/omc/anaconda/bin/python
+"""
+Module kmod.get_kmod_files
+-----------------------------
 
+Used by the BB-Gui to merge and copy kmod files from subfolders of the chosen folder into
+the current optics output folder.
+"""
 import os
 import sys
 from os.path import abspath, join, dirname, pardir
@@ -7,60 +12,78 @@ new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 
-from Python_Classes4MAD import metaclass
 from optparse import OptionParser
-from tfs_files import tfs_file_writer
+from tfs_files import tfs_pandas
 import re
+from utils import logging_tools
+
+from gui2kmod import get_beta_star_filename, get_beta_filename
+
+LOG = logging_tools.get_logger(__name__)
 
 
-def write_global_files(beam, kmod_dir, res_dir, mod_path):    
+# Main Functions ###############################################################
+
+
+def merge_and_copy_kmod_output(beam, kmod_dir, res_dir, mod_path):
+    """ Merges the needed files into dataframes and saves them.
+
+    Args:
+        beam (str): Currently used beam.
+        kmod_dir (str): Parent folder of the kmod results
+        res_dir (str): Destination folder for the merged output
+        mod_path (str): Path to the model.
+    """
+    LOG.debug("Merging and copying of kmod data started.")
     pattern = re.compile(".*R[0-9]\." + beam.upper())
-    model_twiss = metaclass.twiss(mod_path)
-    
-    ip_dir_names = []
-    for path,dirnames,files in os.walk(kmod_dir):
-        for dirname in dirnames:
-            if pattern.match(dirname):
-                ip_dir_names.append(dirname)
+    model_twiss = tfs_pandas.read_tfs(mod_path, index="NAME")
 
-    for plane in ("x", "y"):
-        uplane = plane.upper()
-        results_writer = tfs_file_writer.TfsFileWriter.open(join(res_dir, 'getkmodbeta' + plane + '.out'))
-        write_headers(results_writer, uplane)
-        bpm_names, bpm_s, betas, betas_std, betas_mdl = [], [], [], [], []
+    ip_dir_names = [d for _, dirs, _ in os.walk(kmod_dir) for d in dirs if pattern.match(d)]
+
+    # copy beta data
+    for plane in "xy":
+        new_data = tfs_pandas.TfsDataFrame()
         for ip_dir_name in ip_dir_names:
-            path = os.path.join(kmod_dir, ip_dir_name, 'getkmodbeta' + plane + '.out')
-            try:
-                data = metaclass.twiss(path)
-            except IOError:
-                print "Cannot find kmod data in " + path + ", won't copy those files."
-                continue
-            print("Kmod data found in: {}".format(path))
-            for bpm_name in data.NAME:
-                if bpm_name in model_twiss.NAME:
-                    index = data.indx[bpm_name]
-                    bpm_names.append(bpm_name)
-                    betas.append(getattr(data, "BET" + uplane)[index])
-                    betas_std.append(getattr(data, "BET" + uplane + "STD")[index])
-                    model_index = model_twiss.indx[bpm_name]
-                    betas_mdl.append(getattr(model_twiss, "BET" + uplane)[model_index])
-                    bpm_s.append(getattr(model_twiss, "S")[model_index])
+            src = join(kmod_dir, ip_dir_name, get_beta_filename(plane))
+            data = _load_source_data(src, "NAME")
+            if data is not None:
+                new_data = new_data.append(data.loc[data.index.isin(model_twiss.index), :])
+        new_data["S"] = model_twiss.loc[new_data.index, "S"]
+        dst = join(res_dir, get_beta_merged_filename(plane))
+        tfs_pandas.write_tfs(dst, new_data, save_index="NAME")
 
-        for i in range(len(bpm_names)):
-            results_writer.add_table_row([bpm_names[i], bpm_s[i], 0, betas[i],
-                                          betas_std[i], betas_mdl[i], 0, 0, 0 ])
-        results_writer.write_to_file()
+    # copy beta* data
+    new_data = tfs_pandas.TfsDataFrame()
+    for ip_dir_name in ip_dir_names:
+        src = join(kmod_dir, ip_dir_name, get_beta_star_filename())
+        data = _load_source_data(src)
+        new_data = new_data.append(data)
+    dst = join(res_dir, get_beta_star_merged_filename())
+    tfs_pandas.write_tfs(dst, new_data)
 
 
-def write_headers(resuts_writers, uplane):
-    resuts_writers.set_column_width(20)
-    resuts_writers.add_column_names(
-        ['NAME', 'S', 'COUNT', 'BET' + uplane, 'STDBET' + uplane,
-         'BET' + uplane + 'MDL', 'ERRBET' + uplane, 'BET' + uplane + 'RES',
-         'BET' + uplane + 'STDRES']
-    )
-    resuts_writers.add_column_datatypes(['%s', '%le', '%le', '%le', '%le',
-                                         '%le', '%le', '%le', '%le'])
+def get_beta_star_merged_filename():
+    """ Outputfilename of the merged betastar file. """
+    return "getkmodbetastar.out"
+
+
+def get_beta_merged_filename(plane):
+    """ Outputfilename of the merged beta file. """
+    return get_beta_filename(plane)
+
+
+# Private Functions ############################################################
+
+
+def _load_source_data(src, index=None):
+    data = None
+    try:
+        data = tfs_pandas.read_tfs(src, index=index)
+    except IOError:
+        LOG.warn("Cannot find kmod data in '{:s}', won't copy those files.".format(src))
+    else:
+        LOG.warn("Loaded kmod data from '{:s}'.".format(src))
+    return data
 
 
 def parse_args():
@@ -74,7 +97,7 @@ def parse_args():
                             action='store', type='string', dest='res_dir')
     parser.add_option('-m', '--model_path',
                             help='Specify path to current model',
-                            action='store', type='string', dest='mod')
+                            action='store', type='string', dest='mod_path')
     parser.add_option('-b', '--beam',
                             help='define beam used: b1 or b2',
                             action='store', type='string', dest='beam')
@@ -82,11 +105,9 @@ def parse_args():
     return options
 
 
-if __name__ == '__main__':
-    options = parse_args()
-    beam = options.beam
-    kmod_dir = options.kmod_dir
-    res_dir  = options.res_dir
-    mod_path = options.mod
+# Script Mode ##################################################################
 
-    write_global_files(beam, kmod_dir, res_dir, mod_path)
+
+if __name__ == '__main__':
+    opt = parse_args()
+    merge_and_copy_kmod_output(opt.beam, opt.kmod_dir, opt.res_dir, opt.mod_path)

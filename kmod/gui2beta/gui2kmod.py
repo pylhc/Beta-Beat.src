@@ -22,10 +22,10 @@ from utils import outliers
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 
-
-# TODO: (Long term) Think about the accelerator class here for positions and Ks
-# TODO: Short term: Use a logger for logging
-# TODO: Short term: Use tfs_pandas instead of metaclass
+# TODO: Short term: Think about the accelerator class here for positions and Ks
+# TODO: Immediately: Use a logger for logging
+# TODO: Immediately: get rid of repetive code and use loops and functions
+# TODO: Immediately: Use tfs_pandas instead of metaclass
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -304,7 +304,7 @@ def run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, wa
                                       fity_def, erry_def, ek, ek, cminus, vert_bstar, waist,
                                       (magnet1 + '-' + magnet2 + '.' + beam) + '.Y', log, logfile)
 
-    results = tfs_file_writer.TfsFileWriter.open(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
+    results = tfs_file_writer.TfsFileWriter.open(os.path.join(path, get_results_filename()))
     results.set_column_width(15)
     results.add_column_names(
         ['LABEL', 'BETAWAIST', 'BETAWAIST_ERR', 'WAIST', 'WAIST_ERR', 'BETA_AV_FOC', 'BETA_AV_FOC_ERR', 'BETA_AV_DEF',
@@ -337,7 +337,7 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
 
         L_star_position = Magnet_definitions.LstarPosition(magnet1, magnet2, beam, twiss)
 
-        result_waist = metaclass.twiss(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
+        result_waist = metaclass.twiss(os.path.join(path, get_results_filename()))
         beta_waist = result_waist.BETAWAIST
         beta_waist_err = result_waist.BETAWAIST_ERR
         waist = result_waist.WAIST
@@ -387,7 +387,7 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
         err_y = (abs(np.nanmax(beta_err_y, axis=0) - np.nanmin(beta_err_y, axis=0))) / 2.
 
         if name == 'BPM':
-            xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetax.out'))
+            xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, get_beta_filename("x")))
         else:
             xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_X.out' % name))
         xdata.set_column_width(20)
@@ -395,7 +395,7 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
         xdata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
 
         if name == 'BPM':
-            ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'getkmodbetay.out'))
+            ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, get_beta_filename("y")))
         else:
             ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_Y.out' % name))
         ydata.set_column_width(20)
@@ -417,13 +417,13 @@ def calc_beta_star(path, magnet1, magnet2, beam, lstar, twiss):
     if Magnet_definitions.FindParentBetweenMagnets(magnet1, magnet2, 'OMK', beam, twiss):
 
         results_write = tfs_file_writer.TfsFileWriter.open(
-            os.path.join(path, '%s.beta_star.results' % (magnet1 + magnet2 + beam)))
+            os.path.join(path, get_beta_star_filename()))
         results_write.set_column_width(20)
         results_write.add_column_names(
             ['LABEL', 'BETASTAR', 'BETASTAR_ERR', 'WAIST', 'WAIST_ERR', 'BETAWAIST', 'BETAWAIST_ERR', 'PHASEADV', 'ERRPHASEADV'])
         results_write.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
 
-        results = metaclass.twiss(os.path.join(path, '%s.results' % (magnet1 + magnet2 + beam)))
+        results = metaclass.twiss(os.path.join(path, get_results_filename()))
         beta_w = results.BETAWAIST
 
         for i, b_w in enumerate(beta_w):
@@ -616,6 +616,19 @@ def _main():
                          misalign, cminus, twiss, options.log, logdata, auto_clean)
 
     logdata.close()
+
+
+def get_beta_filename(plane):
+    return "getkmodbeta{:s}.out".format(plane)
+
+
+def get_beta_star_filename():
+    return "beta_star.out"
+
+
+def get_results_filename():
+    return "results.out"
+
 
 
 if __name__ == '__main__':
