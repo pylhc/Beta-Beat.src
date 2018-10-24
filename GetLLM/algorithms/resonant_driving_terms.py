@@ -191,10 +191,50 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 
                 if line_amp != 0:
                     rdt_phases_per_bpm.append(calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01)%1)
-
+            
+            #rdt_phases_per_bpm = [0.55, 0.55, 0.55, 0.55]
+            
             if rdt_phases_per_bpm:
-                rdt_phases_averaged.append(np.average(np.array(rdt_phases_per_bpm)))
-                rdt_phases_averaged_std.append(np.std(np.array(rdt_phases_per_bpm)))
+                # was
+                #rdt_phases_averaged.append(np.average(np.array(rdt_phases_per_bpm)))
+                #rdt_phases_averaged_std.append(np.std(np.array(rdt_phases_per_bpm)))
+                
+                
+                phases = np.array(rdt_phases_per_bpm)*2*np.pi
+
+                # skowron October 2018
+
+                if DEBUG:
+                    print "phases for all the files"
+                    print(rdt_phases_per_bpm)
+
+                rdt_sinphases = np.sin( phases )
+                rdt_cosphases = np.cos( phases )
+                
+                sinave = np.average(rdt_sinphases)
+                cosave = np.average(rdt_cosphases)
+                
+                phase = np.arctan2(sinave,cosave)
+                if phase < 0:
+                    phase = phase + 2*np.pi
+                
+                # error propagation for atan2 if we had phase errors from Sussix/HarPy            
+                # D(phi) =  D(atan(x/y)) = ( D(x)*y + D(y)*x )/ (x^2 + y^2)
+                sinstd = np.std(rdt_sinphases)
+                cosstd = np.std(rdt_cosphases)
+                
+                phaseerr =             np.abs(sinstd*cosave)
+                phaseerr =  phaseerr + np.abs(cosstd*sinave)
+                phaseerr =  phaseerr / (sinave*sinave + cosave*cosave)
+                
+                if DEBUG:
+                    print("phase = %f +/- %f [rad]"%(phase/(2*np.pi),phaseerr/(2*np.pi)))
+                
+                rdt_phases_averaged.append(phase/(2*np.pi))
+                rdt_phases_averaged_std.append(phaseerr/(2*np.pi))
+
+                
+                
             else:
                 rdt_phases_averaged.append(0.0)
                 rdt_phases_averaged_std.append(0.0)

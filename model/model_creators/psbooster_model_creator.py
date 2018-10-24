@@ -102,7 +102,9 @@ class PsboosterSegmentCreator(model_creator.ModelCreator):
             madx_template = textfile.read()
         replace_dict = {
             "FILES_DIR": instance.get_psb_dir(),
-            "RING": instance.get_ring(),
+            "RING": instance.ring,
+            "NAT_TUNE_X": instance.nat_tune_x,
+            "NAT_TUNE_Y": instance.nat_tune_y,
             "LIB": instance.NAME, # "psbooster"
             "OPTICS_PATH": instance.optics_file,
             "PATH": output_path,

@@ -4,6 +4,10 @@ from model.accelerators.accelerator import Accelerator,Element
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 from utils import logging_tools
 from tfs_files import tfs_pandas
+from Python_Classes4MAD.metaclass import twiss
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.dirname(__file__)
 PSB_DIR = os.path.join(CURRENT_DIR, "psbooster")
@@ -190,6 +194,8 @@ class Psbooster(Accelerator):
                 (new_class,),
                 {"get_ring": classmethod(lambda cls: opt.ring)}
             )
+        else:
+            print("No ring info in options")
         return new_class
 
     # Public Methods ##########################################################
@@ -198,8 +204,19 @@ class Psbooster(Accelerator):
         segment_cls = type(cls.__name__ + "Segment",
                           (_PsboosterSegmentMixin,cls),
                           {})
+
+
+        LOGGER.debug('twiss_file is <%s>',twiss_file)
+        tw = twiss(twiss_file)
+        
+        LOGGER.debug('twiss_file has tunes %f %f ',tw.Q1,tw.Q2)
+        ring = _get_ring_from_seqname(tw.SEQUENCE)
+
+        #ring = cls.get_ring()
+
         segment_inst = segment_cls()
-        ring = cls.get_ring()
+        
+
         bpms_file = _get_file_for_ring(ring)
         bpms_file_data = tfs_pandas.read_tfs(bpms_file).set_index("NAME")
         first_elem_s = bpms_file_data.loc[first_elem, "S"]
@@ -209,6 +226,14 @@ class Psbooster(Accelerator):
         segment_inst.end = Element(last_elem, last_elem_s)
         segment_inst.optics_file = optics_file
         segment_inst.fullresponse = None
+        
+
+        segment_inst.nat_tune_x = tw.Q1
+        segment_inst.nat_tune_y = tw.Q2
+        segment_inst.energy = tw.ENERGY
+        segment_inst.sequence = tw.SEQUENCE
+        segment_inst.ring = ring
+        
         return segment_inst    
 
 
@@ -273,6 +298,23 @@ class _PsboosterSegmentMixin(object):
 
 def _get_file_for_ring(ring):
     return os.path.join(PSB_DIR, "twiss_ring" + str(ring) + ".dat")
+
+def _get_ring_from_seqname(seq):
+    ring = None
+    
+    if (seq.upper() == "PSB1"):
+        ring = 1
+    if (seq.upper() == "PSB2"):
+        ring = 2
+    if (seq.upper() == "PSB3"):
+        ring = 3
+    if (seq.upper() == "PSB4"):
+        ring = 4
+    
+    if (ring == None):
+        LOGGER.error("Sequence name is none of the expected ones (PSB1,PSB2,PSB3,PSB4)")
+
+    return ring
 
 
 # Script Mode ##################################################################
