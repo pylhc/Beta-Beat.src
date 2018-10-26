@@ -5,6 +5,11 @@ import numpy as np
 
 from tfs_files import tfs_file_writer
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
+
 
 def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, input_model, propagated_models, save_path, beta_summary_file):
     file_alfa_x, file_beta_x, file_alfa_y, file_beta_y = _get_beta_tfs_files(element_name, save_path, is_element)
@@ -91,7 +96,7 @@ def _get_beta_tfs_files(element_name, save_path, is_element):
 
 
 def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor, output_path, is_element, beta_summary_file):
-
+    
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, plane)
 
@@ -196,10 +201,17 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
 
 
 def _get_start_end_betas(bpms_list, measured_beta, plane):
+    
+    LOGGER.debug("plane %s",plane)
     first_bpm = bpms_list[0][1]
+
+    LOGGER.debug("first_bpm %s",first_bpm)
 
     beta_start = getattr(measured_beta, "BET" + plane)[measured_beta.indx[first_bpm]]
     alfa_start = getattr(measured_beta, "ALF" + plane)[measured_beta.indx[first_bpm]]
+
+    LOGGER.debug("beta_start = %f ; alfa_start =  %f ;",beta_start, alfa_start)
+
     #check if STDBET columns exist
     stdbet_exists = True
     try:
@@ -214,8 +226,15 @@ def _get_start_end_betas(bpms_list, measured_beta, plane):
 
     last_bpm = bpms_list[-1][1]
 
+    LOGGER.debug("last_bpm %s",last_bpm)
+    
+    print type(bpms_list)
+    print bpms_list
+
     beta_end = getattr(measured_beta, "BET" + plane)[measured_beta.indx[last_bpm]]
     alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
+
+    LOGGER.debug("beta_end = %f ; alfa_end =  %f ;",beta_end,alfa_end)
 
     if stdbet_exists:
         err_beta_start = math.sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]] ** 2)
@@ -246,10 +265,13 @@ def _propagate_error_alfa(errb0, erra0, dphi, alfs, bet0, alf0):
 
 
 def intersect(list_of_files):
-    '''Pure intersection of all bpm names in all files '''
+    '''Pure intersection of all bpm names in all files 
+     Returns: 
+    '''
     if len(list_of_files) == 0:
         raise ValueError("Nothing to intersect!")
     z = list_of_files[0].NAME
+    
     for b in list_of_files:
         z = filter(lambda x: x in z and "DRIFT" not in x, b.NAME)
     # SORT by S
@@ -257,7 +279,11 @@ def intersect(list_of_files):
     x0 = list_of_files[0]
     for bpm in z:
         result.append((x0.S[x0.indx[bpm]], bpm))
-    result.sort()
+    
+    # this makes that the same S is not swapped when sorting 
+    result.sort(lambda x, y: 1 if x[0] == y[0] else cmp(x[0], y[0]))
+    
+    
     if len(result) == 0:
         raise ValueError(
             "The intersection was empty for the files: " +
