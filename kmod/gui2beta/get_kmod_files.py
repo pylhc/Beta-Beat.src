@@ -42,13 +42,20 @@ def merge_and_copy_kmod_output(beam, kmod_dir, res_dir, mod_path):
 
     # copy beta data
     for plane in "xy":
+        up = plane.upper()
         new_data = tfs_pandas.TfsDataFrame()
         for ip_dir_name in ip_dir_names:
             src = join(kmod_dir, ip_dir_name, get_beta_filename(plane))
             data = _load_source_data(src, "NAME")
             if data is not None:
-                new_data = new_data.append(data.loc[data.index.isin(model_twiss.index), :])
+                in_model = data.index.isin(model_twiss.index)
+                new_data = new_data.append(data.loc[in_model, :])
+
+        # Todo: Let Kmod fill these columns in the future
         new_data["S"] = model_twiss.loc[new_data.index, "S"]
+        new_data["BET{}MDL".format(up)] = model_twiss.loc[new_data.index, "BET{}".format(up)]
+        new_data = new_data.rename(columns={"BET{}STD".format(up): "ERRBET{}".format(up)})
+
         dst = join(res_dir, get_beta_merged_filename(plane))
         tfs_pandas.write_tfs(dst, new_data, save_index="NAME")
 

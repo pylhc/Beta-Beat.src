@@ -16,6 +16,7 @@ class OpticsMeasurement(TfsCollection):
     beta = Tfs("getbeta")
     amp_beta = Tfs("getampbeta")
     kmod_beta = Tfs("getkmodbeta")
+    kmod_betastar = Tfs("getkmodbetastar", two_planes=False)
     phase = Tfs("getphase")
     phasetot = Tfs("getphasetot")
     disp = Tfs("getD")

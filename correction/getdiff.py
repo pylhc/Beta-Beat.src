@@ -23,12 +23,20 @@ TODOs and Notes:
 
     Expected values after correction to be put in, little tricky with phase column names
     No coupling in twiss_no.dat? not used
+
+Some hints:
+    MEA, MODEL, EXPECT are usually the names for the differences between the values and the model.
+    Apart from phase, where these differences are called DIFF and DIFF_MDL (EXPECT is still the
+    same) while MEA and MODEL are the actual measurement and model values respectively.
+
+    Don't look into the coupling and chromatic coupling namings.
 """
 from __future__ import print_function
 import numpy as np
 import pandas as pd
 import sys
 import os
+import re
 from os.path import abspath, join, dirname, isdir, exists, split, pardir
 
 new_path = abspath(join(dirname(abspath(__file__)), pardir))
@@ -38,7 +46,7 @@ if new_path not in sys.path:
 from optics_measurements.io_filehandler import OpticsMeasurement
 from twiss_optics.optics_class import TwissOptics
 from tfs_files.tfs_pandas import read_tfs, write_tfs
-from utils import logging_tools
+from utils import logging_tools, beta_star_from_twiss
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -49,6 +57,10 @@ TWISS_CORRECTED_MINUS = "twiss_cor_dpm.dat"  # negative dpp
 
 
 # Main invocation ############################################################
+
+
+def get_diff_filename(id):
+    return "diff_{:s}.out".format(id)
 
 
 def getdiff(meas_path=None, beta_file_name="getbeta"):
@@ -83,19 +95,20 @@ def getdiff(meas_path=None, beta_file_name="getbeta"):
     coupling_model['NAME'] = coupling_model.index.values
 
     for plane in ['x', 'y']:
-        _write_beta_diff_file(meas_path, meas, model, plane, beta_file_name)
+        _write_betabeat_diff_file(meas_path, meas, model, plane, beta_file_name)
         _write_phase_diff_file(meas_path, meas, model, plane)
         _write_disp_diff_file(meas_path, meas, model, plane)
     _write_coupling_diff_file(meas_path, meas, coupling_model)
     _write_norm_disp_diff_file(meas_path, meas, model)
     _write_chromatic_coupling_files(meas_path, corrected_model_path)
+    _write_betastar_diff_file(meas_path, meas, twiss_cor, twiss_no)
     LOG.debug("Finished 'getdiff'.")
 
 
 # Writing Functions ##########################################################
 
 
-def _write_beta_diff_file(meas_path, meas, model, plane, betafile):
+def _write_betabeat_diff_file(meas_path, meas, model, plane, betafile):
     LOG.debug("Calculating beta diff.")
     if betafile == "getbeta":
         meas_beta = meas.beta[plane]
@@ -114,7 +127,7 @@ def _write_beta_diff_file(meas_path, meas, model, plane, betafile):
     tw['MODEL'] = ((tw.loc[:, 'BET' + up + '_c'] - tw.loc[:, 'BET' + up + '_n'])
                    / tw.loc[:, 'BET' + up + '_n'])
     tw['EXPECT'] = tw['MEA'] - tw['MODEL']
-    write_tfs(join(meas_path, 'bb' + plane + '.out'),
+    write_tfs(join(meas_path, get_diff_filename('bb' + plane)),
               tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
 
 
@@ -128,30 +141,34 @@ def _write_phase_diff_file(meas_path, meas, model, plane):
     tw['DIFF'] = tw.loc[:, 'PHASE' + up] - tw.loc[:, 'PH' + up + 'MDL']
     tw['DIFF_MDL'] = tw.loc[:, 'MODEL'] - tw.loc[:, 'PH' + up + 'MDL']
     tw['EXPECT'] = tw['DIFF'] - tw['DIFF_MDL']
-    write_tfs(join(meas_path, 'phase' + plane + '.out'),
+    write_tfs(join(meas_path, get_diff_filename('phase' + plane)),
               tw.loc[tw.index[:-1],
                      ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'DIFF', 'DIFF_MDL', 'EXPECT']])
 
 
 def _write_disp_diff_file(meas_path, meas, model, plane):
     LOG.debug("Calculating dispersion diff.")
+    up = plane.upper()
     try:
-        up = plane.upper()
         tw = pd.merge(meas.disp[plane], model, how='inner', on='NAME')
+    except IOError:
+        LOG.debug("Dispersion measurements not found. Skipped.")
+    else:
         tw['MEA'] = tw.loc[:, 'D' + up] - tw.loc[:, 'D' + up + 'MDL']
         tw['ERROR'] = tw.loc[:, 'STDD' + up]
         tw['MODEL'] = tw.loc[:, 'D' + up + '_c'] - tw.loc[:, 'D' + up + '_n']
         tw['EXPECT'] = tw['MEA'] - tw['MODEL']
-        write_tfs(join(meas_path, 'd' + plane + '.out'),
+        write_tfs(join(meas_path, get_diff_filename('d' + plane)),
                   tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
-    except IOError:
-        LOG.debug("Dispersion measurements not found. Skipped.")
 
 
 def _write_norm_disp_diff_file(meas_path, meas, model):
     LOG.debug("Calculating normalized dispersion diff.")
     try:
         tw = pd.merge(meas.norm_disp, model, how='inner', on='NAME')
+    except IOError:
+        LOG.debug("Normalized dispersion measurements not found. Skipped.")
+    else:
         tw['MEA'] = tw.loc[:, 'NDX'] - tw.loc[:, 'NDXMDL']
         tw['ERROR'] = tw.loc[:, 'STDNDX']
         tw['MODEL'] = (tw.loc[:, 'DX_c'] / np.sqrt(tw.loc[:, 'BETX_c'])
@@ -159,8 +176,6 @@ def _write_norm_disp_diff_file(meas_path, meas, model):
         tw['EXPECT'] = tw['MEA'] - tw['MODEL']
         write_tfs(join(meas_path, 'ndx.out'),
                   tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
-    except IOError:
-        LOG.debug("Normalized dispersion measurements not found. Skipped.")
 
 
 def _write_coupling_diff_file(meas_path, meas, model):
@@ -185,7 +200,7 @@ def _write_coupling_diff_file(meas_path, meas, model):
         
     tw['in_use'] = 1
     out_columns += ['in_use']
-    write_tfs(join(meas_path, 'couple.out'), tw.loc[:, out_columns])
+    write_tfs(join(meas_path, get_diff_filename('couple')), tw.loc[:, out_columns])
 
 
 def _write_chromatic_coupling_files(meas_path, cor_path):
@@ -194,6 +209,9 @@ def _write_chromatic_coupling_files(meas_path, cor_path):
     try:
         twiss_plus = read_tfs(join(split(cor_path)[0], TWISS_CORRECTED_PLUS), index='NAME')
         twiss_min = read_tfs(join(split(cor_path)[0], TWISS_CORRECTED_MINUS), index='NAME')
+    except IOError:
+        LOG.debug("Chromatic coupling measurements not found. Skipped.")
+    else:
         deltap = np.abs(twiss_plus.DELTAP - twiss_min.DELTAP)
         plus = TwissOptics(twiss_plus, quick_init=True).get_coupling(method='cmatrix')
         minus = TwissOptics(twiss_min, quick_init=True).get_coupling(method='cmatrix')
@@ -210,14 +228,73 @@ def _write_chromatic_coupling_files(meas_path, cor_path):
         tw['Cf1001i_model'] = np.imag(cf1001)
         tw['Cf1001r_prediction'] = tw.loc[:, 'Cf1001r'] - tw.loc[:, 'Cf1001r_model']
         tw['Cf1001i_prediction'] = tw.loc[:, 'Cf1001i'] - tw.loc[:, 'Cf1001i_model']
-        write_tfs(join(meas_path, 'chromatic_coupling.out'),
+        write_tfs(join(meas_path, get_diff_filename('chromatic_coupling')),
                   tw.loc[:, ['NAME', 'S',
                              'Cf1001r', 'Cf1001rERR',
                              'Cf1001i', 'Cf1001iERR',
                              'Cf1001r_model', 'Cf1001i_model',
                              'Cf1001r_prediction', 'Cf1001i_prediction']])
+
+
+def _write_betastar_diff_file(meas_path, meas, twiss_cor, twiss_no):
+    LOG.debug("Calculating betastar diff at the IPs.")
+    try:
+        meas = meas.kmod_betastar.set_index(beta_star_from_twiss.RES_COLUMNS[0])
     except IOError:
-        LOG.debug("Chromatic coupling measurements not found. Skipped.")
+        LOG.debug("Beta* measurements not found. Skipped.")
+    else:
+        # get all IPs
+        ip_map = {}
+        beam = ''
+        for label in meas.index.values:
+            ip, beam = re.findall(r'\d', label)[-2:]  # beam should be the same for all
+            if ip not in "1258":
+                raise NotImplementedError(
+                    "Beta-Star comparison is not yet implemented for measurements in IP" + ip)
+            ip_label = "IP" + ip
+            ip_map[label] = ip_label
+
+        beam = int(beam)
+        all_ips = set(ip_map.values())
+        try:
+            # calculate waist and so on
+            model = beta_star_from_twiss.get_beta_star_and_waist_from_ip(twiss_cor, beam, all_ips)
+            design = beta_star_from_twiss.get_beta_star_and_waist_from_ip(twiss_no, beam, all_ips)
+        except KeyError:
+            LOG.warn("Can't find all IPs in twiss files. Skipped beta* calculations.")
+        else:
+            # extract data
+            tw = pd.DataFrame()
+            for label in meas.index:
+                plane = label[-1]
+                ip_name = beta_star_from_twiss.get_full_label(ip_map[label], beam, plane)
+                tw.loc[label, "S"] = model.loc[ip_name, "S"]
+                for attr in beta_star_from_twiss.RES_COLUMNS[2:]:
+                    # default diff parameter
+                    tw.loc[label, attr + "_MEA"] = (meas.loc[label, attr]
+                                                    - design.loc[ip_name, attr])
+                    tw.loc[label, attr + "_ERROR"] = meas.loc[label, attr + "_ERR"]
+                    tw.loc[label, attr + "_MODEL"] = (model.loc[ip_name, attr]
+                                                      - design.loc[ip_name, attr])
+                    tw.loc[label, attr + "_EXPECT"] = (tw.loc[label, attr + "_MEA"]
+                                                       - tw.loc[label, attr + "_MODEL"])
+                    # additional for debug reasons
+                    tw.loc[label, attr + "_MEAVAL"] = meas.loc[label, attr]
+                    tw.loc[label, attr + "_DESIGN"] = design.loc[ip_name, attr]
+                    tw.loc[label, attr + "_EXPECTVAL"] = (design.loc[ip_name, attr]
+                                                          + tw.loc[label, attr + "_EXPECT"])
+                    # and the beatings
+                    if "BETA" in attr:
+                        tw.loc[label, "B{}_MEA".format(attr)] = (tw.loc[label, attr + "_MEA"]
+                                                                    / design.loc[ip_name, attr])
+                        tw.loc[label, "B{}_MODEL".format(attr)] = (tw.loc[label, attr + "_MODEL"]
+                                                                    / design.loc[ip_name, attr])
+                        tw.loc[label, "B{}_EXPECT".format(attr)] = (
+                                tw.loc[label, "B{}_MEA".format(attr)]
+                                - tw.loc[label, "B{}_MODEL".format(attr)])
+
+            write_tfs(join(meas_path, get_diff_filename('betastar')), tw,
+                      save_index=beta_star_from_twiss.RES_COLUMNS[0])
 
 
 # Script Mode ################################################################

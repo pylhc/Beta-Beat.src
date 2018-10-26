@@ -26,6 +26,7 @@ CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
 # TODO: Immediately: Use a logger for logging
 # TODO: Immediately: get rid of repetive code and use loops and functions
 # TODO: Immediately: Use tfs_pandas instead of metaclass
+# TODO: Immediately: Make result columns visible from outside (for other functions to use)
 
 def parse_args():
     parser = argparse.ArgumentParser()

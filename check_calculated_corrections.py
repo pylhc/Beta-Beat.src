@@ -21,6 +21,9 @@ LOG = logging_tools.get_logger(__name__)
 
 RESULTS_DIR = "Results"  # name of the (temporary) results folder
 BASE_ID = ".tmpbasefile"  # extension of the (temporary) base files
+LOG_FILE = "check_corrections.log"
+MADX_FILE = "job.corrections.madx"
+MADXLOG_FILE = "job.corrections.log"
 
 
 def get_params():
@@ -184,7 +187,7 @@ def main(opt, accel_opt):
         opt.corrections_dir = os.path.join(opt.meas_dir, "Corrections")
     logging_tools.add_module_handler(
         logging_tools.file_handler(
-            os.path.join(opt.corrections_dir, "check_corrections.log")
+            os.path.join(opt.corrections_dir, LOG_FILE)
         )
     )
 
@@ -283,9 +286,9 @@ def _plot(corrections, source_dir, show_plots, change_marker, auto_scale, masks)
         meas = column_map[data]['meas']
         expect = column_map[data]['expect']
         error = column_map[data]['error']
-        filename = column_map[data]['file']
+        filename = getdiff.get_diff_filename(column_map[data]['file'])
 
-        files_c = [os.path.join(folder, RESULTS_DIR, filename + ".out") for folder in sort_correct]
+        files_c = [os.path.join(folder, RESULTS_DIR, filename) for folder in sort_correct]
 
         try:
             file_base = _create_base_file(source_dir, files_c[0], meas, error, expect, data)
@@ -355,8 +358,8 @@ def _call_madx(accel_inst, corrections):
 
         madx_wrapper.resolve_and_run_string(
             job_content,
-            output_file=os.path.join(dir_out, "job.corrections.madx"),
-            log_file=os.path.join(dir_out, "job.corrections.log"),
+            output_file=os.path.join(dir_out, MADX_FILE),
+            log_file=os.path.join(dir_out, MADXLOG_FILE),
         )
 
 
@@ -366,12 +369,16 @@ def _get_madx_job(accel_inst):
     job_content += (
         "select, flag=twiss, clear;\n"
         "select, flag=twiss, pattern='^BPM.*\.B{beam:d}$', "
-        "column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;\n\n"
+        "column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;\n"
+        "select, flag=twiss, pattern='^IP[1-8]$', "
+        "column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;\n"
+        "\n"
     ).format(beam=accel_inst.get_beam())
     return job_content
 
 
 # Helper #####################################################################
+
 
 
 def _create_base_file(source_dir, source_file, meas, error, expect, outname):
@@ -428,6 +435,7 @@ def _log_rms(files, legends, column_name, mask):
             LOG.info("  {:<20s} {:+15.4e} {:+15.4e}".format(
                 l, collected[l]["rms"], collected[l]["mean"]))
     return collected
+
 
 def _rms(data):
     return np.sqrt(np.mean(np.square(data)))
