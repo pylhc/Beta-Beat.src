@@ -730,7 +730,7 @@ def _calculate_beta_and_alfa_for_comb(ix, iy, sin_squared_elements, outerElmts, 
 
     # calculate beta
     denom = (cot_model[ix] - cot_model[iy]) / betmdl1
-    denomalf = denom * betmdl1 + 2 * alfmdl1
+    denomalf = cot_model[ix] + cot_model[iy] + 2 * alfmdl1
     beta_i = (cot_meas[ix] - cot_meas[iy]) / denom
     alfa_i = 0.5 * (denomalf * beta_i / betmdl1 -
                     (cot_meas[ix] + cot_meas[iy]))
