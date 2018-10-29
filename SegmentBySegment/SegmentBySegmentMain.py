@@ -9,9 +9,9 @@ from __future__ import print_function
 import os
 import sys
 import argparse
+import math
 
 from math import sqrt
-import json
 import numpy
 
 from os.path import abspath, join, dirname, pardir
@@ -22,7 +22,6 @@ if new_path not in sys.path:
 import utils.iotools
 from model import manager, creator
 from model.accelerators.lhc import Lhc
-from model.accelerators.psbooster import Psbooster
 from model.accelerators.accelerator import Element
 from Python_Classes4MAD.metaclass import twiss
 import madx_wrapper
@@ -39,6 +38,7 @@ from SegmentBySegment.sbs_writers import (
 
 import logging
 
+LOGGER = logging.getLogger(__name__)
 
 #===================================================================================================
 # parse_args()-function
@@ -81,10 +81,103 @@ def _parse_args(args=None):
     parser.add_argument("-w", "--w",  # Path to Chromaticity functions
                         help="Path to  chromaticity functions, by default this is skiped",
                         metavar="wpath", default="0", dest="wpath")
+    parser.add_argument("-a", "--beta_amp",
+                        help="If present, run additionally for beta from amplitude",
+                        dest="dobetaamp", action="store_true")
+
+    
     options, accel_args = parser.parse_known_args(args)
 
     accel_cls = manager.get_accel_class(accel_args)
     return accel_cls, options
+
+
+
+def _process(element_name, kind, p, options, summaries):
+    '''
+    p is object with SbS parameters, instance of SbSparameters class
+    kind is
+     - betaphase (default)
+     - betaamp
+     - kmod (to be implemented)
+    '''
+    print("Started processing ", element_name,' kind of beta: ',kind)
+
+    start_bpm_name, end_bpm_name, is_element = get_good_bpms(p.input_data, p.error_cut, p.input_model, p.start_bpms, p.end_bpms, element_name)
+    if kind.lower() == 'betaamp':
+        (start_bpm_horizontal_data,
+        start_bpm_vertical_data,
+        end_bpm_horizontal_data,
+        end_bpm_vertical_data) = gather_data_amplitude(p.input_data, p.input_model, start_bpm_name, end_bpm_name)
+        kindofbeta = 'amp'
+    else:
+        (start_bpm_horizontal_data,
+        start_bpm_vertical_data,
+        end_bpm_horizontal_data,
+        end_bpm_vertical_data) = gather_data(p.input_data, start_bpm_name, end_bpm_name)
+        kindofbeta = ''
+        
+    element_has_dispersion, start_bpm_dispersion, end_bpm_dispersion = _get_dispersion_parameters(p.input_data, start_bpm_name, end_bpm_name)
+
+    element_has_coupling, f_ini, f_end = _get_coupling_parameters(p.input_data, start_bpm_name, end_bpm_name)
+
+    element_has_chrom, chrom_ini, chrom_end = _get_chrom_parameters(p.input_data, start_bpm_name, end_bpm_name)
+
+    accel_instance = p.accel_cls.get_segment(
+        element_name,
+        start_bpm_name,
+        end_bpm_name,
+        os.path.join(p.save_path, "modifiers.madx"),
+        p.twiss_file
+    )
+
+    if not options.madpass:
+        _run4mad(p.save_path,
+                 accel_instance,
+                 start_bpm_horizontal_data,
+                 start_bpm_vertical_data,
+                 end_bpm_horizontal_data,
+                 end_bpm_vertical_data,
+                 start_bpm_dispersion,
+                 end_bpm_dispersion,
+                 f_ini,
+                 f_end,
+                 chrom_ini,
+                 chrom_end,
+                 options.path,
+                 p.twiss_directory,
+                 p.input_data.couple_method,
+                 options.bb,
+                 options.mad)
+
+    else:
+        print("Just rerunning mad")
+        mad_file_path, log_file_path = _get_files_for_mad(p.save_path,
+                                                          element_name)
+        madx_wrapper.resolve_and_run_file(mad_file_path,
+                                          log_file=log_file_path)
+
+    propagated_models = _PropagatedModels(p.save_path, element_name)
+
+    kmod_data_file_x, kmod_data_file_y = _get_kmod_files()
+
+    getAndWriteData(element_name,
+                    p.input_data,
+                    p.input_model,
+                    propagated_models,
+                    p.save_path,
+                    is_element,
+                    element_has_dispersion,
+                    element_has_coupling,
+                    element_has_chrom,
+                    accel_instance,
+                    summaries,
+                    kmod_data_file_x,
+                    kmod_data_file_y,
+                    kindofbeta)
+    
+    print("Everything done for", element_name, 
+          " beta kind = <",kindofbeta, ">  (none means beta from phase)\n")
 
 
 #==============================================================================
@@ -101,107 +194,52 @@ def main(accel_cls, options):
         0 if execution was successful otherwise !=0
     '''
     if (sys.flags.debug):
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.WARNING)
         
     print("+++ Starting Segment by Segment +++")
     print("Using accelerator class: " + accel_cls.__name__)
+    
+    pars = _SbSparameters();
+    pars.accel_cls = accel_cls
+    
+    
+    
     measurement_path = options.path
     w_path = options.wpath
     if w_path == "0":
         w_path = measurement_path
-    input_data = _InputData(measurement_path, w_path)
+    pars.input_data = _InputData(measurement_path, w_path)
 
-    save_path = options.save + os.path.sep
-    utils.iotools.create_dirs(save_path)
+    pars.save_path = options.save + os.path.sep
+    utils.iotools.create_dirs(pars.save_path)
 
     elements_data = options.segf.split(',')
-    error_cut = float(options.cuts)
+    pars.error_cut = float(options.cuts)
 
-    twiss_file = options.twiss
-    print("Input model twiss file", twiss_file)
-    input_model = _try_to_load_twiss(twiss_file)
-    if input_model is None:
+    pars.twiss_file = options.twiss
+    LOGGER.debug("Input model twiss file", pars.twiss_file)
+    pars.input_model = _try_to_load_twiss(pars.twiss_file)
+    if pars.input_model is None:
         raise IOError("Cannot read input model, aborting.")
 
-    twiss_directory = os.path.dirname(twiss_file)
+    pars.twiss_directory = os.path.dirname(pars.twiss_file)
 
-    elements_names, start_bpms, end_bpms = structure_elements_info(elements_data)
+    elements_names, pars.start_bpms, pars.end_bpms = structure_elements_info(elements_data)
 
-    summaries = _Summaries(save_path)
-
+    summaries = _Summaries(pars.save_path)
+    
     for element_name in elements_names:
-
-        print("Started processing", element_name)
-
-        start_bpm_name, end_bpm_name, is_element = get_good_bpms(input_data, error_cut, input_model, start_bpms, end_bpms, element_name)
-        if issubclass(accel_cls, Psbooster):
-            (start_bpm_horizontal_data,
-            start_bpm_vertical_data,
-            end_bpm_horizontal_data,
-            end_bpm_vertical_data) = gather_data_amplitude(input_data, start_bpm_name, end_bpm_name)
-        else:
-            (start_bpm_horizontal_data,
-            start_bpm_vertical_data,
-            end_bpm_horizontal_data,
-            end_bpm_vertical_data) = gather_data(input_data, start_bpm_name, end_bpm_name)
-        element_has_dispersion, start_bpm_dispersion, end_bpm_dispersion = _get_dispersion_parameters(input_data, start_bpm_name, end_bpm_name)
-
-        element_has_coupling, f_ini, f_end = _get_coupling_parameters(input_data, start_bpm_name, end_bpm_name)
-
-        element_has_chrom, chrom_ini, chrom_end = _get_chrom_parameters(input_data, start_bpm_name, end_bpm_name)
-
-        accel_instance = accel_cls.get_segment(
-            element_name,
-            start_bpm_name,
-            end_bpm_name,
-            os.path.join(save_path, "modifiers.madx"),
-            twiss_file
-        )
-
-        if not options.madpass:
-            _run4mad(save_path,
-                     accel_instance,
-                     start_bpm_horizontal_data,
-                     start_bpm_vertical_data,
-                     end_bpm_horizontal_data,
-                     end_bpm_vertical_data,
-                     start_bpm_dispersion,
-                     end_bpm_dispersion,
-                     f_ini,
-                     f_end,
-                     chrom_ini,
-                     chrom_end,
-                     options.path,
-                     twiss_directory,
-                     input_data.couple_method,
-                     options.bb,
-                     options.mad)
-
-        else:
-            print("Just rerunning mad")
-            mad_file_path, log_file_path = _get_files_for_mad(save_path,
-                                                              element_name)
-            madx_wrapper.resolve_and_run_file(mad_file_path,
-                                              log_file=log_file_path)
-
-        propagated_models = _PropagatedModels(save_path, element_name)
-
-        kmod_data_file_x, kmod_data_file_y = _get_kmod_files()
-
-        getAndWriteData(element_name,
-                        input_data,
-                        input_model,
-                        propagated_models,
-                        save_path,
-                        is_element,
-                        element_has_dispersion,
-                        element_has_coupling,
-                        element_has_chrom,
-                        accel_instance,
-                        summaries,
-                        kmod_data_file_x,
-                        kmod_data_file_y)
-        print("Everything done for", element_name, "\n")
+        #print("Started processing beta from phase for ", element_name)
+        _process(element_name, "betaphase", pars, options, summaries)
+    
+    
+    if options.dobetaamp:
+        for element_name in elements_names:
+            #print("Started processing beta from amplitude for ", element_name)
+            _process(element_name, "betaamp", pars, options, summaries)
+    
 
     summaries.write_summaries_to_files()
 
@@ -274,16 +312,132 @@ def gather_data(input_data, startbpm, endbpm):
     return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
 
 
-def gather_data_amplitude(input_data, startbpm, endbpm):
-    start_bpm_horizontal_data = [input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[startbpm]],
-                                 input_data.beta_x.ALFX[input_data.beta_x.indx[startbpm]]]
-    start_bpm_vertical_data = [input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[startbpm]],
-                               input_data.beta_y.ALFY[input_data.beta_y.indx[startbpm]]]
-    end_bpm_horizontal_data = [input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[endbpm]],
-                               input_data.beta_x.ALFX[input_data.beta_x.indx[endbpm]]]
-    end_bpm_vertical_data = [input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[endbpm]],
-                             input_data.beta_y.ALFY[input_data.beta_y.indx[endbpm]]]
-    return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
+def get_alphaend(a1,b1,m):
+    m11 = m[0][0]
+    m12 = m[0][1]
+    m21 = m[1][0]
+    m22 = m[1][1]
+    
+    a2 = -m21*m11*b1 + a1*(m22*m11 + m12*m21) - m22*m12*(1.0+a1*a1)/b1
+    
+    return a2    
+
+def get_alphas_from_betas(b1,b2,m,amdl1,amdl2):
+    '''
+    Parameters: 
+     - b1 : beta at the beginning of the segment
+     - b2 : beta at the end of the segment
+     - m  : transfer matrix of the segment 2x2 array
+    Returns: alpha at the beginnig and at the end of the segment
+    
+    Using equation for twiss parameter propagation with transfer matrix
+    b2 = m11^2*b1 - 2*m11*m12*a1+m12^2*g1;  g1 = (1+a1^2)/b1
+    
+    gives quadratic equation for a1    
+    '''
+    a1 = None
+    a2 = None
+    
+     
+    m11 = m[0][0]
+    m12 = m[0][1]
+    LOGGER.debug('using m12 = %f'%m12)
+
+    #parameters of the quadratic equation
+    aa = m12*m12/b1
+    bb=-2.0*m11*m12
+    cc=b1*m11-b2 + m12*m12/b1
+    
+    delta = bb*bb - 4.0*aa*cc 
+    if delta < 0:
+        LOGGER.error("Negative delta of quadratic equation: no solution for alpha")
+        return [a1, a2] 
+        
+    a1sol1 = (-bb+math.sqrt(delta))/(2.0*aa)
+    a1sol2 = (-bb-math.sqrt(delta))/(2.0*aa)
+    
+    a2sol1 = get_alphaend(a1sol1, b1, m)
+    a2sol2 = get_alphaend(a1sol2, b1, m)
+    
+    LOGGER.debug("Solutions for a1 = %f or %f "%(a1sol1,a1sol2))  
+    LOGGER.debug("Solutions for a2 = %f or %f "%(a2sol1,a2sol2))  
+
+    
+    # distance form the model
+    #   should rather compare to measured phase advance 
+    rsol1 = math.hypot(a1sol1 - amdl1, a2sol1 - amdl2)
+    rsol2 = math.hypot(a1sol2 - amdl1, a2sol2 - amdl2)
+    
+    if rsol1 < rsol2:
+        a1 = a1sol1
+        a2 = a2sol1
+        LOGGER.debug("Using solution 1: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
+    else:
+        a1 = a1sol2
+        a2 = a2sol2
+        LOGGER.debug("Using solution 2: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
+        
+    return [a1, a2]
+def get_tranfer_matrix(madTwiss, startbpm, endbpm,plane):
+
+    if plane=='H':
+        betmdl1=madTwiss.BETX[madTwiss.indx[startbpm]]
+        alpmdl1=madTwiss.ALFX[madTwiss.indx[startbpm]]
+        betmdl2=madTwiss.BETX[madTwiss.indx[endbpm]]
+        alpmdl2=madTwiss.ALFX[madTwiss.indx[endbpm]]
+        phmdl12=madTwiss.MUX[madTwiss.indx[endbpm]] - madTwiss.MUX[madTwiss.indx[startbpm]]
+    elif plane=='V':
+        betmdl1=madTwiss.BETY[madTwiss.indx[startbpm]]
+        alpmdl1=madTwiss.ALFY[madTwiss.indx[startbpm]]
+        betmdl2=madTwiss.BETY[madTwiss.indx[endbpm]]
+        alpmdl2=madTwiss.ALFY[madTwiss.indx[endbpm]]
+        phmdl12=madTwiss.MUY[madTwiss.indx[endbpm]] - madTwiss.MUY[madTwiss.indx[startbpm]]
+
+    
+     
+    M11=math.sqrt(betmdl2/betmdl1)*(math.cos(phmdl12)+alpmdl1*math.sin(phmdl12))
+    M12=math.sqrt(betmdl1*betmdl2)*math.sin(phmdl12)
+    M21=(alpmdl1-alpmdl2)*math.cos(phmdl12) - (1.+alpmdl1*alpmdl2)*math.sin(phmdl12)
+    M21=M21/math.sqrt(betmdl1*betmdl2)
+    M22=math.sqrt(betmdl1/betmdl2)*(math.cos(phmdl12)-alpmdl2*math.sin(phmdl12))
+    
+
+    #print('produced m12 = %f'%M12)
+    
+    m = numpy.array([[M11, M12], [M21, M22]])
+
+    
+    return m 
+    
+    
+def gather_data_amplitude(input_data, madTwiss, startbpm, endbpm):
+
+    
+    bx_start = input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[startbpm]]
+    by_start = input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[startbpm]]
+    bx_stop  = input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[endbpm]]
+    by_stop  = input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[endbpm]]
+    
+
+    m = get_tranfer_matrix(madTwiss,startbpm,endbpm,'H')
+    amdl1=madTwiss.ALFX[madTwiss.indx[startbpm]]
+    amdl2=madTwiss.ALFX[madTwiss.indx[endbpm]]
+    [ ax_start, ax_stop ]  = get_alphas_from_betas(bx_start,bx_stop,m,amdl1,amdl2)
+    
+
+    m = get_tranfer_matrix(madTwiss,startbpm,endbpm,'V')
+    amdl1=madTwiss.ALFY[madTwiss.indx[startbpm]]
+    amdl2=madTwiss.ALFY[madTwiss.indx[endbpm]]
+    [ ay_start, ay_stop ]  = get_alphas_from_betas(by_start,by_stop,m,amdl1,amdl2)
+    
+    start_bpm_horizontal_data = [bx_start,ax_start]
+    start_bpm_vertical_data = [by_start,ay_start]
+    
+    stop_bpm_horizontal_data = [bx_stop, ax_stop]
+    stop_bpm_vertical_data = [by_stop, ay_stop]
+    
+    
+    return start_bpm_horizontal_data, start_bpm_vertical_data, stop_bpm_horizontal_data, stop_bpm_vertical_data
 
 
 def _get_dispersion_parameters(input_data, startbpm, endbpm):
@@ -611,21 +765,29 @@ def getAndWriteData(
     save_path, is_element,
     element_has_dispersion, element_has_coupling, element_has_chrom,
     accel_instance, summaries,
-    kmod_data_x, kmod_data_y
+    kmod_data_x, kmod_data_y, betakind
 ):
     '''
     Function that returns the optics function at the given element
 
     :Parameters:
         # TODO: rewrite this
+        for beta from phase (default): betakind = ""  
+        for beta from amplitude :      betakind = "amp"  
+        for beta from kmod :           betakind = "kmod"  
     :Return: None
         nothing => writing to file in this function (new/appending)
+        
+        
     '''
 
     print("Start writing files for", element_name)
 
     if hasattr(summaries, 'beta'):
-        beta_summary = summaries.beta
+        if (betakind == 'amp'):
+            beta_summary = summaries.betaamp
+        else:
+            beta_summary = summaries.beta
         disp_summary = summaries.dispersion
         coupling_summary = summaries.coupling
         chrom_summary = summaries.chrom
@@ -641,7 +803,8 @@ def getAndWriteData(
         input_data.beta_x, input_data.beta_y,
         input_model,
         propagated_models,
-        save_path, beta_summary
+        save_path, beta_summary, 
+        betakind
     )
     if not is_element:
         sbs_phase_writer.write_phase(
@@ -656,15 +819,22 @@ def getAndWriteData(
             input_data.amplitude_beta_x, input_data.amplitude_beta_y,
             kmod_data_x, kmod_data_y,
             propagated_models, save_path)
-    if element_has_dispersion:
+    
+    betaphase = True
+    if betakind != '':
+        # For the time being other files are output only for beta from phase
+        betaphase = False  
+    
+    if element_has_dispersion and betaphase:
+        # do not output dispersion if it is not beta phase, would overwrite already existing files with the same numbers 
         sbs_dispersion_writer.write_dispersion(element_name, is_element,
                                                            input_data.dispersion_x, input_data.dispersion_y, input_data.normalized_dispersion_x,
                                                            input_model,
                                                            propagated_models, save_path, disp_summary)
-    if element_has_coupling:
+    if element_has_coupling and betaphase:
         sbs_coupling_writer.write_coupling(element_name, is_element, input_data.couple, input_model, propagated_models, save_path, coupling_summary)
 
-    if element_has_chrom:
+    if element_has_chrom and betaphase:
         sbs_chromatic_writer.write_chromatic(element_name, is_element, input_data.wx, input_data.wy, input_model, propagated_models, save_path, chrom_summary)
 
     if "IP" in element_name and is_element:
@@ -672,7 +842,8 @@ def getAndWriteData(
                                                         beta_x, err_beta_x, alfa_x, err_alfa_x,
                                                         beta_y, err_beta_y, alfa_y, err_alfa_y,
                                                         input_model, input_data.phase_x, input_data.phase_y, element_name,
-                                                        accel_instance, save_path)
+                                                        accel_instance, save_path,
+                                                        betakind)
     # TODO: This need to be fixed before using (find BPMs)
     elif False and "ADT" in element_name and is_element:  # if False to avoid going inside
         sbs_special_element_writer.write_transverse_damper(propagated_models, element_name, input_model,
@@ -715,8 +886,18 @@ def _run4mad(save_path,
 
     alfx_ini = start_bpm_horizontal_data[1]
     alfy_ini = start_bpm_vertical_data[1]
+    if alfx_ini is None or alfy_ini is None:
+        raise SegmentBySegmentError(
+            "Undefined alphas in initial BPM of segment!"
+        )
     alfx_end = -end_bpm_horizontal_data[1]
     alfy_end = -end_bpm_vertical_data[1]
+    if alfx_end is None or alfy_end is None:
+        raise SegmentBySegmentError(
+            "Undefined alphas in last BPM of segment!"
+        )
+    alfx_end = -alfx_end
+    alfy_end = -alfy_end
 
     ini_r11, ini_r12, ini_r21, ini_r22 = _get_R_terms(
         betx_ini, bety_ini, alfx_ini, alfy_ini,
@@ -828,7 +1009,7 @@ def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, accel_in
     if os.path.isfile(modifiers_file_path):
         utils.iotools.copy_item(modifiers_file_path, save_path)
     else:
-        print("Cannot find modifiers.madx file, will create an empty file.")
+        LOGGER.info("Cannot find modifiers.madx file, will create an empty file.")
         open(os.path.join(save_path, 'modifiers.madx'), "a").close()
 
     correction_file_comments = ""
@@ -842,11 +1023,11 @@ def _copy_modifiers_and_corrections_locally(save_path, twiss_directory, accel_in
         if os.path.isfile(corrections_file_path):
             utils.iotools.copy_item(corrections_file_path, save_path)
         else:
-            print("Cannot find corrections file, will create an empty file.")
+            LOGGER.info("Cannot find corrections file, will create an empty file.")
             with open(os.path.join(save_path, "corrections_" + accel_instance.label + ".madx"), "a") as corrections_file:
                 corrections_file.write(correction_file_comments)
     else:
-        print("corrections file found in output path.")
+        LOGGER.info("corrections file found in output path.")
 
 
 def _get_corrections_file_comments_for_ip(accel_instance):
@@ -940,6 +1121,7 @@ class _Summaries(object):
 
     def __init__(self, save_path):
         self.beta = sbs_beta_writer.get_beta_summary_file(save_path)
+        self.betaamp = sbs_beta_writer.get_betaamp_summary_file(save_path)
         self.coupling = sbs_coupling_writer.get_coupling_summary_file(save_path)
         self.dispersion = sbs_dispersion_writer.get_dispersion_summary_file(save_path)
         self.chrom = sbs_chromatic_writer.get_chrom_summary_file(save_path)
@@ -947,6 +1129,8 @@ class _Summaries(object):
     def write_summaries_to_files(self):
         if not self.beta._TfsFileWriter__tfs_table.is_empty():
             self.beta.write_to_file()
+        if not self.betaamp._TfsFileWriter__tfs_table.is_empty():
+            self.betaamp.write_to_file()
         if not self.coupling._TfsFileWriter__tfs_table.is_empty():
             self.coupling.write_to_file()
         if not self.dispersion._TfsFileWriter__tfs_table.is_empty():
@@ -1045,6 +1229,21 @@ class _InputData(object):
             return None
         return twiss_data
 
+class _SbSparameters:
+    ''' 
+    Class to pass parameters to process function
+    '''
+    def __init__(self):
+        self.accel_cls    = None
+        self.input_data   = None
+        self.error_cut    = None
+        self.input_model  = None
+        self.start_bpms   = None
+        self.end_bpms     = None
+        self.save_path    = None
+        self.twiss_directory   = None
+        self.twiss_file   = None
+
 
 class SegmentBySegmentError(Exception):
     pass
@@ -1057,3 +1256,4 @@ if __name__ == "__main__":
     (_accel_cls, _options) = _parse_args()
 
     return_value = main(_accel_cls, _options)
+    

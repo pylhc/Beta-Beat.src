@@ -11,8 +11,18 @@ LOGGER = logging.getLogger(__name__)
 
 
 
-def write_beta(element_name, is_element, measured_hor_beta, measured_ver_beta, input_model, propagated_models, save_path, beta_summary_file):
-    file_alfa_x, file_beta_x, file_alfa_y, file_beta_y = _get_beta_tfs_files(element_name, save_path, is_element)
+def write_beta(element_name, is_element, 
+               measured_hor_beta, measured_ver_beta, 
+               input_model, propagated_models, 
+               save_path, beta_summary_file,
+               betakind):
+    '''
+    for beta from phase (default): betakind = ""  
+    for beta from amplitude :      betakind = "amp"  
+    for beta from kmod :           betakind = "kmod"  
+    '''
+    
+    file_alfa_x, file_beta_x, file_alfa_y, file_beta_y = _get_beta_tfs_files(element_name, save_path, is_element,betakind)
 
     model_propagation = propagated_models.propagation
     model_back_propagation = propagated_models.back_propagation
@@ -57,6 +67,18 @@ def get_beta_summary_file(save_path):
                                                 "%le", "%le", "%le", "%le", "%le"])
         return beta_summary_file
 
+def get_betaamp_summary_file(save_path):
+        beta_summary_file = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_betamp.out"))
+        beta_summary_file.add_column_names(["NAME", "S",
+                                            "BETPROPX", "ERRBETPROPX", "ALFPROPX", "ERRALFPROPX",
+                                            "BETPROPY", "ERRBETPROPY", "ALFPROPY", "ERRALFPROPY",
+                                            "BETXMDL", "BETYMDL", "ALFXMDL", "ALFYMDL", "MDL_S"])
+        beta_summary_file.add_column_datatypes(["%s", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le", "%le"])
+        return beta_summary_file
+
 
 def _write_summary_data(beta_summary_file, summary_data_x, summary_data_y):
     beta_summary_file.add_table_row([summary_data_x[0], summary_data_x[1],
@@ -65,11 +87,19 @@ def _write_summary_data(beta_summary_file, summary_data_x, summary_data_y):
                                      summary_data_x[6], summary_data_y[6], summary_data_x[7], summary_data_y[7], summary_data_x[8]])
 
 
-def _get_beta_tfs_files(element_name, save_path, is_element):
-    file_beta_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetax_" + element_name + ".out"))
-    file_alfa_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfax_" + element_name + ".out"))
-    file_beta_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetay_" + element_name + ".out"))
-    file_alfa_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfay_" + element_name + ".out"))
+def _get_beta_tfs_files(element_name, save_path, is_element, betakind):
+    '''
+    for beta from phase (default): betakind = ""  
+    for beta from amplitude :      betakind = "amp"  
+    for beta from kmod :           betakind = "kmod"  
+    '''
+    if betakind is None:
+        betakind = "" 
+    
+    file_beta_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbeta" + betakind + "x_" + element_name + ".out"))
+    file_alfa_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfa" + betakind + "x_" + element_name + ".out"))
+    file_beta_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbeta" + betakind + "y_" + element_name + ".out"))
+    file_alfa_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfa" + betakind + "y_" + element_name + ".out"))
 
     if not is_element:
         file_beta_x.add_column_names(["NAME", "S", "BETPROPX", "ERRBETPROPX", "BETCORX", "ERRBETCORX", "BETBACKX", "ERRBETBACKX", "BETBACKCORX", "ERRBETBACKCORX", "BETXMDL", "MODEL_S"])
@@ -227,9 +257,6 @@ def _get_start_end_betas(bpms_list, measured_beta, plane):
     last_bpm = bpms_list[-1][1]
 
     LOGGER.debug("last_bpm %s",last_bpm)
-    
-    print type(bpms_list)
-    print bpms_list
 
     beta_end = getattr(measured_beta, "BET" + plane)[measured_beta.indx[last_bpm]]
     alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
