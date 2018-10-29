@@ -54,8 +54,8 @@ def get_beta_star_and_waist_from_ip(tfs_df, beam, locations, labels=None):
         for plane in PLANES:
             pos = tfs_df.loc[loc, POSITION_COLUMN]
             beta_star = tfs_df.loc[loc, BETA_COLUMN.format(plane=plane)]
-            alpha_star = tfs_df.loc[loc, BETA_COLUMN.format(plane=plane)]
-            beta_waist = beta_star / (1+alpha_star)
+            alpha_star = tfs_df.loc[loc, ALPHA_COLUMN.format(plane=plane)]
+            beta_waist = beta_star / (1 + alpha_star)
             waist = alpha_star * beta_waist
             tfs_out.loc[get_full_label(lab, beam, plane)] = [pos, beta_star, waist, beta_waist]
     return tfs_out
