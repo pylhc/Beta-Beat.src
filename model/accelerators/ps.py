@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import datetime as dt
 from accelerator import Accelerator,Element
 from tfs_files import tfs_pandas
