@@ -94,6 +94,7 @@ class PsSegmentCreator(model_creator.ModelCreator):
             "OPTICS_PATH": instance.optics_file,
             "PATH": output_path,
             "LABEL": instance.label,
+            "BETAKIND": instance.kind,
             "STARTFROM": instance.start.name,
             "ENDAT": instance.end.name,
         }

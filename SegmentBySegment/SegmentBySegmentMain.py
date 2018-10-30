@@ -116,7 +116,12 @@ def _process(element_name, kind, p, options, summaries):
         end_bpm_horizontal_data,
         end_bpm_vertical_data) = gather_data(p.input_data, start_bpm_name, end_bpm_name)
         kindofbeta = ''
-        
+    
+    LOGGER.info("START BX AX: %f %f ",start_bpm_horizontal_data[0],start_bpm_horizontal_data[1])
+    LOGGER.info("START BY AY: %f %f ",start_bpm_vertical_data[0],start_bpm_vertical_data[1])
+    LOGGER.info("END   BX AX: %f %f ",end_bpm_horizontal_data[0],end_bpm_horizontal_data[1])
+    LOGGER.info("END   BY AY: %f %f ",end_bpm_vertical_data[0],end_bpm_vertical_data[1])
+    
     element_has_dispersion, start_bpm_dispersion, end_bpm_dispersion = _get_dispersion_parameters(p.input_data, start_bpm_name, end_bpm_name)
 
     element_has_coupling, f_ini, f_end = _get_coupling_parameters(p.input_data, start_bpm_name, end_bpm_name)
@@ -130,7 +135,9 @@ def _process(element_name, kind, p, options, summaries):
         os.path.join(p.save_path, "modifiers.madx"),
         p.twiss_file
     )
-
+    
+    accel_instance.kind = kind
+    
     if not options.madpass:
         _run4mad(p.save_path,
                  accel_instance,
@@ -148,7 +155,8 @@ def _process(element_name, kind, p, options, summaries):
                  p.twiss_directory,
                  p.input_data.couple_method,
                  options.bb,
-                 options.mad)
+                 options.mad,
+                 kind)
 
     else:
         print("Just rerunning mad")
@@ -194,7 +202,8 @@ def main(accel_cls, options):
         0 if execution was successful otherwise !=0
     '''
     if (sys.flags.debug):
-        logging.basicConfig(level=logging.DEBUG)
+        #logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.INFO)
     else:
         logging.basicConfig(level=logging.WARNING)
         
@@ -232,7 +241,7 @@ def main(accel_cls, options):
     
     for element_name in elements_names:
         #print("Started processing beta from phase for ", element_name)
-        _process(element_name, "betaphase", pars, options, summaries)
+        _process(element_name, "", pars, options, summaries)
     
     
     if options.dobetaamp:
@@ -301,6 +310,7 @@ def get_good_bpms(input_data, errorcut, twiss_data, start_bpms, end_bpms, elemen
 
 
 def gather_data(input_data, startbpm, endbpm):
+
     start_bpm_horizontal_data = [input_data.beta_x.BETX[input_data.beta_x.indx[startbpm]],
                                  input_data.beta_x.ALFX[input_data.beta_x.indx[startbpm]]]
     start_bpm_vertical_data = [input_data.beta_y.BETY[input_data.beta_y.indx[startbpm]],
@@ -376,8 +386,11 @@ def get_alphas_from_betas(b1,b2,m,amdl1,amdl2):
         a1 = a1sol2
         a2 = a2sol2
         LOGGER.debug("Using solution 2: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
-        
+    
+    
+    #return [amdl1+1e-10,amdl2+1e-10]
     return [a1, a2]
+
 def get_tranfer_matrix(madTwiss, startbpm, endbpm,plane):
 
     if plane=='H':
@@ -423,19 +436,22 @@ def gather_data_amplitude(input_data, madTwiss, startbpm, endbpm):
     amdl1=madTwiss.ALFX[madTwiss.indx[startbpm]]
     amdl2=madTwiss.ALFX[madTwiss.indx[endbpm]]
     [ ax_start, ax_stop ]  = get_alphas_from_betas(bx_start,bx_stop,m,amdl1,amdl2)
+    input_data.alphaX_start = ax_start
+    input_data.alphaX_stop  = ax_stop
     
 
     m = get_tranfer_matrix(madTwiss,startbpm,endbpm,'V')
     amdl1=madTwiss.ALFY[madTwiss.indx[startbpm]]
     amdl2=madTwiss.ALFY[madTwiss.indx[endbpm]]
     [ ay_start, ay_stop ]  = get_alphas_from_betas(by_start,by_stop,m,amdl1,amdl2)
+    input_data.alphaY_start = ay_start
+    input_data.alphaY_stop  = ay_stop
     
     start_bpm_horizontal_data = [bx_start,ax_start]
     start_bpm_vertical_data = [by_start,ay_start]
     
     stop_bpm_horizontal_data = [bx_stop, ax_stop]
     stop_bpm_vertical_data = [by_stop, ay_stop]
-    
     
     return start_bpm_horizontal_data, start_bpm_vertical_data, stop_bpm_horizontal_data, stop_bpm_vertical_data
 
@@ -768,7 +784,7 @@ def getAndWriteData(
     kmod_data_x, kmod_data_y, betakind
 ):
     '''
-    Function that returns the optics function at the given element
+    Writes down to files data for given element
 
     :Parameters:
         # TODO: rewrite this
@@ -796,21 +812,38 @@ def getAndWriteData(
         disp_summary = None
         coupling_summary = None
         chrom_summary = None
+    
+    betaphase = True
 
-    (beta_x, err_beta_x, alfa_x, err_alfa_x,
-     beta_y, err_beta_y, alfa_y, err_alfa_y) = sbs_beta_writer.write_beta(
+    if (betakind == 'amp'):
+        tfsbeta_x = input_data.amplitude_beta_x
+        tfsbeta_y = input_data.amplitude_beta_y
+        # For the time being other files are output only for beta from phase
+        betaphase = False  
+    else:
+        tfsbeta_x = input_data.beta_x
+        tfsbeta_y = input_data.beta_y
+    
+    print(input_data.beta_x)
+    print(input_data.amplitude_beta_x)
+    
+    
+    (beta_x2, err_beta_x2, alfa_x2, err_alfa_x2,
+     beta_y2, err_beta_y2, alfa_y2, err_alfa_y2) = sbs_beta_writer.write_beta(
         element_name, is_element,
-        input_data.beta_x, input_data.beta_y,
+        tfsbeta_x, tfsbeta_y,
+        input_data,
         input_model,
         propagated_models,
         save_path, beta_summary, 
         betakind
     )
-    if not is_element:
+    
+    if not is_element and betaphase:
         sbs_phase_writer.write_phase(
             element_name,
             input_data.total_phase_x, input_data.total_phase_y,
-            input_data.beta_x, input_data.beta_y,
+            tfsbeta_x, tfsbeta_y,
             propagated_models, save_path
         )
         sbs_beta_beating_writer.write_beta_beat(
@@ -820,10 +853,7 @@ def getAndWriteData(
             kmod_data_x, kmod_data_y,
             propagated_models, save_path)
     
-    betaphase = True
-    if betakind != '':
-        # For the time being other files are output only for beta from phase
-        betaphase = False  
+    
     
     if element_has_dispersion and betaphase:
         # do not output dispersion if it is not beta phase, would overwrite already existing files with the same numbers 
@@ -839,8 +869,8 @@ def getAndWriteData(
 
     if "IP" in element_name and is_element:
         sbs_special_element_writer.write_ip(input_data.beta_x, input_data.beta_y,
-                                                        beta_x, err_beta_x, alfa_x, err_alfa_x,
-                                                        beta_y, err_beta_y, alfa_y, err_alfa_y,
+                                                        beta_x2, err_beta_x2, alfa_x2, err_alfa_x2,
+                                                        beta_y2, err_beta_y2, alfa_y2, err_alfa_y2,
                                                         input_model, input_data.phase_x, input_data.phase_y, element_name,
                                                         accel_instance, save_path,
                                                         betakind)
@@ -868,7 +898,8 @@ def _run4mad(save_path,
              twiss_directory,
              coupling_method,
              bb_path,
-             madx_exe_path):
+             madx_exe_path,
+             betakind):
     _copy_modifiers_and_corrections_locally(save_path, twiss_directory,
                                             accel_instance)
 
@@ -890,8 +921,8 @@ def _run4mad(save_path,
         raise SegmentBySegmentError(
             "Undefined alphas in initial BPM of segment!"
         )
-    alfx_end = -end_bpm_horizontal_data[1]
-    alfy_end = -end_bpm_vertical_data[1]
+    alfx_end = end_bpm_horizontal_data[1]
+    alfy_end = end_bpm_vertical_data[1]
     if alfx_end is None or alfy_end is None:
         raise SegmentBySegmentError(
             "Undefined alphas in last BPM of segment!"
@@ -911,7 +942,7 @@ def _run4mad(save_path,
     )
 
     mad_file_path, log_file_path = _get_files_for_mad(
-        save_path, accel_instance.label
+        save_path, accel_instance.label, betakind
     )
 
     accel_instance.start = Element(accel_instance.start.name.replace("-", "_"),
@@ -954,7 +985,7 @@ def _run4mad(save_path,
         dpy_end=-end_bpm_dispersion[3],
     )
 
-    with open(os.path.join(save_path, "measurement_" + accel_instance.label + ".madx"), "w") as measurement_file:
+    with open(os.path.join(save_path, "measurement"+betakind+"_" + accel_instance.label + ".madx"), "w") as measurement_file:
         for name, value in measurement_dict.iteritems():
             measurement_file.write(name + " = " + str(value) + ";\n")
 
@@ -996,9 +1027,9 @@ def _get_R_terms(betx, bety, alfx, alfy, f1001r, f1001i, f1010r, f1010i):
     return numpy.ravel(R)
 
 
-def _get_files_for_mad(save_path, element_name):
-    mad_file_name = 't_' + str(element_name) + '.madx'
-    log_file_name = element_name + "_mad.log"
+def _get_files_for_mad(save_path, element_name,betakind):
+    mad_file_name = 't'+ betakind+'_' + str(element_name) + '.madx'
+    log_file_name = betakind + element_name + "_mad.log"
     mad_file_path = os.path.join(save_path, mad_file_name)
     log_file_path = os.path.join(save_path, log_file_name)
     return mad_file_path, log_file_path
@@ -1151,6 +1182,13 @@ class _InputData(object):
 
         self.amplitude_beta_x = _get_calibrated_betas("x")
         self.amplitude_beta_y = _get_calibrated_betas("y")
+        
+        # beta from amp does not have these values in the input file 
+        # the calculated values are stored here 
+        self.alphaX_start = None
+        self.alphaX_stop  = None
+        self.alphaY_start = None
+        self.alphaY_stop  = None
 
         self.phase_x = _get_twiss_for_one_of("getphasex_free.out", "getphasex.out")
         self.phase_y = _get_twiss_for_one_of("getphasey_free.out", "getphasey.out")

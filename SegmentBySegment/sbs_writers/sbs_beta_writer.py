@@ -12,7 +12,8 @@ LOGGER = logging.getLogger(__name__)
 
 
 def write_beta(element_name, is_element, 
-               measured_hor_beta, measured_ver_beta, 
+               measured_hor_beta, measured_ver_beta,
+               input_data, 
                input_model, propagated_models, 
                save_path, beta_summary_file,
                betakind):
@@ -38,13 +39,13 @@ def write_beta(element_name, is_element,
 
     summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
                                            element_name, bpms_list_x, measured_hor_beta,
-                                           input_model,
+                                           input_data,input_model,
                                            model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
 
     summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
                                            element_name, bpms_list_y, measured_ver_beta,
-                                           input_model,
+                                           input_data,input_model,
                                            model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
     if is_element:
@@ -125,11 +126,21 @@ def _get_beta_tfs_files(element_name, save_path, is_element, betakind):
     return file_alfa_x, file_beta_x, file_alfa_y, file_beta_y
 
 
-def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, measured_beta, input_model, model_propagation, model_cor, model_back_propagation, model_back_cor, output_path, is_element, beta_summary_file):
+def _write_beta_for_plane(file_alfa, file_beta, 
+                          plane, element_name, bpms_list, 
+                          measured_beta, 
+                          input_data,input_model, 
+                          model_propagation, model_cor, model_back_propagation, model_back_cor, 
+                          output_path, is_element, beta_summary_file):
+    
     
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
-     beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, plane)
-
+     beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, input_data, plane)
+     
+    LOGGER.debug("%s %s : beta_start %f, err_beta_start %f, alfa_start %f, err_alfa_start %f",
+                 element_name, plane,
+                 beta_start, err_beta_start, alfa_start, err_alfa_start)
+    
     summary_data = []
 
     for bpm in bpms_list:
@@ -191,7 +202,9 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
             reference_radius = 0.017
             distributed_uncertainty_in_units = 1
             relative_K1L_uncertainty = distributed_uncertainty_in_units * 1E-4 / reference_radius
-
+            
+            LOGGER.debug("Using relative_K1L_uncertainty %f ",relative_K1L_uncertainty)
+            
             for elem in model_propagation.NAME:
                 if abs(getattr(model_propagation, "K1L")[model_propagation.indx[elem]]) > 1E-8: # i.e. if elem == quadrupole
                     K1L_uncertainy = abs(getattr(model_propagation, "K1L")[model_propagation.indx[elem]]) * relative_K1L_uncertainty
@@ -200,7 +213,9 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
                     phase_at_element = getattr(model_propagation, "MU" + plane)[model_propagation.indx[bpm_name]]
                     delta_phase_from_magnet = phase_at_element - phase_at_magnet
                     if delta_phase_from_magnet > 0:
+                        LOGGER.debug("%s : beta_at_magnet %f , delta_phase_from_magnet %f", elem, beta_at_magnet, delta_phase_from_magnet )
                         beta_uncertainty = beta_model * _relative_beta_err_from_magnet_err(K1L_uncertainy, beta_at_magnet, delta_phase_from_magnet, tune)
+                        LOGGER.debug("%s : resulting beta_uncertainty %f", elem, beta_uncertainty )
                         magnet_err_forward.append(beta_uncertainty)
 
             for elem in model_back_propagation.NAME:
@@ -219,10 +234,14 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
 
             averaged_beta, final_beta_error = weighted_average_for_SbS_elements(beta_propagation, err_beta_prop, beta_back_propagation, err_beta_back)
             averaged_alfa, final_alfa_error = weighted_average_for_SbS_elements(alfa_propagation, err_alfa_prop, alfa_back_propagation, err_alfa_back)
-
+            
+            LOGGER.debug("%s : beta_model %f, averaged_beta %f, beta_propagation %f, beta_back_propagation %f",
+                        element_name,beta_model,averaged_beta, beta_propagation,beta_back_propagation)
+            
             file_alfa.add_table_row([bpm_name, bpm_s, averaged_alfa, final_alfa_error, alfa_model, model_s])
             file_beta.add_table_row([bpm_name, bpm_s, averaged_beta, final_beta_error, beta_model, model_s])
             if element_name in bpm_name:
+                LOGGER.debug("%s : put to summary averaged_beta %f, final_beta_error %f, beta_model %f ",element_name, averaged_beta, final_beta_error,beta_model)
                 summary_data = [bpm_name, bpm_s, averaged_beta, final_beta_error, averaged_alfa, final_alfa_error, beta_model, alfa_model, model_s]
 
     file_beta.write_to_file()
@@ -230,7 +249,7 @@ def _write_beta_for_plane(file_alfa, file_beta, plane, element_name, bpms_list, 
     return summary_data
 
 
-def _get_start_end_betas(bpms_list, measured_beta, plane):
+def _get_start_end_betas(bpms_list, measured_beta, input_data, plane):
     
     LOGGER.debug("plane %s",plane)
     first_bpm = bpms_list[0][1]
@@ -238,9 +257,21 @@ def _get_start_end_betas(bpms_list, measured_beta, plane):
     LOGGER.debug("first_bpm %s",first_bpm)
 
     beta_start = getattr(measured_beta, "BET" + plane)[measured_beta.indx[first_bpm]]
-    alfa_start = getattr(measured_beta, "ALF" + plane)[measured_beta.indx[first_bpm]]
+    if input_data.alphaX_start is None:
+        alfa_start = getattr(measured_beta, "ALF" + plane)[measured_beta.indx[first_bpm]]
+    else:
+        alfa_start = getattr(input_data,'alpha'+plane+'_start')
+         
 
-    LOGGER.debug("beta_start = %f ; alfa_start =  %f ;",beta_start, alfa_start)
+    LOGGER.info("beta_start = %f ; alfa_start =  %f ;",beta_start, alfa_start)
+
+
+    #check if BETSTD columns exist (beta amplitude)
+    betstd_exists = True
+    try:
+        getattr(measured_beta, "BET" + plane+"STD")[measured_beta.indx[first_bpm]]
+    except:
+        betstd_exists = False
 
     #check if STDBET columns exist
     stdbet_exists = True
@@ -248,6 +279,7 @@ def _get_start_end_betas(bpms_list, measured_beta, plane):
         getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]]
     except:
         stdbet_exists = False
+    
     stdalf_exists = True
     try:
         getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]]
@@ -259,17 +291,30 @@ def _get_start_end_betas(bpms_list, measured_beta, plane):
     LOGGER.debug("last_bpm %s",last_bpm)
 
     beta_end = getattr(measured_beta, "BET" + plane)[measured_beta.indx[last_bpm]]
-    alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
+    
+    if input_data.alphaX_stop is None:
+        alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
+    else:
+        alfa_end = -getattr(input_data,'alpha'+plane+'_stop')
 
-    LOGGER.debug("beta_end = %f ; alfa_end =  %f ;",beta_end,alfa_end)
-
-    if stdbet_exists:
+    LOGGER.info("beta_end = %f ; alfa_end =  %f ;",beta_end,alfa_end)
+    
+    if betstd_exists:
+        err_beta_start = getattr(measured_beta, "BET" + plane+"STD")[measured_beta.indx[first_bpm]]
+        err_beta_end   = getattr(measured_beta, "BET" + plane+"STD")[measured_beta.indx[last_bpm]]
+    elif stdbet_exists:
         err_beta_start = math.sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[first_bpm]] ** 2)
-        err_beta_end = math.sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[last_bpm]] ** 2)     
+        err_beta_end   = math.sqrt(getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDBET" + plane)[measured_beta.indx[last_bpm]] ** 2)     
     else:
         err_beta_start = getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[first_bpm]]
-        err_beta_end = getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]]
-    if stdalf_exists:
+        err_beta_end   = getattr(measured_beta, "ERRBET" + plane)[measured_beta.indx[last_bpm]]
+    
+    if betstd_exists:
+        # beta amplitude does not implement error calculation
+        # when it does, it should be passed via input_data
+        err_alfa_start = 0.0
+        err_alfa_end   = 0.0 
+    elif stdalf_exists:
         err_alfa_start = math.sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]] ** 2)
         err_alfa_end = math.sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
     else:

@@ -394,6 +394,8 @@ class Lhc(Accelerator):
         segment_inst.optics_file = optics_file
         segment_inst.xing = False
         segment_inst.fullresponse = False
+        segment_inst.kind = '' # '' means beta from phase, can be 'betaamp', in the future 'betakmod'
+
         segment_inst.verify_object()
         return segment_inst
 
