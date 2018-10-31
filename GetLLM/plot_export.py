@@ -137,7 +137,7 @@ def pdf_export(args=None):
 
     try:
         mpdf.savefig(bbox_inches='tight')
-        LOG.debug("Exported GetLLM results to PDF '{:s}'".format(pdf_path))
+        LOG.info("Exported GetLLM results to PDF '{:s}'".format(pdf_path))
     finally:
         mpdf.close()
 
