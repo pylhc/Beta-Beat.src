@@ -420,10 +420,7 @@ def _get_calibrated_betas(plane):
             calibrated_betas.indx[bpm_name] = index_counter
             index_counter += 1
             getattr(calibrated_betas, "BET" + plane.upper()).append(amp_beta)
-            try:
-                err_amp_beta = getattr(amplitude_beta, "STDBET" + plane.upper())[amp_index]
-            except AttributeError:
-                err_amp_beta = getattr(amplitude_beta, "ERRBET" + plane.upper())[amp_index]
+            err_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "STD")[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "STD").append(err_amp_beta)
             mdl_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "MDL")[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "MDL").append(mdl_amp_beta)
