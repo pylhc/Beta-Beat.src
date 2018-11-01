@@ -90,7 +90,13 @@ def coupling(a, b):
 
 
 def correctcouple(a, dispy, couple_input, cut=0.01, app=0, path="./"):
-    R=   np.transpose(couple_input.sensitivity_matrix)
+    
+    sm = couple_input.sensitivity_matrix
+
+    if np.count_nonzero(sm) < 1:
+        raise ValueError('Sensitivity matrix has only zeros')
+    
+    R =  np.transpose(sm)
     vector=couple_input.computevector(a,dispy)
     wg=couple_input.wg
     
