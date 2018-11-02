@@ -1,6 +1,9 @@
 """ Short MADX Codes """
 
 
+# Full Functions ###############################################################
+
+
 def get_ptc_twiss_rdt(path, id):
     """ Create PTC universe, do ptc_twiss and output twissrdts, twiss, summary and nonlin tables """
     return (
@@ -40,6 +43,33 @@ def get_ptc_amplitude_detuning(path, id):
         "    write, table=normal_results,file='%(OUTPUT_DIR)s/ptc_normal.ampdet.%(ID)s.dat';\n"
         "ptc_end;\n") % {"OUTPUT_DIR": path, "ID": id}
 
+
+def do_lhc_twiss_monitors(path, id, beam="12"):
+    """ Setup and simple twiss command for BPMs"""
+    return (
+        "select, flag=twiss, clear;\n"
+        "select, flag=twiss, pattern='^BPM.*\.B[%(BEAM)s]$', column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;\n"
+        "twiss, file= %(OUTPUTDIR)s/twiss.%(ID)s.dat\n"
+        "\n"
+    ) % {"OUTPUT_DIR": path, "ID": id, "BEAM": beam}
+
+
+def do_lhc_twiss_monitors_and_ips(path, id, beam="12"):
+    """ Setup and simple twiss command for BPMs and IP-lables"""
+    return (
+               "select, flag=twiss, clear;\n"
+               "select, flag=twiss, pattern='^BPM.*\.B[%(BEAM)s]$', column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;\n"
+               "select, flag=twiss, pattern='^IP[1-8]$', column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;\n"
+               "twiss, file= %(OUTPUTDIR)s/twiss.%(ID)s.dat\n"
+               "\n"
+           ) % {"OUTPUT_DIR": path, "ID": id, "BEAM": beam}
+
+# Short Forms ##################################################################
+
+ptctwissrdt = get_ptc_twiss_rdt
+ptctwissampdet = get_ptc_amplitude_detuning
+lhctwissmon = do_lhc_twiss_monitors
+lhctwissmonip = do_lhc_twiss_monitors_and_ips
 
 # Script Mode ##################################################################
 
