@@ -13,6 +13,7 @@ import math
 
 from math import sqrt
 import numpy
+from scipy.optimize import fsolve
 
 from os.path import abspath, join, dirname, pardir
 new_path = abspath(join(dirname(__file__), pardir))
@@ -38,7 +39,7 @@ from SegmentBySegment.sbs_writers import (
 
 import logging
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger("SegmentBySegmentMain")
 
 #===================================================================================================
 # parse_args()-function
@@ -104,12 +105,20 @@ def _process(element_name, kind, p, options, summaries):
     print("Started processing ", element_name,' kind of beta: ',kind)
 
     start_bpm_name, end_bpm_name, is_element = get_good_bpms(p.input_data, p.error_cut, p.input_model, p.start_bpms, p.end_bpms, element_name)
+    
+    kindofbeta = ''
     if kind.lower() == 'betaamp':
         (start_bpm_horizontal_data,
         start_bpm_vertical_data,
         end_bpm_horizontal_data,
         end_bpm_vertical_data) = gather_data_amplitude(p.input_data, p.input_model, start_bpm_name, end_bpm_name)
         kindofbeta = 'amp'
+    elif kind.lower() == 'bampaphase':
+        (start_bpm_horizontal_data,
+        start_bpm_vertical_data,
+        end_bpm_horizontal_data,
+        end_bpm_vertical_data) = gather_data_bampaphase(p.input_data, p.input_model, start_bpm_name, end_bpm_name)
+        kindofbeta = 'bampaphase'
     else:
         (start_bpm_horizontal_data,
         start_bpm_vertical_data,
@@ -117,6 +126,7 @@ def _process(element_name, kind, p, options, summaries):
         end_bpm_vertical_data) = gather_data(p.input_data, start_bpm_name, end_bpm_name)
         kindofbeta = ''
     
+    LOGGER.info(" 1: kind <%s>, kindofbeta <%s>",kind, kindofbeta)
     LOGGER.info("START BX AX: %f %f ",start_bpm_horizontal_data[0],start_bpm_horizontal_data[1])
     LOGGER.info("START BY AY: %f %f ",start_bpm_vertical_data[0],start_bpm_vertical_data[1])
     LOGGER.info("END   BX AX: %f %f ",end_bpm_horizontal_data[0],end_bpm_horizontal_data[1])
@@ -165,10 +175,11 @@ def _process(element_name, kind, p, options, summaries):
         madx_wrapper.resolve_and_run_file(mad_file_path,
                                           log_file=log_file_path)
 
-    propagated_models = _PropagatedModels(p.save_path, element_name)
-
+    propagated_models = _PropagatedModels(p.save_path, element_name,kind)
     kmod_data_file_x, kmod_data_file_y = _get_kmod_files()
 
+    LOGGER.info(" 2: kind <%s>, kindofbeta <%s>",kind, kindofbeta)
+    
     getAndWriteData(element_name,
                     p.input_data,
                     p.input_model,
@@ -245,9 +256,13 @@ def main(accel_cls, options):
     
     
     if options.dobetaamp:
+        # beta from amp, alpha from 2 betas and model transfer matrix
         for element_name in elements_names:
-            #print("Started processing beta from amplitude for ", element_name)
             _process(element_name, "betaamp", pars, options, summaries)
+
+        # beta from amp, alpha from phase
+        for element_name in elements_names:
+            _process(element_name, "bampaphase", pars, options, summaries)
     
 
     summaries.write_summaries_to_files()
@@ -332,7 +347,7 @@ def get_alphaend(a1,b1,m):
     
     return a2    
 
-def get_alphas_from_betas(b1,b2,m,amdl1,amdl2):
+def get_alphas_from_betas(b1,b2,m,amdl1,amdl2,measuredphase):
     '''
     Parameters: 
      - b1 : beta at the beginning of the segment
@@ -351,16 +366,29 @@ def get_alphas_from_betas(b1,b2,m,amdl1,amdl2):
      
     m11 = m[0][0]
     m12 = m[0][1]
-    LOGGER.debug('using m12 = %f'%m12)
+    m21 = m[1][0]
+    m22 = m[1][1]
+    print("")
+    print("")
+    LOGGER.info('b1  = %f   b2 = %f ',b1 ,b2)
+    LOGGER.info('m11 = %f  m12 = %f ',m11,m12)
+    LOGGER.info('m21 = %f  m22 = %f ',m21,m22)
 
     #parameters of the quadratic equation
     aa = m12*m12/b1
-    bb=-2.0*m11*m12
-    cc=b1*m11-b2 + m12*m12/b1
+    bb = -2.0*m11*m12
+    cc = b1*m11*m11  + m12*m12/b1 - b2
     
     delta = bb*bb - 4.0*aa*cc 
+    LOGGER.info("delta of the quadratic equation: %f",delta)
     if delta < 0:
+        LOGGER.error("No ALPHA")
+        LOGGER.error("No ALPHA")
         LOGGER.error("Negative delta of quadratic equation: no solution for alpha")
+        LOGGER.error("delta of the quadratic equation: %f",delta)
+        LOGGER.error("No ALPHA")
+        
+        #return [amdl1+1e-10,amdl2+1e-10]
         return [a1, a2] 
         
     a1sol1 = (-bb+math.sqrt(delta))/(2.0*aa)
@@ -369,23 +397,43 @@ def get_alphas_from_betas(b1,b2,m,amdl1,amdl2):
     a2sol1 = get_alphaend(a1sol1, b1, m)
     a2sol2 = get_alphaend(a1sol2, b1, m)
     
-    LOGGER.debug("Solutions for a1 = %f or %f "%(a1sol1,a1sol2))  
-    LOGGER.debug("Solutions for a2 = %f or %f "%(a2sol1,a2sol2))  
+    LOGGER.info("Solutions for a1 = %f or %f "%(a1sol1,a1sol2))  
+    LOGGER.info("Solutions for a2 = %f or %f "%(a2sol1,a2sol2))  
 
     
-    # distance form the model
-    #   should rather compare to measured phase advance 
-    rsol1 = math.hypot(a1sol1 - amdl1, a2sol1 - amdl2)
-    rsol2 = math.hypot(a1sol2 - amdl1, a2sol2 - amdl2)
-    
-    if rsol1 < rsol2:
+    #  func = lambda tau : R - ((1.0 - np.exp(-tau))/(1.0 - np.exp(-a*tau)))
+    sb = math.sqrt(b2/b1)*m22
+    func1 = lambda phi : numpy.cos(phi) - a2sol1*numpy.sin(phi) - sb 
+    phi_solution1 = fsolve(func1, measuredphase*2*numpy.pi)
+    phi_solution1 = phi_solution1/(2*numpy.pi)
+    LOGGER.info("phi_solution1 = %f , measured = %f",phi_solution1,measuredphase)
+
+    func2 = lambda phi : numpy.cos(phi) - a2sol2*numpy.sin(phi) - sb 
+    phi_solution2 = fsolve(func2, measuredphase*2*numpy.pi)
+    phi_solution2 = phi_solution2/(2*numpy.pi)
+    LOGGER.info("phi_solution2 = %f , measured = %f",phi_solution2,measuredphase)
+    if abs(measuredphase - phi_solution1) < abs(measuredphase - phi_solution2):
         a1 = a1sol1
         a2 = a2sol1
-        LOGGER.debug("Using solution 1: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
+        LOGGER.info("Using solution 1: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
     else:
         a1 = a1sol2
         a2 = a2sol2
-        LOGGER.debug("Using solution 2: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
+        LOGGER.info("Using solution 2: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
+
+    # distance form the model
+    #   should rather compare to measured phase advance 
+    #rsol1 = math.hypot(a1sol1 - amdl1, a2sol1 - amdl2)
+    #rsol2 = math.hypot(a1sol2 - amdl1, a2sol2 - amdl2)
+    #
+    #if rsol1 < rsol2:
+    #    a1 = a1sol1
+    #    a2 = a2sol1
+    #    LOGGER.info("Using solution 1: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
+    #else:
+    #    a1 = a1sol2
+    #    a2 = a2sol2
+    #    LOGGER.info("Using solution 2: %f %f (mdl = %f %f)"%(a1,a2,amdl1,amdl2))
     
     
     #return [amdl1+1e-10,amdl2+1e-10]
@@ -399,6 +447,7 @@ def get_tranfer_matrix(madTwiss, startbpm, endbpm,plane):
         betmdl2=madTwiss.BETX[madTwiss.indx[endbpm]]
         alpmdl2=madTwiss.ALFX[madTwiss.indx[endbpm]]
         phmdl12=madTwiss.MUX[madTwiss.indx[endbpm]] - madTwiss.MUX[madTwiss.indx[startbpm]]
+        
     elif plane=='V':
         betmdl1=madTwiss.BETY[madTwiss.indx[startbpm]]
         alpmdl1=madTwiss.ALFY[madTwiss.indx[startbpm]]
@@ -407,7 +456,12 @@ def get_tranfer_matrix(madTwiss, startbpm, endbpm,plane):
         phmdl12=madTwiss.MUY[madTwiss.indx[endbpm]] - madTwiss.MUY[madTwiss.indx[startbpm]]
 
     
-     
+    phmdl12 = phmdl12*2*math.pi
+    
+    #LOGGER.info("Calculating Transfer Matrix between %s and %s",startbpm,endbpm)
+    #LOGGER.info("a1,b1 -> a2,b2: %f,%f -> %f,%f",alpmdl1,betmdl1,alpmdl2,betmdl2)
+    #LOGGER.info("mu = mu2 - mu1 = %f",phmdl12)
+    
     M11=math.sqrt(betmdl2/betmdl1)*(math.cos(phmdl12)+alpmdl1*math.sin(phmdl12))
     M12=math.sqrt(betmdl1*betmdl2)*math.sin(phmdl12)
     M21=(alpmdl1-alpmdl2)*math.cos(phmdl12) - (1.+alpmdl1*alpmdl2)*math.sin(phmdl12)
@@ -415,45 +469,141 @@ def get_tranfer_matrix(madTwiss, startbpm, endbpm,plane):
     M22=math.sqrt(betmdl1/betmdl2)*(math.cos(phmdl12)-alpmdl2*math.sin(phmdl12))
     
 
-    #print('produced m12 = %f'%M12)
+    #LOGGER.info('produced matrix : ')
+    #LOGGER.info('  %f %f  ',M11, M12)
+    #LOGGER.info('  %f %f  ',M21, M22)
     
     m = numpy.array([[M11, M12], [M21, M22]])
 
     
     return m 
     
+
+def gather_data_bampaphase(input_data, madTwiss, startbpm, endbpm):
+    '''
+    returns 
+     - betas from amplitude
+     - alphas  from phase  
+    
+    '''
+    bx_start = input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[startbpm]]
+    by_start = input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[startbpm]]
+    bx_end  = input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[endbpm]]
+    by_end  = input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[endbpm]]
+    
+    input_data.alphaX_start = input_data.beta_x.ALFX[input_data.beta_x.indx[startbpm]]
+    input_data.alphaX_end  = input_data.beta_x.ALFX[input_data.beta_x.indx[endbpm]]
+    
+    input_data.alphaY_start = input_data.beta_y.ALFY[input_data.beta_y.indx[startbpm]]
+    input_data.alphaY_end  = input_data.beta_y.ALFY[input_data.beta_y.indx[endbpm]]
+    
+    start_bpm_horizontal_data = [bx_start ,input_data.alphaX_start]
+    start_bpm_vertical_data   = [by_start ,input_data.alphaY_start]
+    
+    end_bpm_horizontal_data = [bx_end, input_data.alphaX_end]
+    end_bpm_vertical_data   = [by_end, input_data.alphaY_end]
+
+    
+    mebe = input_data.beta_x
+    stdalf_exists = True
+    try:
+        getattr(mebe, "STDALFX")[mebe.indx[startbpm]]
+    except:
+        stdalf_exists = False
+
+    if stdalf_exists:
+
+        input_data.err_alphaX_start = math.sqrt(getattr(mebe, "ERRALFX")[mebe.indx[startbpm]] ** 2 
+                                                + getattr(mebe, "STDALFX")[mebe.indx[startbpm]] ** 2)
+
+        input_data.err_alphaX_end   = math.sqrt(getattr(mebe, "ERRALFX")[mebe.indx[endbpm]] ** 2 
+                                                + getattr(mebe, "STDALFX")[mebe.indx[endbpm]] ** 2)
+        
+        mebe = input_data.beta_y
+        
+        input_data.err_alphaY_start = math.sqrt(getattr(mebe, "ERRALFY")[mebe.indx[startbpm]] ** 2 
+                                                + getattr(mebe, "STDALFY")[mebe.indx[startbpm]] ** 2)
+
+        input_data.err_alphaY_end   = math.sqrt(getattr(mebe, "ERRALFY")[mebe.indx[endbpm]] ** 2 
+                                                + getattr(mebe, "STDALFY")[mebe.indx[endbpm]] ** 2)
+
+    else:
+    
+        input_data.err_alphaX_start = getattr(mebe, "ERRALFX")[mebe.indx[startbpm]] 
+        input_data.err_alphaX_end   = getattr(mebe, "ERRALFX")[mebe.indx[endbpm]]
+        mebe = input_data.beta_y
+
+    
+    return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
+    
     
 def gather_data_amplitude(input_data, madTwiss, startbpm, endbpm):
-
+    '''
+    returns 
+     - betas from amplitude
+     - alphas  calculated from the betas and transfer matrix between the BPMs  
+    
+    In case alpha calculation fails, it returns model values and sets flag
+     input_data.
+    '''
     
     bx_start = input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[startbpm]]
     by_start = input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[startbpm]]
-    bx_stop  = input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[endbpm]]
-    by_stop  = input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[endbpm]]
+    bx_end  = input_data.amplitude_beta_x.BETX[input_data.amplitude_beta_x.indx[endbpm]]
+    by_end  = input_data.amplitude_beta_y.BETY[input_data.amplitude_beta_y.indx[endbpm]]
     
+    measphasex = input_data.phase_x.PHASEX[input_data.phase_x.indx[startbpm]]
+    measphasey = input_data.phase_y.PHASEY[input_data.phase_y.indx[startbpm]]
 
     m = get_tranfer_matrix(madTwiss,startbpm,endbpm,'H')
     amdl1=madTwiss.ALFX[madTwiss.indx[startbpm]]
     amdl2=madTwiss.ALFX[madTwiss.indx[endbpm]]
-    [ ax_start, ax_stop ]  = get_alphas_from_betas(bx_start,bx_stop,m,amdl1,amdl2)
-    input_data.alphaX_start = ax_start
-    input_data.alphaX_stop  = ax_stop
+    
+    [ ax_start, ax_end ]  = get_alphas_from_betas(bx_start,bx_end,m,amdl1,amdl2,measphasex)
+    if ax_start is None or ax_end is None:
+        # this is to assure that code does not break
+        # output files will have zeros for this plane
+        LOGGER.info("Using H alpha from the model")
+        input_data.alphaampX_failed = True
+        input_data.alphaX_start = amdl1
+        input_data.alphaX_end  = amdl2
+    else:
+        input_data.alphaampX_failed = False
+        input_data.alphaX_start = ax_start
+        input_data.alphaX_end  = ax_end
     
 
     m = get_tranfer_matrix(madTwiss,startbpm,endbpm,'V')
     amdl1=madTwiss.ALFY[madTwiss.indx[startbpm]]
     amdl2=madTwiss.ALFY[madTwiss.indx[endbpm]]
-    [ ay_start, ay_stop ]  = get_alphas_from_betas(by_start,by_stop,m,amdl1,amdl2)
-    input_data.alphaY_start = ay_start
-    input_data.alphaY_stop  = ay_stop
     
-    start_bpm_horizontal_data = [bx_start,ax_start]
-    start_bpm_vertical_data = [by_start,ay_start]
+    [ ay_start, ay_end ]  = get_alphas_from_betas(by_start,by_end,m,amdl1,amdl2,measphasey)
+    if ay_start is None or ay_end is None:
+        # this is to assure that code does not break
+        # output files will have zeros for this plane
+        LOGGER.info("Using V alpha from the model")
+        input_data.alphaampY_failed = True
+        input_data.alphaY_start = amdl1
+        input_data.alphaY_end  = amdl2
+    else:
+        input_data.alphaampY_failed = False
+        input_data.alphaY_start = ay_start
+        input_data.alphaY_end  = ay_end
     
-    stop_bpm_horizontal_data = [bx_stop, ax_stop]
-    stop_bpm_vertical_data = [by_stop, ay_stop]
+    # get_alphas_from_betas should later implement error propagation
+    # due to uncertaintly of the response matrix and beta amp error bars
+    input_data.err_alphaX_start = 0
+    input_data.err_alphaX_end  = 0
+    input_data.err_alphaY_start = 0
+    input_data.err_alphaY_end  = 0
     
-    return start_bpm_horizontal_data, start_bpm_vertical_data, stop_bpm_horizontal_data, stop_bpm_vertical_data
+    start_bpm_horizontal_data = [bx_start ,input_data.alphaX_start]
+    start_bpm_vertical_data   = [by_start ,input_data.alphaY_start]
+    
+    end_bpm_horizontal_data = [bx_end, input_data.alphaX_end]
+    end_bpm_vertical_data   = [by_end, input_data.alphaY_end]
+    
+    return start_bpm_horizontal_data, start_bpm_vertical_data, end_bpm_horizontal_data, end_bpm_vertical_data
 
 
 def _get_dispersion_parameters(input_data, startbpm, endbpm):
@@ -578,23 +728,28 @@ def _get_calibrated_betas(plane):
     try:
         calibration_data = twiss(_join_output_with("calibration_" + plane + ".out"))
     except IOError:
+        LOGGER.info('No calibration data for beta from amplitude.')
         return amplitude_beta
+    
     calibrated_betas = CalibratedBetas(plane)
     index_counter = 0
     for bpm_name in calibration_data.NAME:
         if bpm_name in amplitude_beta.NAME:
             amp_index = amplitude_beta.indx[bpm_name]
             amp_beta = getattr(amplitude_beta, "BET" + plane.upper())[amp_index]
+            LOGGER.info(' %s, amp_index %f, amp_beta %f',bpm_name, amp_index, amp_beta)
             calibrated_betas.NAME.append(bpm_name)
             calibrated_betas.S.append(amplitude_beta.S[amp_index])
             calibrated_betas.indx[bpm_name] = index_counter
             index_counter += 1
             getattr(calibrated_betas, "BET" + plane.upper()).append(amp_beta)
             try:
-                err_amp_beta = getattr(amplitude_beta, "STDBET" + plane.upper())[amp_index]
+                err_amp_beta = getattr(amplitude_beta, "BET" + plane.upper()+"STD")[amp_index]
             except AttributeError:
                 err_amp_beta = getattr(amplitude_beta, "ERRBET" + plane.upper())[amp_index]
+            
             getattr(calibrated_betas, "BET" + plane.upper() + "STD").append(err_amp_beta)
+            
             mdl_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "MDL")[amp_index]
             getattr(calibrated_betas, "BET" + plane.upper() + "MDL").append(mdl_amp_beta)
     return calibrated_betas
@@ -644,10 +799,12 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     if element_name != "null":
         is_segment = False
         if element_name in model.indx:
-            element_s = model.S[model.indx[element_name]]
+            element_idx = model.indx[element_name]
+            element_s = model.S[element_idx]
+            LOGGER.info("element_idx %r , element_s %r",element_idx, element_s)
         else:
             raise SegmentBySegmentError(element_name + " not found in model.")
-        locations_list.append(element_s)
+        locations_list.append((element_idx,element_s))
         translate[element_s] = [True, element_name]
         print("You selected an element")
     else:
@@ -655,14 +812,16 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
         left_bpm_name = segment_bpms_names[0]
         right_bpm_name = segment_bpms_names[1]
         if left_bpm_name in model.indx and right_bpm_name in model.indx:
-            left_bpm_s = model.S[model.indx[left_bpm_name]]
-            right_bpm_s = model.S[model.indx[right_bpm_name]]
+            left_bpm_idx = model.indx[left_bpm_name]
+            right_bpm_idx = model.indx[right_bpm_name]
+            left_bpm_s = model.S[left_bpm_idx]
+            right_bpm_s = model.S[right_bpm_idx]
         else:
             raise SegmentBySegmentError(
                 left_bpm_name + " " + right_bpm_name + " not found in model."
             )
-        locations_list.append(left_bpm_s)
-        locations_list.append(right_bpm_s)
+        locations_list.append((left_bpm_idx,left_bpm_s))
+        locations_list.append((right_bpm_idx,right_bpm_s))
 
         if (left_bpm_name in beta_y_twiss.indx and
             left_bpm_name in beta_x_twiss.indx and
@@ -682,9 +841,11 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
 
     # filtering
     for current_element_name in elements_names_in_model:
-
+        #LOGGER.info('Filtering loop: %s',current_element_name)
         if "BPM" in current_element_name:
-            current_element_s = model.S[model.indx[current_element_name]]
+            #LOGGER.info('Filtering loop: %s is a BPM',current_element_name)
+            current_element_idx = model.indx[current_element_name]
+            current_element_s = model.S[current_element_idx]
 
             if current_element_name in beta_y_twiss.indx and current_element_name in beta_x_twiss.indx:
                 beta_y = beta_y_twiss.BETY[beta_y_twiss.indx[current_element_name]]
@@ -713,23 +874,23 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
                 else:
                     total_err_y = err_beta_y
 
-                if (beta_x > 0 and
-                        beta_y > 0 and
-                        beta_x > total_err_x and
-                        beta_y > total_err_y and
-                        total_err_x > 0 and
-                        total_err_y > 0 and
-                        ((total_err_x / beta_x) * 100) < errorcut and
-                        ((total_err_y / beta_y) * 100) < errorcut):
-
+                if checkValuesForBPM(beta_x,beta_y,total_err_x,total_err_y,errorcut):
                     translate[current_element_s] = [True, current_element_name]
                     number_of_good_bpms = number_of_good_bpms + 1
-                    locations_list.append(current_element_s)
-
+                    locations_list.append((current_element_idx,current_element_s))
+                    LOGGER.debug('BPM %s is good ',current_element_name)
                 elif is_segment and (left_bpm_name in current_element_name or right_bpm_name in current_element_name):
+                    LOGGER.info('Segment boundary BPM %s was filtered out  ',current_element_name)
                     translate[current_element_s] = [False, current_element_name]
+                else:
+                    LOGGER.info('BPM %s was filtered out ',current_element_name)
+            else:
+                LOGGER.info('Filtering loop: BPM %s is not in both beta Twiss tables ',current_element_name)
+    
+    #locations_list.sort()
+    
+    locations_list.sort(lambda x, y: 1 if x[0] == y[0] else cmp(x[0], y[0]))
 
-    locations_list.sort()
     if number_of_good_bpms < 3:
         raise SegmentBySegmentError(
             "Not enough BPMs! Less than 3 BPMs remaining after filtering!"
@@ -737,8 +898,12 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
 
     # finding the BPMs
     if not is_segment:
-        element_location_index = locations_list.index(element_s)
-
+        element_location_index = locations_list.index((element_idx, element_s))
+        _, locations_list = zip(*locations_list)
+        
+        print(" skowron element_location_index")
+        print(element_location_index)
+        
         if element_location_index == 0:
             selected_left_bpm = translate[locations_list[len(locations_list) - 2]][1]
             selected_right_bpm = translate[locations_list[1]][1]
@@ -746,7 +911,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
             selected_left_bpm = translate[locations_list[element_location_index - 1]][1]
             selected_right_bpm = translate[locations_list[0]][1]
         else:
-            selected_left_bpm = translate[locations_list[element_location_index - 1]][1]
+            selected_left_bpm  = translate[locations_list[element_location_index - 1]][1]
             selected_right_bpm = translate[locations_list[element_location_index + 1]][1]
 
     else:
@@ -775,7 +940,57 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
 
     return [selected_left_bpm, selected_right_bpm]
 
-
+def checkValuesForBPM(beta_x,beta_y,total_err_x,total_err_y,errorcut):
+    if beta_x <= 0:
+        LOGGER.debug("BPM did not pass because beta_x <= 0")
+        LOGGER.debug("beta_x %f, beta_y %f, total_err_x %f, total_err_y %f, errorcut %f",
+                     beta_x,beta_y,total_err_x,total_err_y,errorcut)
+        return False
+    
+    if beta_y <= 0:
+        LOGGER.debug("BPM did not pass because beta_y <= 0")
+        LOGGER.debug("beta_x %f, beta_y %f, total_err_x %f, total_err_y %f, errorcut %f",
+                     beta_x,beta_y,total_err_x,total_err_y,errorcut)
+        return False
+    
+    if beta_x <= total_err_x: 
+        LOGGER.debug("BPM did not pass because beta_x <= total_err_x")
+        LOGGER.debug("beta_x %f, beta_y %f, total_err_x %f, total_err_y %f, errorcut %f",
+                     beta_x,beta_y,total_err_x,total_err_y,errorcut)
+        return False
+    
+    if beta_y <= total_err_y: 
+        LOGGER.debug("BPM did not pass because beta_y <= total_err_y")
+        LOGGER.debug("beta_x %f, beta_y %f, total_err_x %f, total_err_y %f, errorcut %f",
+                     beta_x,beta_y,total_err_x,total_err_y,errorcut)
+        return False
+    
+    if total_err_x <= 0:
+        LOGGER.debug("BPM did not pass because total_err_x <= 0")
+        LOGGER.debug("beta_x %f, beta_y %f, total_err_x %f, total_err_y %f, errorcut %f",
+                     beta_x,beta_y,total_err_x,total_err_y,errorcut)
+        return False
+    
+    if total_err_y <= 0:
+        LOGGER.debug("BPM did not pass because total_err_x <= 0")
+        LOGGER.debug("beta_x %f, beta_y %f, total_err_x %f, total_err_y %f, errorcut %f",
+                     beta_x,beta_y,total_err_x,total_err_y,errorcut)
+        return False
+    
+    if ((total_err_x / beta_x) * 100) > errorcut:
+        LOGGER.debug("BPM did not pass because ((total_err_x / beta_x) * 100) > errorcut")
+        LOGGER.debug("beta_x %f, beta_y %f, total_err_x %f, total_err_y %f, errorcut %f",
+                     beta_x,beta_y,total_err_x,total_err_y,errorcut)
+        return False
+    
+    if ((total_err_y / beta_y) * 100) > errorcut:
+        LOGGER.debug("BPM did not pass because ((total_err_y / beta_y) * 100) > errorcut")
+        LOGGER.debug("beta_x %f, beta_y %f, total_err_x %f, total_err_y %f, errorcut %f",
+                     beta_x,beta_y,total_err_x,total_err_y,errorcut)
+        return False
+    
+    return True
+                        
 def getAndWriteData(
     element_name, input_data, input_model, propagated_models,
     save_path, is_element,
@@ -796,12 +1011,15 @@ def getAndWriteData(
         
         
     '''
+    LOGGER.info("betakind %r  ",betakind)
 
     print("Start writing files for", element_name)
 
     if hasattr(summaries, 'beta'):
         if (betakind == 'amp'):
             beta_summary = summaries.betaamp
+        elif(betakind == 'bampaphase'):
+            beta_summary = summaries.betaampaphase
         else:
             beta_summary = summaries.beta
         disp_summary = summaries.dispersion
@@ -815,7 +1033,7 @@ def getAndWriteData(
     
     betaphase = True
 
-    if (betakind == 'amp'):
+    if (betakind == 'amp' or betakind == 'bampaphase'):
         tfsbeta_x = input_data.amplitude_beta_x
         tfsbeta_y = input_data.amplitude_beta_y
         # For the time being other files are output only for beta from phase
@@ -823,9 +1041,6 @@ def getAndWriteData(
     else:
         tfsbeta_x = input_data.beta_x
         tfsbeta_y = input_data.beta_y
-    
-    print(input_data.beta_x)
-    print(input_data.amplitude_beta_x)
     
     
     (beta_x2, err_beta_x2, alfa_x2, err_alfa_x2,
@@ -844,6 +1059,7 @@ def getAndWriteData(
             element_name,
             input_data.total_phase_x, input_data.total_phase_y,
             tfsbeta_x, tfsbeta_y,
+            input_data,
             propagated_models, save_path
         )
         sbs_beta_beating_writer.write_beta_beat(
@@ -851,6 +1067,7 @@ def getAndWriteData(
             input_data.beta_x, input_data.beta_y,
             input_data.amplitude_beta_x, input_data.amplitude_beta_y,
             kmod_data_x, kmod_data_y,
+            input_data,
             propagated_models, save_path)
     
     
@@ -940,7 +1157,7 @@ def _run4mad(save_path,
         f_end["f1001r"], f_end["f1001i"],
         f_end["f1010r"], f_end["f1010i"]
     )
-
+    
     mad_file_path, log_file_path = _get_files_for_mad(
         save_path, accel_instance.label, betakind
     )
@@ -1131,13 +1348,19 @@ def _get_twiss_for_file_in_save_path(file_name):
 
 class _PropagatedModels(object):
 
-    def __init__(self, save_path, element_name):
+    def __init__(self, save_path, element_name,betakind):
         self.__save_path = save_path
 
-        self.corrected = self.__get_twiss_for_file('twiss_' + element_name + '_cor.dat')
-        self.propagation = self.__get_twiss_for_file('twiss_' + element_name + '.dat')
-        self.back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_back.dat')
-        self.corrected_back_propagation = self.__get_twiss_for_file('twiss_' + element_name + '_cor_back.dat')
+        self.corrected = self.__get_twiss_for_file('twiss'+ betakind +'_' + element_name + '_cor.dat')
+        self.propagation = self.__get_twiss_for_file('twiss'+ betakind +'_' + element_name + '.dat')
+        self.back_propagation = self.__get_twiss_for_file('twiss'+ betakind +'_' + element_name + '_back.dat')
+        self.corrected_back_propagation = self.__get_twiss_for_file('twiss'+ betakind +'_' + element_name + '_cor_back.dat')
+
+        LOGGER.debug("_PropagatedModels: corrected                  %s",self.corrected.filename)
+        LOGGER.debug("_PropagatedModels: propagation                %s",self.propagation.filename)
+        LOGGER.debug("_PropagatedModels: back_propagation           %s",self.back_propagation.filename)
+        LOGGER.debug("_PropagatedModels: corrected_back_propagation %s",self.corrected_back_propagation.filename)
+        
 
     def __get_twiss_for_file(self, file_name):
         twiss_file = _try_to_load_twiss(os.path.join(self.__save_path, file_name))
@@ -1153,6 +1376,7 @@ class _Summaries(object):
     def __init__(self, save_path):
         self.beta = sbs_beta_writer.get_beta_summary_file(save_path)
         self.betaamp = sbs_beta_writer.get_betaamp_summary_file(save_path)
+        self.betaampaphase = sbs_beta_writer.get_betaamp_alphaphase_summary_file(save_path)
         self.coupling = sbs_coupling_writer.get_coupling_summary_file(save_path)
         self.dispersion = sbs_dispersion_writer.get_dispersion_summary_file(save_path)
         self.chrom = sbs_chromatic_writer.get_chrom_summary_file(save_path)
@@ -1160,6 +1384,8 @@ class _Summaries(object):
     def write_summaries_to_files(self):
         if not self.beta._TfsFileWriter__tfs_table.is_empty():
             self.beta.write_to_file()
+        if not self.betaampaphase._TfsFileWriter__tfs_table.is_empty():
+            self.betaampaphase.write_to_file()
         if not self.betaamp._TfsFileWriter__tfs_table.is_empty():
             self.betaamp.write_to_file()
         if not self.coupling._TfsFileWriter__tfs_table.is_empty():
@@ -1186,9 +1412,20 @@ class _InputData(object):
         # beta from amp does not have these values in the input file 
         # the calculated values are stored here 
         self.alphaX_start = None
-        self.alphaX_stop  = None
+        self.alphaX_end   = None
         self.alphaY_start = None
-        self.alphaY_stop  = None
+        self.alphaY_end   = None
+
+        self.err_alphaX_start = None
+        self.err_alphaX_end   = None
+        self.err_alphaY_start = None
+        self.err_alphaY_end   = None
+        
+        # flag marking if calculation of alpha from amplitude failed
+        # if it did, model alpha is propagated not to make the code too complicated
+        # and zeros are output 
+        self.alphaampX_failed = False 
+        self.alphaampY_failed = False 
 
         self.phase_x = _get_twiss_for_one_of("getphasex_free.out", "getphasex.out")
         self.phase_y = _get_twiss_for_one_of("getphasey_free.out", "getphasey.out")

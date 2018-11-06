@@ -12,7 +12,7 @@ FIRST_BPM_B2 = "BPMSW.1L8.B2"
 
 
 def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_hor_beta, measured_ver_beta,
-                    propagated_models, save_path):
+                    input_data, propagated_models, save_path):
 
     file_phase_x, file_phase_y = _get_phase_tfs_files(element_name, save_path)
 
@@ -24,16 +24,16 @@ def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_h
     bpms_list_x = intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_hor_phase])
     bpms_list_y = intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_ver_phase])
 
-    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list_x, measured_hor_phase, measured_hor_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list_x, measured_hor_phase, measured_hor_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
-    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list_y, measured_ver_phase, measured_ver_beta, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list_y, measured_ver_phase, measured_ver_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
 
-def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, model_propagation, model_cor, model_back_propagation, model_back_cor):
+def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor):
     first_bpm = bpms_list[0][1]
     last_bpm = bpms_list[-1][1]
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
-     beta_end, err_beta_end, alfa_end, err_alfa_end) = sbs_beta_writer._get_start_end_betas(bpms_list, measured_beta, plane)
+     beta_end, err_beta_end, alfa_end, err_alfa_end) = sbs_beta_writer._get_start_end_betas(bpms_list, measured_beta, input_data, plane)
 
     # Fix for phase jump at the start of the ring
     tune, fix_start_s = {}, None

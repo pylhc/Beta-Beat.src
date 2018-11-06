@@ -22,6 +22,8 @@ def write_beta(element_name, is_element,
     for beta from amplitude :      betakind = "amp"  
     for beta from kmod :           betakind = "kmod"  
     '''
+    LOGGER.info("betakind %r, alphaampX_failed %r alphaampY_failed %r",
+                betakind,input_data.alphaampX_failed,input_data.alphaampY_failed)
     
     file_alfa_x, file_beta_x, file_alfa_y, file_beta_y = _get_beta_tfs_files(element_name, save_path, is_element,betakind)
 
@@ -37,17 +39,33 @@ def write_beta(element_name, is_element,
         bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
         bpms_list_x = bpms_list_y = bpms_list
 
-    summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
+    if betakind=="amp" and input_data.alphaampX_failed:
+        LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
+        summary_data_x = _write_zerobeta_for_plane(file_alfa_x, file_beta_x, 
+                          "X", element_name, bpms_list, 
+                          input_data,input_model, 
+                          save_path, is_element, beta_summary_file)
+    else:
+        summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
                                            element_name, bpms_list_x, measured_hor_beta,
                                            input_data,input_model,
                                            model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
 
-    summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
+    if betakind=="amp" and input_data.alphaampY_failed:
+        LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
+        summary_data_y = _write_zerobeta_for_plane(file_alfa_y, file_beta_y, 
+                          "Y", element_name, bpms_list, 
+                          input_data,input_model, 
+                          save_path, is_element, beta_summary_file)
+    
+    else:
+        summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
                                            element_name, bpms_list_y, measured_ver_beta,
                                            input_data,input_model,
                                            model_propagation, model_cor, model_back_propagation, model_back_cor,
                                            save_path, is_element, beta_summary_file)
+    
     if is_element:
         _write_summary_data(beta_summary_file, summary_data_x, summary_data_y)
         return (summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
@@ -80,8 +98,22 @@ def get_betaamp_summary_file(save_path):
                                                 "%le", "%le", "%le", "%le", "%le"])
         return beta_summary_file
 
+def get_betaamp_alphaphase_summary_file(save_path):
+        beta_summary_file = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbs_summary_betampaphase.out"))
+        beta_summary_file.add_column_names(["NAME", "S",
+                                            "BETPROPX", "ERRBETPROPX", "ALFPROPX", "ERRALFPROPX",
+                                            "BETPROPY", "ERRBETPROPY", "ALFPROPY", "ERRALFPROPY",
+                                            "BETXMDL", "BETYMDL", "ALFXMDL", "ALFYMDL", "MDL_S"])
+        beta_summary_file.add_column_datatypes(["%s", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le",
+                                                "%le", "%le", "%le", "%le", "%le"])
+        return beta_summary_file
 
 def _write_summary_data(beta_summary_file, summary_data_x, summary_data_y):
+    
+    LOGGER.debug("Length of summary arrays %d %d (need to be >= 9)",len(summary_data_x),len(summary_data_y))
+    
     beta_summary_file.add_table_row([summary_data_x[0], summary_data_x[1],
                                      summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
                                      summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5],
@@ -125,6 +157,41 @@ def _get_beta_tfs_files(element_name, save_path, is_element, betakind):
 
     return file_alfa_x, file_beta_x, file_alfa_y, file_beta_y
 
+def _write_zerobeta_for_plane(file_alfa, file_beta, 
+                          plane, element_name, bpms_list, 
+                          input_data,input_model, 
+                          output_path, is_element, beta_summary_file):
+    summary_data = []
+
+    for bpm in bpms_list:
+        bpm_s = bpm[0]
+        bpm_name = bpm[1]
+
+        model_s = input_model.S[input_model.indx[bpm_name]]
+        beta_model = getattr(input_model, "BET" + plane)[input_model.indx[bpm_name]]
+        alfa_model = getattr(input_model, "ALF" + plane)[input_model.indx[bpm_name]]
+
+        if not is_element:
+
+            file_beta.add_table_row([bpm_name, bpm_s,
+                                     0, 0, 0, 0,
+                                     0, 0, 0, 0,
+                                     beta_model, model_s])
+            file_alfa.add_table_row([bpm_name, bpm_s,
+                                     0, 0, 0, 0,
+                                     0, 0, 0, 0,
+                                     alfa_model, model_s])
+        else:
+
+            file_alfa.add_table_row([bpm_name, bpm_s, 0, 0, alfa_model, model_s])
+            file_beta.add_table_row([bpm_name, bpm_s, 0, 0, beta_model, model_s])
+            if element_name in bpm_name:
+                summary_data = [bpm_name, bpm_s, 0, 0, 0, 0, beta_model, alfa_model, model_s]
+
+    file_beta.write_to_file()
+    file_alfa.write_to_file()
+    
+    return summary_data
 
 def _write_beta_for_plane(file_alfa, file_beta, 
                           plane, element_name, bpms_list, 
@@ -133,6 +200,7 @@ def _write_beta_for_plane(file_alfa, file_beta,
                           model_propagation, model_cor, model_back_propagation, model_back_cor, 
                           output_path, is_element, beta_summary_file):
     
+    LOGGER.debug("is_element %r, element_name %r",is_element,element_name)
     
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, input_data, plane)
@@ -144,6 +212,9 @@ def _write_beta_for_plane(file_alfa, file_beta,
     summary_data = []
 
     for bpm in bpms_list:
+        
+        LOGGER.debug("bpm %r",bpm)
+        
         bpm_s = bpm[0]
         bpm_name = bpm[1]
 
@@ -165,9 +236,9 @@ def _write_beta_for_plane(file_alfa, file_beta,
 
         if not is_element:
             model_s = measured_beta.S[measured_beta.indx[bpm_name]]
-            beta_model = getattr(measured_beta, "BET" + plane + "MDL")[measured_beta.indx[bpm_name]]
-            alfa_model = getattr(measured_beta, "ALF" + plane + "MDL")[measured_beta.indx[bpm_name]]
-
+            beta_model = getattr(input_model, "BET" + plane )[input_model.indx[bpm_name]]
+            alfa_model = getattr(input_model, "ALF" + plane )[input_model.indx[bpm_name]]
+            
             beta_cor = getattr(model_cor, "BET" + plane)[model_cor.indx[bpm_name]]
             err_beta_cor = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase_corr, beta_cor, beta_start, alfa_start)
 
@@ -263,7 +334,7 @@ def _get_start_end_betas(bpms_list, measured_beta, input_data, plane):
         alfa_start = getattr(input_data,'alpha'+plane+'_start')
          
 
-    LOGGER.info("beta_start = %f ; alfa_start =  %f ;",beta_start, alfa_start)
+    LOGGER.debug("beta_start = %f ; alfa_start =  %f ;",beta_start, alfa_start)
 
 
     #check if BETSTD columns exist (beta amplitude)
@@ -292,12 +363,12 @@ def _get_start_end_betas(bpms_list, measured_beta, input_data, plane):
 
     beta_end = getattr(measured_beta, "BET" + plane)[measured_beta.indx[last_bpm]]
     
-    if input_data.alphaX_stop is None:
+    if input_data.alphaX_end is None:
         alfa_end = -getattr(measured_beta, "ALF" + plane)[measured_beta.indx[last_bpm]]
     else:
-        alfa_end = -getattr(input_data,'alpha'+plane+'_stop')
+        alfa_end = -getattr(input_data,'alpha'+plane+'_end')
 
-    LOGGER.info("beta_end = %f ; alfa_end =  %f ;",beta_end,alfa_end)
+    LOGGER.debug("beta_end = %f ; alfa_end =  %f ;",beta_end,alfa_end)
     
     if betstd_exists:
         err_beta_start = getattr(measured_beta, "BET" + plane+"STD")[measured_beta.indx[first_bpm]]
@@ -312,14 +383,14 @@ def _get_start_end_betas(bpms_list, measured_beta, input_data, plane):
     if betstd_exists:
         # beta amplitude does not implement error calculation
         # when it does, it should be passed via input_data
-        err_alfa_start = 0.0
-        err_alfa_end   = 0.0 
+        err_alfa_start = getattr(input_data, "err_alpha" + plane + "_start")
+        err_alfa_end   = getattr(input_data, "err_alpha" + plane + "_end")
     elif stdalf_exists:
         err_alfa_start = math.sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[first_bpm]] ** 2)
-        err_alfa_end = math.sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
+        err_alfa_end   = math.sqrt(getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]] ** 2 + getattr(measured_beta, "STDALF" + plane)[measured_beta.indx[last_bpm]] ** 2)
     else:
         err_alfa_start = getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[first_bpm]] 
-        err_alfa_end = getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]]
+        err_alfa_end   = getattr(measured_beta, "ERRALF" + plane)[measured_beta.indx[last_bpm]]
 
     return beta_start, err_beta_start, alfa_start, err_alfa_start, beta_end, err_beta_end, alfa_end, err_alfa_end
 

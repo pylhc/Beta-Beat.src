@@ -15,7 +15,7 @@ def write_beta_beat(element_name,
                     measured_hor_beta_phase, measured_ver_beta_phase,
                     measured_hor_beta_amp, measured_ver_beta_amp,
                     measured_kmod_hor, measured_kmod_ver,
-                    propagated_models, save_path):
+                    input_data, propagated_models, save_path):
     file_beta_phase_x, file_beta_phase_y = _get_beta_beat_from_phase_tfs_files(element_name, save_path)
     file_beta_amp_x, file_beta_amp_y = _get_beta_beat_from_amp_tfs_files(element_name, save_path)
     file_kmod_beta_beat_x, file_kmod_beta_beat_y = _get_kmod_beta_beat_tfs_files(element_name, save_path)
@@ -34,16 +34,18 @@ def write_beta_beat(element_name,
                                  measured_ver_beta_phase, measured_ver_beta_phase])
 
     initial_values = {}
-    initial_values["X"] = InitalValues(phase_bpms_list_x, measured_hor_beta_phase, "X")
-    initial_values["Y"] = InitalValues(phase_bpms_list_y, measured_ver_beta_phase, "Y")
+    initial_values["X"] = InitalValues(phase_bpms_list_x, measured_hor_beta_phase, input_data, "X")
+    initial_values["Y"] = InitalValues(phase_bpms_list_y, measured_ver_beta_phase, input_data, "Y")
 
     _write_beta_beat_from_phase_for_plane(
         file_beta_phase_x, "X", phase_bpms_list_x, measured_hor_beta_phase,
-        model_propagation, model_cor, model_back_propagation, model_back_cor,
+        input_data, model_propagation, model_cor, 
+        model_back_propagation, model_back_cor,
         initial_values["X"])
     _write_beta_beat_from_phase_for_plane(
         file_beta_phase_y, "Y", phase_bpms_list_y, measured_ver_beta_phase,
-        model_propagation, model_cor, model_back_propagation, model_back_cor,
+        input_data, model_propagation, model_cor, 
+        model_back_propagation, model_back_cor,
         initial_values["Y"])
 
     if measured_hor_beta_amp is not None and measured_ver_beta_amp is not None:
@@ -132,7 +134,7 @@ def _get_kmod_beta_beat_tfs_files(element_name, save_path):
 
 
 def _write_beta_beat_from_phase_for_plane(file_beta_beat, plane, bpms_list,
-                                          measured_beta_phase, model_propagation, model_cor,
+                                          measured_beta_phase, input_data, model_propagation, model_cor,
                                           model_back_propagation, model_back_cor,
                                           initial_values):
 
@@ -349,10 +351,10 @@ def intersect(list_of_files):
 
 
 class InitalValues(object):
-    def __init__(self, bpms_list, measured_beta, plane):
+    def __init__(self, bpms_list, measured_beta, input_data, plane):
         (self.beta_start, self.err_beta_start,
          self.alfa_start, self.err_alfa_start,
          self.beta_end, self.err_beta_end,
          self.alfa_end, self.err_alfa_end) = sbs_beta_writer._get_start_end_betas(
-            bpms_list, measured_beta, plane
+            bpms_list, measured_beta, input_data, plane
         )
