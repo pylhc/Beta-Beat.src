@@ -18,8 +18,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from utils import logging_tools
 from tfs_files import tfs_pandas as tfs
-from utils.plotting import plot_style as ps
-from utils.plotting.plot_style import MarkerList
+from plotshop import plot_style as ps
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -138,7 +137,7 @@ def pdf_export(args=None):
 
     try:
         mpdf.savefig(bbox_inches='tight')
-        LOG.debug("Exported GetLLM results to PDF '{:s}'".format(pdf_path))
+        LOG.info("Exported GetLLM results to PDF '{:s}'".format(pdf_path))
     finally:
         mpdf.close()
 
@@ -375,7 +374,7 @@ def get_data(path, mainnode, subnode):
 
     elif subnode == "diff_NDisp_NDMdl":
         data_x = get_norm_disp_diff(path, "x")
-        data_y = get_norm_disp_mdl(path, "x")
+        data_y = get_norm_disp_diff(path, "y")
 
     elif subnode == "Beta_BMdl":
         data_x = get_beta_mdl(path, "x", mainnode)
@@ -424,18 +423,11 @@ def plot_analysis(opt):
     ir_pos = None
 
     paths = opt.path.split(',')
-
-    if opt.label == 'None':
-        if mdl_analysis:
-            labels = ["mo_" + opt.path.rsplit('/', 1)[-1], "me_" + opt.path.rsplit('/', 1)[-1]]
-        else:
-            labels = paths
-    else:
-        labels = opt.label.split(',')
+    labels = _get_labels(opt.label, paths, mdl_analysis)
 
     for idx, path in enumerate(paths):
         data_x, data_y = get_data(path, opt.mainnode, opt.subnode)
-        plot_data(ax_x, data_x, labels, idx, opt.change_marker)
+        plot_data(ax_x, data_x, labels, idx * (1 + mdl_analysis), opt.change_marker)
 
         if ir_pos is None:
             ir_pos = get_irpos(data_x, opt.accel)
@@ -444,7 +436,7 @@ def plot_analysis(opt):
             if ax_y is None:
                 ax_x.axes.get_xaxis().set_visible(False)
                 ax_y = plt.subplot(gs[1])
-            plot_data(ax_y, data_y, labels, idx, opt.change_marker)
+            plot_data(ax_y, data_y, labels, idx * (1 + mdl_analysis), opt.change_marker)
 
     ax_x.set_xlim(xmin, xmax)
     ax_x.set_ylim(opt.xplot_ymin, opt.xplot_ymax)
@@ -465,27 +457,30 @@ def plot_analysis(opt):
             ps.show_ir(ir_pos, ax_x, mode='outside')
 
     if int(opt.legendh) > 12:
-        show_legend(ax_x, int(opt.legendx), int(opt.legendy))
+        ps.make_top_legend(ax_x, ps.get_legend_ncols(labels))
     return gs
 
 
 def plot_data(ax, data, labels, idx, change_marker):
     """ Actual plotting """
-    if "Model" in data.columns:
-        if idx > 0:
-            raise NotImplementedError("Only single model comparison implemented.")
+    color = get_color(idx)
+    marker_color = get_color(idx, True)
 
-        ax.plot(data["S"], data["Model"], marker=get_marker(idx, change_marker),
-                color=get_color(idx), markeredgecolor=get_color(idx, True), label=labels[idx])
-        idx = idx + 1
-        label = labels[idx]
-    else:
-        label = labels[idx].rsplit('/', 1)[-1]  # TODO: Works only on linux
+    if "Model" in data.columns:
+        color = get_color(idx/2)
+        marker_color = get_color(idx/2, True)
+        ax.plot(data["S"], data["Model"],
+                marker=get_marker(idx, change_marker),
+                markersize=rcParams.get("lines.markersize") * 0.6,
+                color=ps.change_color_brightness(color, 0.2),
+                markeredgecolor=ps.change_color_brightness(marker_color, 0.2),
+                label=labels[idx])
+        idx += 1
 
     ax.errorbar(data["S"], data["Value"], yerr=data["Error"],
                 fmt=get_marker(idx, change_marker),
-                color=get_color(idx), markeredgecolor=get_color(idx, True),
-                label=label)
+                color=color, markeredgecolor=marker_color,
+                label=labels[idx])
 
 
 # Labels, Legend, Text #######################################################
@@ -535,16 +530,6 @@ def set_yaxis_label(plot, axis, subnode):
                        )
 
 
-def show_legend(p, legendx, legendy, frameon=False, numpoints=1, ncol=1):
-    # handles, labels = p.get_legend_handles_labels()
-    # p.legend(handles, labels,
-    #          loc='upper left', bbox_to_anchor=(0.02, 1.35),
-    #          frameon=frameon, numpoints=numpoints, ncol=ncol)
-
-    p.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25),
-             fancybox=True, shadow=True, ncol=3)
-
-
 def get_color(idx, marker=False):
     Butter1 = '#FCE94F'
     Butter2 = '#EDD400'
@@ -585,7 +570,7 @@ def get_color(idx, marker=False):
 
 def get_marker(idx, change):
     if change:
-        return MarkerList.get_marker(idx)
+        return ps.MarkerList.get_marker(idx)
     else:
         return rcParams['lines.marker']
 
@@ -617,6 +602,19 @@ def get_irpos(data, accel):
     else:
         LOG.debug("Could not find appropriate IP positions.")
         return {}
+
+
+def _get_labels(labels, paths, mdl_analysis):
+    """ Creates the necessary labels """
+    if labels == 'None':
+        labels = [os.path.basename(path) for path in paths]
+    else:
+        labels = labels.split(",")
+
+    if mdl_analysis:
+        return ["mo_" + l if i == 0 else "me_" + l for l in labels for i in range(2)]
+    return labels
+
 
 
 # Script Mode ##################################################################

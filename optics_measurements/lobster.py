@@ -15,7 +15,7 @@ NEARPI = 4.0e-4
 NEARDIST = 6  # maximal separation of BPMs until next pi
 ROB = 7  # range of BPMs
 
-def get_local_observable(phase_d, free_model, files_dict, tune):
+def get_local_observable(phase_d, free_model, tune):
     """Calculates local observable for pi separated BPMs
     """
 
@@ -27,10 +27,6 @@ def get_local_observable(phase_d, free_model, files_dict, tune):
 
     diff_pi = modl_phases.values - .5
     near_pi = abs(diff_pi) < NEARPI
-
-    tfs_file = files_dict["getlobster.out"]
-    tfs_file.add_column_names(['NAME', 'S', 'NEXT', 'DELTAPHI_NEAR', 'ERRPHI_NEAR', 'MDLPHI_NEAR'])
-    tfs_file.add_column_datatypes(['%s', "%le", "%s", "%le", "%le", "%le"])
 
     data = np.empty((len(modl_phases.columns)),
                     dtype=[('NAME', 'S64'),
@@ -64,11 +60,11 @@ def get_local_observable(phase_d, free_model, files_dict, tune):
             err = erro_column[0]
 
             collected.append(column)
-            tfs_file.add_table_row([column, s, nextname, delta_phi, err, mdl_phi])
 
         data[i] = (column, s, nextname, delta_phi)
 
     df = pd.DataFrame(data, index=modl_phases.columns)
+                      #columns=["NAME", "S", "NEXT", "DELTAPHI"])
 
     LOGGER.info("collected local observables: {}".format(len(collected)))
 
@@ -115,10 +111,9 @@ def get_local_observable(phase_d, free_model, files_dict, tune):
         LOGGER.info(regobsmatr.shape)
         reg_obs.loc[:, patt] = np.sum(regobsmatr, axis=1)
 
-    reg_obs.loc[:, "S"] = free_model.loc[modl_phases, "S"]
-    files_dict["getrexter.out"].set_dataframe(reg_obs)
+    reg_obs.loc[:, "S"] = free_model.loc[modl_phases.index, "S"]
 
-    return df.loc[collected]
+    return df.loc[collected], reg_obs
 
 def get_comb_pattern(comb):
     """Returns a string representing the pattern of the combination

@@ -11,13 +11,16 @@ option, echo;
 exec, match_tunes(%QMX, %QMY, %NUM_BEAM);
 
 
-!!!!! nominal
-
-exec, do_twiss_monitors(LHCB%NUM_BEAM, "%PATH/twiss_no.dat", 0.0);
-
 exec, coupling_knob(%NUM_BEAM);
+select, flag=twiss, clear;
+select, flag=twiss, pattern='^BPM.*\.B%NUM_BEAM$', column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
+select, flag=twiss, pattern='^IP[1-8]$', column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;
+
+!!!!! nominal
+twiss, file= "%PATH/twiss_no.dat";
+
 %COR
 
-exec, do_twiss_monitors(LHCB%NUM_BEAM, "%PATH/twiss_cor.dat", 0.0);
+twiss, file= "%PATH/twiss_cor.dat";
 %CHROMtwiss, chrom,sequence=LHCB%NUM_BEAM, deltap=%DELTAPM, file="%PATH/twiss_cor_dpm.dat";
 %CHROMtwiss, chrom,sequence=LHCB%NUM_BEAM, deltap=%DELTAPP, file="%PATH/twiss_cor_dpp.dat";

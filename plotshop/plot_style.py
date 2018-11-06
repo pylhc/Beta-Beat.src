@@ -1,15 +1,23 @@
 """
+Module plotshop.plot_style
+----------------------------
+
 Helper functions to make the most awesome* plots out there.
 
 * please feel free to add more stuff
 """
 
-import pandas as pd
+import colorsys
+from itertools import cycle
+
 import matplotlib
+import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
+from distutils.version import LooseVersion
+import pandas as pd
+
 from tfs_files import tfs_pandas as tfs
-from itertools import cycle
 
 
 class ArgumentError(Exception):
@@ -370,26 +378,49 @@ def rgb_plotly_to_mpl(rgb_string):
     return rgb_norm
 
 
+def change_color_brightness(color, amount=0.5):
+    """
+    Lightens the given color by multiplying (1-luminosity) by the given amount.
+    Input can be matplotlib color string, hex string, or RGB tuple.
+    An amount of 1 equals to no change. 0 is very bright (white) and 2 is very dark.
+    By Ian Hincks
+    Source: https://stackoverflow.com/questions/37765197/darken-or-lighten-a-color-in-matplotlib
+    """
+    if not (0<=amount<=2):
+        raise ValueError("The brightness change has to be between 0 and 2."
+                         " Instead it was {}".format(amount))
+    try:
+        c = mc.cnames[color]
+    except KeyError:
+        c = color
+
+    try:
+        c = colorsys.rgb_to_hls(*mc.ColorConverter().to_rgb(c))  # matplotlib 1.5
+    except AttributeError:
+        c = colorsys.rgb_to_hls(*mc.to_rgb(c))  # matplotlib > 2
+    return colorsys.hls_to_rgb(c[0], 1-amount * (1-c[1]), c[2])
+
+
 # Labels #####################################################################
 
 
 # List of common y-labels. Sorry for the ugly.
 _ylabels = {
-    "beta":               r'$\beta_{{{0}}} [m]$',
+    "beta":               r'$\beta_{{{0}}} \quad [m]$',
     "betabeat":           r'$\Delta \beta_{{{0}}} / \beta_{{{0}}}$',
     "betabeat_permile":   r'$\Delta \beta_{{{0}}} / \beta_{{{0}}} [$'u'\u2030'r'$]$',
-    "dbeta":              r"$\beta'_{{{0}}} [m]$",
+    "dbeta":              r"$\beta'_{{{0}}} \quad [m]$",
     "dbetabeat":          r'$1/\beta_{{{0}}} \cdot \partial\beta_{{{0}}} / \partial\delta_{{{0}}}$',
-    "norm_dispersion":    r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\sqrt{{m}}]$',
-    "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} [\mu \sqrt{{m}}]$',
-    "phase":              r'$\phi_{{{0}}} [2\pi]$',
-    "phasetot":           r'$\phi_{{{0}}} [2\pi]$',
-    "phase_milli":        r'$\phi_{{{0}}} [2\pi\cdot10^{{-3}}]$',
-    "dispersion":         r'$D_{{{0}}} [m]$',
-    "dispersion_mm":      r'$D_{{{0}}} [mm]$',
-    "co":                 r'${0} [mm]$',
-    "tune":               r'$Q_{{{0}}} [Hz]$',
-    "nattune":            r'$Nat Q_{{{0}}} [Hz]$',
+    "norm_dispersion":    r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} \quad [\sqrt{{m}}]$',
+    "norm_dispersion_mu": r'$\frac{{D_{{{0}}}}}{{\sqrt{{\beta_{{{0}}}}}}} \quad [\mu \sqrt{{m}}]$',
+    "phase":              r'$\phi_{{{0}}} \quad [2\pi]$',
+    "phasetot":           r'$\phi_{{{0}}} \quad [2\pi]$',
+    "phase_milli":        r'$\phi_{{{0}}} \quad [2\pi\cdot10^{{-3}}]$',
+    "dispersion":         r'$D_{{{0}}} \quad [m]$',
+    "dispersion_mm":      r'$D_{{{0}}} \quad [mm]$',
+    "co":                 r'${0} \quad [mm]$',
+    "tune":               r'$Q_{{{0}}} \quad [Hz]$',
+    "nattune":            r'$Nat Q_{{{0}}} \quad [Hz]$',
     "chromamp":           r'$W_{{{0}}}$',
     "real":               r'$re({0})$',
     "imag":               r'$im({0})$',
@@ -578,4 +609,29 @@ def small_title(ax=None):
     ax.title.set_fontweight(matplotlib.rcParams['font.weight'])
     ax.title.set_verticalalignment('bottom')
     ax.title.set_horizontalalignment('right')
+
+
+def get_legend_ncols(labels, max_length=78):
+    """ Calulate the number of columns in legend dynamically """
+    return max([max_length/max([len(l) for l in labels]), 1])
+
+
+def make_top_legend(ax, ncol):
+    """ Create a legend on top of the plot. """
+    leg = ax.legend(loc='lower right', bbox_to_anchor=(1.0, 1.02),
+                    fancybox=True, shadow=True, ncol=ncol)
+
+    if LooseVersion(matplotlib.__version__) <= LooseVersion("2.2.0"):
+        legend_height = leg.get_window_extent().inverse_transformed(leg.axes.transAxes).height
+        ax.figure.tight_layout(rect=[0, 0, 1, 1-legend_height])
+
+    leg.axes.figure.canvas.draw()
+    legend_width = leg.get_window_extent().inverse_transformed(leg.axes.transAxes).width
+    if legend_width > 1:
+        x_shift = (legend_width - 1) / 2.
+        ax.legend(loc='lower right', bbox_to_anchor=(1.0 + x_shift, 1.02),
+                  fancybox=True, shadow=True, ncol=ncol)
+
+    if LooseVersion(matplotlib.__version__) >= LooseVersion("2.2.0"):
+        ax.figure.tight_layout()
 
