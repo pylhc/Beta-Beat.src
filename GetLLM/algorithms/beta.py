@@ -302,7 +302,7 @@ def calculate_beta_from_phase(getllm_d, twiss_d, tune_d, phase_d,
     
     print_box_edge()
     print_box("beta from phase finished")
-    print_box("")
+    print_box("")   
     print_box("elapsed time: {0:3.3f}s".format(elapsed))
     print_box_edge()
     if PRINTTIMES:
@@ -350,7 +350,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         skipped_bpmx = []
         arcbpms = utils.bpm.filterbpm(bpms)
         if len(arcbpms) == 0:
-           arcbpms = bpms
+            arcbpms = bpms
         for bpm in arcbpms:
         #for bpm in bpms:
             name = str.upper(bpm[1])  # second entry is the name
@@ -406,7 +406,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 skipped_bpmxf = []
                 arcbpms = utils.bpm.filterbpm(bpmsf)
                 if len(arcbpms) == 0:
-                   arcbpms = bpmsf
+                    arcbpms = bpmsf
                 #arcbpms = utils.bpm.filterbpm(bpmsf)
                 for bpm in arcbpms:
                     name = str.upper(bpm[1])  # second entry is the name
@@ -465,7 +465,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
         skipped_bpmy = []
         arcbpms = utils.bpm.filterbpm(bpms)
         if len(arcbpms) == 0:
-          arcbpms = bpms
+            arcbpms = bpms
         #arcbpms = utils.bpm.filterbpm(bpms)
         for bpm in arcbpms:
             name = str.upper(bpm[1])  # second entry is the name
@@ -515,7 +515,7 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
                 skipped_bpmyf = []
                 arcbpms = utils.bpm.filterbpm(bpmsf)
                 if len(arcbpms) == 0:
-                   arcbpms = bpms
+                    arcbpms = bpms
                 #arcbpms = utils.bpm.filterbpm(bpmsf)
                 for bpm in arcbpms:
                     name = str.upper(bpm[1])  # second entry is the name
