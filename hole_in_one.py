@@ -30,7 +30,7 @@ def run_all(main_input, clean_input, harpy_input, optics_input, to_log):
         LOGGER.debug(to_log)
         tbt_files = [turn_by_turn_reader.read_tbt_file(input_file.strip())[0] for input_file in
                      main_input.file.strip("\"").split(",")]
-        lins = map(lambda x: run_all_for_file(tbt_file, main_input, clean_input, harpy_input),
+        lins = map(lambda x: run_all_for_file(x, main_input, clean_input, harpy_input),
                    [tbt_file for tbt_file in tbt_files])
         if optics_input is not None:
             inputs = measure_optics.InputFiles(lins)

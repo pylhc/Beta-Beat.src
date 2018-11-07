@@ -250,7 +250,7 @@ class _TbtAsciiWriter(object):
         row_format = "{} {} {}  " + FORMAT_STRING * tbt_file.num_turns + "\n"
         for bpm_index in range(len(model_data.NAME)):
             bpm_name = model_data.NAME[bpm_index]
-            bpm_s = str(np.fromstring(model_data.S[bpm_index])[0])
+            bpm_s = str(np.frombuffer(model_data.S[bpm_index])[0])
             bpm_samples_x = tbt_file.get_x_samples(bpm_name)
             bpm_samples_y = tbt_file.get_y_samples(bpm_name)
             if bpm_samples_x is not None:
