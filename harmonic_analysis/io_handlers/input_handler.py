@@ -174,7 +174,7 @@ class CleanInput(object):
         self.peak_to_peak = options.peak_to_peak
         self.max_peak = options.max_peak
         self.single_svd_bpm_threshold = options.single_svd_bpm_threshold
-        if options.bad_bpms == "":
+        if not options.bad_bpms:
             self.bad_bpms = []
         else:
             self.bad_bpms = [bad_bpm.strip() for bad_bpm in options.bad_bpms.strip("\"").split(",")]
