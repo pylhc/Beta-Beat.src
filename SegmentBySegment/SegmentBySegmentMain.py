@@ -897,22 +897,22 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
         )
 
     # finding the BPMs
+    _, ll = zip(*locations_list)
     if not is_segment:
         element_location_index = locations_list.index((element_idx, element_s))
-        _, locations_list = zip(*locations_list)
         
         print(" skowron element_location_index")
         print(element_location_index)
         
         if element_location_index == 0:
-            selected_left_bpm = translate[locations_list[len(locations_list) - 2]][1]
-            selected_right_bpm = translate[locations_list[1]][1]
-        elif element_location_index == (len(locations_list) - 1):
-            selected_left_bpm = translate[locations_list[element_location_index - 1]][1]
-            selected_right_bpm = translate[locations_list[0]][1]
+            selected_left_bpm = translate[ll[len(ll) - 2]][1]
+            selected_right_bpm = translate[ll[1]][1]
+        elif element_location_index == (len(ll) - 1):
+            selected_left_bpm = translate[ll[element_location_index - 1]][1]
+            selected_right_bpm = translate[ll[0]][1]
         else:
-            selected_left_bpm  = translate[locations_list[element_location_index - 1]][1]
-            selected_right_bpm = translate[locations_list[element_location_index + 1]][1]
+            selected_left_bpm  = translate[ll[element_location_index - 1]][1]
+            selected_right_bpm = translate[ll[element_location_index + 1]][1]
 
     else:
         left_bpm_is_good = translate[left_bpm_s][0]
@@ -921,20 +921,21 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
         if left_bpm_is_good:
             selected_left_bpm = translate[left_bpm_s][1]
         else:
-            element_location_index = locations_list.index(left_bpm_s)
+            
+            element_location_index = locations_list.index((left_bpm_idx,left_bpm_s))
             if element_location_index == 0:
-                selected_left_bpm = translate[locations_list[len(locations_list) - 2]][1]
+                selected_left_bpm = translate[ll[len(ll) - 2]][1]
             else:
-                selected_left_bpm = translate[locations_list[element_location_index - 1]][1]
+                selected_left_bpm = translate[ll[element_location_index - 1]][1]
 
         if right_bpm_is_good:
             selected_right_bpm = translate[right_bpm_s][1]
         else:
-            element_location_index = locations_list.index(right_bpm_s)
-            if element_location_index == (len(locations_list) - 1):
-                selected_right_bpm = translate[locations_list[0]][1]
+            element_location_index = locations_list.index((right_bpm_idx,right_bpm_s))
+            if element_location_index == (len(ll) - 1):
+                selected_right_bpm = translate[ll[0]][1]
             else:
-                selected_right_bpm = translate[locations_list[element_location_index + 1]][1]
+                selected_right_bpm = translate[ll[element_location_index + 1]][1]
 
     print(selected_left_bpm, selected_right_bpm, "Will be used for the propagation")
 
