@@ -178,7 +178,7 @@ class CleanInput(object):
             self.bad_bpms = []
         else:
             self.bad_bpms = [bad_bpm.strip() for bad_bpm in options.bad_bpms.strip("\"").split(",")]
-        if options.wrong_polarity_bpms == "":
+        if not options.wrong_polarity_bpms:
             self.wrong_polarity_bpms = []
         else:
             self.wrong_polarity_bpms = [wrong_polarity_bpm.strip() for wrong_polarity_bpm in options.wrong_polarity_bpms.strip("\"").split(",")]
