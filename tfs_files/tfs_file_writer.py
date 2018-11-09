@@ -105,7 +105,7 @@ class TfsFileWriter(object):
         self.__file_name = file_name
 
     def set_outputpath(self, outputpath):
-        if outputpath is None or not isinstance(outputpath, str):
+        if outputpath is None or not isinstance(outputpath, str) or outputpath == "":
             outputpath = os.path.abspath("./")
         if iotools.not_exists_directory(outputpath):
             iotools.create_dirs(outputpath)
