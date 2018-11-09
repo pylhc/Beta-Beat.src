@@ -65,12 +65,18 @@ def measure_optics(input_files, measure_input):
         LOGGER.info("Finished as only coupling calculation was requested.")
         return
     try:
-        beta_df_x, driven_df_x, beta_df_y, driven_df_y = beta.calculate_beta_from_phase(
+        beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y = beta.calculate_beta_from_phase(
             measure_input, tune_dict, phase_dict, common_header)
+        if driven_beta_df_x is None:
+            beta_df_dict = {"X": beta_df_x, "Y": beta_df_y}
+        else:
+            beta_df_dict = {"X": driven_beta_df_x, "Y": driven_beta_df_y}
     except:
         _tb_()
     try:
-        ratio = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files, tune_dict, phase_dict, {"X": driven_df_x, "Y": driven_df_y}, common_header)
+        ratio = beta_from_amplitude.calculate_beta_from_amplitude(measure_input, input_files,
+                                                                  tune_dict, phase_dict,
+                                                                  beta_df_dict, common_header)
     except:
         _tb_()
     # in the following functions, nothing should change, so we choose the models now
@@ -88,7 +94,8 @@ def measure_optics(input_files, measure_input):
     except:
         _tb_()
     try:
-        dispersion.calculate_orbit_and_dispersion(measure_input, input_files, tune_dict, mad_twiss, {"X": driven_df_x, "Y": driven_df_y}, common_header)
+        dispersion.calculate_orbit_and_dispersion(measure_input, input_files, tune_dict, mad_twiss,
+                                                  beta_df_dict, common_header)
     except:
         _tb_()
     try:

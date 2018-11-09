@@ -145,8 +145,8 @@ class CleanInput(object):
         "peak_to_peak": 0.00001,
         "max_peak": 20.,
         "single_svd_bpm_threshold": 0.925,
-        "bad_bpms": "",
-        "wrong_polarity_bpms": "",
+        "bad_bpms": [],
+        "wrong_polarity_bpms": [],
         "noresync": False,
         "write_clean": False,
         "no_exact_zeros": False,
@@ -174,11 +174,11 @@ class CleanInput(object):
         self.peak_to_peak = options.peak_to_peak
         self.max_peak = options.max_peak
         self.single_svd_bpm_threshold = options.single_svd_bpm_threshold
-        if options.bad_bpms == "":
+        if not options.bad_bpms:
             self.bad_bpms = []
         else:
             self.bad_bpms = [bad_bpm.strip() for bad_bpm in options.bad_bpms.strip("\"").split(",")]
-        if options.wrong_polarity_bpms == "":
+        if not options.wrong_polarity_bpms:
             self.wrong_polarity_bpms = []
         else:
             self.wrong_polarity_bpms = [wrong_polarity_bpm.strip() for wrong_polarity_bpm in options.wrong_polarity_bpms.strip("\"").split(",")]

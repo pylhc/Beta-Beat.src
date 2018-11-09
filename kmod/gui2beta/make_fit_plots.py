@@ -51,7 +51,8 @@ def plot_fitting(fitx_L,fitx_R,fity_L,fity_R,left_data,right_data,path):
 
     fig1.tight_layout()
     savefig(os.path.join(path, 'fit_plots.pdf'))
-    plt.show()
+    savefig(os.path.join(path, 'fit_plots.png'))
+    #plt.show()
 
 
 if __name__=='__main__':

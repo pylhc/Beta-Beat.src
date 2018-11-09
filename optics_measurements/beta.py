@@ -29,7 +29,6 @@ from utils import logging_tools
 __version__ = "2018.7.a"
 
 DEBUG = sys.flags.debug  # True with python option -d! ("python -d GetLLM.py...") (vimaier)
-PRINTTIMES = False
 LOGGER = logging_tools.get_logger(__name__)
 
 if DEBUG:
@@ -51,18 +50,15 @@ CALCULATE_BETA_VER = True
 APPLY = True
 
 # --------------- Errors method
-METH_IND = -1
-METH_3BPM = 0
-METH_A_NBPM = 1
+METH_IND = "Invalid"
+METH_3BPM = "3BPM method"
+METH_A_NBPM = "Analytical N-BPM method"
+METH_NO_ERR = "No Errors"
+METH_A_NBPM_PART = "Partly Analytical N-BPM method"
 
 
 def rms(arr):  # TODO take this from the stats module
     return np.sqrt(np.mean(np.square(arr)))
-
-ID_TO_METHOD = {
-    METH_3BPM: "3BPM method",
-    METH_A_NBPM: "Analytical N-BPM method"}
-
 # --------------------------------------------------------------------------------------------------
 # main part
 # --------------------------------------------------------------------------------------------------
@@ -118,7 +114,7 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
     LOGGER.debug("sext transverse misalignments: [YES]")
     LOGGER.debug("BPM long misalignments: [YES]")
     LOGGER.debug("dipole K1 errors: [ NO]")
-    LOGGER.debug("analytical alpha: [ NO]")
+    LOGGER.debug("analytical alpha: [ YES]")
 
     # check whether analytical N-BPM method should be used
     # if yes, uncertainty estimates will be distributed to the elements
@@ -140,29 +136,30 @@ def calculate_beta_from_phase(getllm_d, tune_d, phase_d, header_dict):
 
     # ------------- HORIZONTAL
     if phase_d["X"]["F"]:
-        beta_df_x, driven_beta_df_x = beta_from_phase_for_plane(
+        beta_df_x, compensated_beta_df_x = _beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
             getllm_d.range_of_bpms, phase_d, error_method, tune_d, "X"
         )
 
     # ------------- VERTICAL
     if phase_d["Y"]["F"]:
-        beta_df_y, driven_beta_df_y = beta_from_phase_for_plane(
+        beta_df_y, compensated_beta_df_y = _beta_from_phase_for_plane(
             free_model, driven_model, free_bk_model, elements,
             getllm_d.range_of_bpms, phase_d, error_method, tune_d, "Y"
         )
 
-    for df in [beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y]:
+    for df in [beta_df_x, compensated_beta_df_x, beta_df_y, compensated_beta_df_y]:
         if df is not None:
             _add_header(df, header_dict, error_method, getllm_d.range_of_bpms)
             LOGGER.debug("writing %s", df.headers["FILENAME"])
-            tfs_pandas.write_tfs(os.path.join(getllm_d.outputdir, df.headers["FILENAME"]), df)
+            tfs_pandas.write_tfs(os.path.join(getllm_d.outputdir, df.headers["FILENAME"]), df,
+                                 save_index="NAME")
 
-    return beta_df_x, driven_beta_df_x, beta_df_y, driven_beta_df_y
+    return beta_df_x, compensated_beta_df_x, beta_df_y, compensated_beta_df_y
 
 
-def beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, range_of_bpms,
-                              phases, error_method, tunes, plane):
+def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, range_of_bpms,
+                               phases, error_method, tunes, plane):
     """
     This function calculates and outputs the beta function measurement for the given plane.
     """
@@ -171,44 +168,49 @@ def beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, rang
     Qf = tunes[plane]["QF"]
     Qmdl = tunes[plane]["QM"]
     Qmdlf = tunes[plane]["QFM"]
+    LOGGER.info("Beta {} free calculation".format(plane))
     phase_adv_free = phases[plane]["F"]
     phase_adv_driven = phases[plane]["D"]
-    LOGGER.info("Beta {} free calculation".format(plane))
+    phase_adv = phases[plane]["D"]
     # remove BPMs that are not in the input
-    free_model = free_model.loc[phase_adv_free["MEAS"].index]
-    if driven_model is not None:
-        driven_model = driven_model.loc[phase_adv_free["MEAS"].index]
+    if phase_adv_driven is not None:
+        comp_model = free_model.loc[phase_adv_driven["MEAS"].index]
+        model = driven_model.loc[phase_adv_free["MEAS"].index]
+    else:
+        model = free_model.loc[phase_adv_free["MEAS"].index]
+        phase_adv = phase_adv_free
+
+
     bk_model = bk_model.loc[phase_adv_free["MEAS"].index]
 
     # if DEBUG create a binary debugfile where the algorithm is writing matrices, beta-values,
     # weights etc.
     if DEBUG:
         DBG.create_debugfile(
-            "getbeta{}_free.bdebug".format(plane_for_file)  # TODO change working path
+            "getbeta{}.bdebug".format(plane_for_file)  # TODO change working path
         )
 
-    beta_df = beta_from_phase(free_model, elements, phase_adv_free, plane, range_of_bpms,
-                              error_method, Qf, Qmdlf % 1.0)
+    beta_df = _beta_from_phase(model, elements, phase_adv, plane, range_of_bpms,
+                               error_method, Qf, Qmdlf % 1.0)
 
-    beta_df.headers["FILENAME"] = "getbeta{}_free.out".format(plane_for_file)
+    beta_df.headers["FILENAME"] = "getbeta{}.out".format(plane_for_file)
     if DEBUG:
         DBG.close_file()
 
-    driven_beta_df = None
+    compensated_beta_df = None
 
     if phase_adv_driven is not None:
-        driven_model = driven_model.loc[phase_adv_driven["MEAS"].index]
-        LOGGER.info("Beta {} driven calculation".format(plane))
+        LOGGER.info("Beta {} compensated calculation".format(plane))
         if DEBUG:
             DBG.create_debugfile(
-                "getbeta{}.bdebug".format(plane_for_file)  # TODO change working path
+                "getbeta{}_free.bdebug".format(plane_for_file)  # TODO change working path
             )
 
-        driven_beta_df = beta_from_phase(
-            driven_model, elements,
-            phase_adv_driven, plane, range_of_bpms, error_method, Q, Qmdl % 1.0
+        compensated_beta_df = _beta_from_phase(
+            comp_model, elements,
+            phase_adv_free, plane, range_of_bpms, error_method, Q, Qmdl % 1.0
         )
-        driven_beta_df.headers["FILENAME"] = "getbeta{}.out".format(plane_for_file)
+        compensated_beta_df.headers["FILENAME"] = "getbeta{}_free.out".format(plane_for_file)
 
         if DEBUG:
             DBG.close_file()
@@ -216,11 +218,11 @@ def beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, rang
         LOGGER.warning("Skip free2 calculation")
 
     # add filename to header
-    return beta_df, driven_beta_df
+    return beta_df, compensated_beta_df
 
 
-def beta_from_phase(madTwiss, madElements, phase, plane,
-                    range_of_bpms, errors_method, tune, mdltune):
+def _beta_from_phase(madTwiss, madElements, phase, plane,
+                     range_of_bpms, errors_method, tune, mdltune):
     '''
     Calculate the beta function from phase advances.
 
@@ -242,8 +244,6 @@ def beta_from_phase(madTwiss, madElements, phase, plane,
 
     beta_df = beta_df.rename(columns={plane_bet: plane_bet + "MDL", plane_alf: plane_alf + "MDL"})
 
-    LOGGER.info("Errors from " + ID_TO_METHOD[errors_method])
-
     if errors_method == METH_A_NBPM:
         beta_df = _scan_all_BPMs_withsystematicerrors(madTwiss, madElements, phase, plane,
                                                       range_of_bpms,
@@ -259,10 +259,27 @@ def beta_from_phase(madTwiss, madElements, phase, plane,
     beta_df.headers["CALCULATION_TIME"] = "{:.2f} s".format(et)
     LOGGER.info(" - RMS beta beat: {:.2f}%".format(rmsbb))
     LOGGER.info(" - elapsed time: {:.2f}s".format(et))
-    beta_df["DELTABET"+plane] = ((beta_df.loc[:, 'BET' + plane] -
-                                  beta_df.loc[:, 'BET' + plane + 'MDL']) /
-                                 beta_df.loc[:, 'BET' + plane + 'MDL'])
+    beta_df["DELTABET"+plane] = (beta_df.loc[:, 'BET' + plane] /
+                                 beta_df.loc[:, 'BET' + plane + 'MDL'] - 1.0)
 
+    # check if there were actually errors assigned
+    if (len(madElements["dK1"].nonzero()[0]) + len(madElements["dX"].nonzero()[0]) +
+        len(madElements["KdS"].nonzero()[0])) > 0:
+        if -2 in beta_df["NCOMB"].values:
+            LOGGER.warning("Analytical N-BPM method failed for at least one BPM. "
+                           "Check debug log for more information.")
+        if 0 in beta_df["NCOMB"].values:
+            LOGGER.warning("No combinations left for at least one BPM. "
+                           "Check debug log for more information.")
+            errors_method = METH_A_NBPM
+        beta_df = beta_df.loc[beta_df["NCOMB"] > 0]
+    else:
+        errors_method = METH_NO_ERR
+        LOGGER.warning("No systematic errors were given or no element was found for the given "
+                       "error definitions. The analytical N-BPM method was not used.")
+
+    LOGGER.info("Errors from " + errors_method)
+    beta_df.headers["ErrorsFrom:"] = errors_method
     return beta_df
 
 
@@ -388,7 +405,7 @@ def _scan_all_BPMs_3bpm(phase, plane, tune, mdltune,
 
     beta_df["BBEAT" + plane] = bb
     beta_df["COUNT"] = 0
-    return beta_df.loc[beta_df["NCOMB"] > 0]
+    return beta_df
 
 
 # --------------------------------------------------------------------------------------------------
@@ -413,6 +430,7 @@ def _scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     # for fast access
     phases_meas = phase["MEAS"] * TWOPI
     phases_err = phase["ERRMEAS"] * TWOPI
+    phases_err.where(phases_err.notnull(), 1, inplace=True)
 
     result = np.ndarray(len(phases_meas.index), [('beti', float), ('betstat', float),
                                                  ('betsys', float), ('beterr', float),
@@ -422,12 +440,12 @@ def _scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     # ---------- calculate the betas --------------------------------------------------------------
 
     for i in range(0, len(phases_meas.index)):
-        row = scan_one_BPM_withsystematicerrors(madTwiss, madElements,
-                                                phases_meas, phases_err,
-                                                plane, range_of_bpms,
-                                                i,
-                                                BBA_combo, ABB_combo, BAB_combo,
-                                                tune, mdltune)
+        row = _scan_one_BPM_withsystematicerrors(madTwiss, madElements,
+                                                 phases_meas, phases_err,
+                                                 plane, range_of_bpms,
+                                                 i,
+                                                 BBA_combo, ABB_combo, BAB_combo,
+                                                 tune, mdltune)
         result[row[0]] = row[1:]
 
     beta_df["BET" + plane] = result["beti"]
@@ -445,25 +463,24 @@ def _scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     return beta_df
 
 
-def scan_several_BPMs_withsystematicerrors(madTwiss, madElements,
-                                           cot_meas, phases_err,
-                                           plane, range_of_bpms, begin, end, BBA_combo, ABB_combo, BAB_combo,
-                                           tune, mdltune):
+def scan_several_BPMs_withsystematicerrors(madTwiss, madElements, cot_meas, phases_err, plane,
+                                           range_of_bpms, begin, end, BBA_combo, ABB_combo,
+                                           BAB_combo, tune, mdltune):
     block = []
     for i in range(begin, end):
-        block.append(scan_one_BPM_withsystematicerrors(madTwiss, madElements,
-                                                       cot_meas, phases_err,
-                                                       plane, range_of_bpms,
-                                                       i,
-                                                       BBA_combo, ABB_combo, BAB_combo,
-                                                       tune, mdltune))
+        block.append(_scan_one_BPM_withsystematicerrors(madTwiss, madElements,
+                                                        cot_meas, phases_err,
+                                                        plane, range_of_bpms,
+                                                        i,
+                                                        BBA_combo, ABB_combo, BAB_combo,
+                                                        tune, mdltune))
     return block
 
 
-def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
-                                      phases_meas, phases_err,
-                                      plane, range_of_bpms, Index, BBA_combo, ABB_combo, BAB_combo,
-                                      tune, mdltune):
+def _scan_one_BPM_withsystematicerrors(madTwiss, madElements,
+                                       phases_meas, phases_err,
+                                       plane, range_of_bpms, Index, BBA_combo, ABB_combo, BAB_combo,
+                                       tune, mdltune):
     '''
     Scans the range of BPMs in order to get the final value for one BPM in the lattice
     '''
@@ -569,7 +586,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     for i, combo in enumerate(BBA_combo):
         ix = combo[0] + m
         iy = combo[1] + m
-        beta, alfa, betaline, alfaline = get_combo(
+        beta, alfa, betaline, alfaline = _calculate_beta_and_alfa_for_comb(
             ix, iy, sin_squared_elements, outerElmts, outerElmtsBet, outerElK2, cot_model, cot_meas,
             outerMeasPhaseAdv, combo, indx_el_probed, line_length, betmdl1, alfmdl1,
             range_of_bpms, m,
@@ -588,7 +605,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         iy = combo[1] + m
         i = j + len(BBA_combo)
 
-        beta, alfa, betaline, alfaline = get_combo(
+        beta, alfa, betaline, alfaline = _calculate_beta_and_alfa_for_comb(
             ix, iy, sin_squared_elements, outerElmts, outerElmtsBet, outerElK2, cot_model, cot_meas,
             outerMeasPhaseAdv, combo, indx_el_probed, line_length, betmdl1, alfmdl1,
             range_of_bpms, m,
@@ -608,7 +625,7 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
 
         i = j + len(BBA_combo) + len(BAB_combo)
 
-        beta, alfa, betaline, alfaline = get_combo(
+        beta, alfa, betaline, alfaline = _calculate_beta_and_alfa_for_comb(
             ix, iy, sin_squared_elements, outerElmts, outerElmtsBet, outerElK2, cot_model, cot_meas,
             outerMeasPhaseAdv, combo, indx_el_probed, line_length, betmdl1, alfmdl1,
             range_of_bpms, m,
@@ -626,7 +643,13 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     T_Beta = T_Beta[beta_mask]
     betas = betas[beta_mask]
     V_Beta = np.dot(T_Beta, np.dot(M, np.transpose(T_Beta)))
-    try:
+
+    T_Alfa = T_Alfa[:, mask]
+    T_Alfa = T_Alfa[beta_mask]
+    alfas = alfas[beta_mask]
+    V_Alfa = np.dot(T_Alfa, np.dot(M, np.transpose(T_Alfa)))
+    
+    if np.any(V_Beta):
         V_Beta_inv = np.linalg.pinv(V_Beta, rcond=RCOND)
         w = np.sum(V_Beta_inv, axis=1)
         VBeta_inv_sum = np.sum(w)
@@ -634,17 +657,35 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
             raise ValueError
         beterr = math.sqrt(float(np.dot(np.transpose(w), np.dot(V_Beta, w)) / VBeta_inv_sum ** 2))
         beti = float(np.dot(np.transpose(w), betas) / VBeta_inv_sum)
-    except:
-        LOGGER.debug("ValueError at {}".format(probed_bpm_name))
+        ncomb = len(betas)
+    elif len(betas) == 0:
+        LOGGER.debug("No combinations left for {}.".format(probed_bpm_name))
+        beti = DEFAULT_WRONG_BETA
+        ncomb = 0
+    else:
+        LOGGER.debug("ValueError at {} in Beta calculation.".format(probed_bpm_name))
         LOGGER.debug("betas:\n" + str(betas))
+        beti = np.average(betas)
+        ncomb = -2
+    if np.any(V_Alfa):
+        V_Alfa_inv = np.linalg.pinv(V_Alfa, rcond=RCOND)
+        w = np.sum(V_Alfa_inv, axis=1)
+        VAlfa_inv_sum = np.sum(w)
+        if VAlfa_inv_sum == 0:
+            raise ValueError
+        alferr = math.sqrt(float(np.dot(np.transpose(w), np.dot(V_Alfa, w)) / VAlfa_inv_sum ** 2))
+        alfi = float(np.dot(np.transpose(w), alfas) / VAlfa_inv_sum)
+        ncomb = len(betas)
+    elif len(alfas) == 0:
+        LOGGER.debug("No combinations left for {}.".format(probed_bpm_name))
+        alfi = DEFAULT_WRONG_BETA
+        ncomb = 0
+    else:
+        LOGGER.debug("ValueError at {} in Alfa calculation.".format(probed_bpm_name))
+        LOGGER.debug("alfas:\n" + str(alfas))
+        alfi = np.average(alfas)
+        ncomb = -2
 
-        return (
-            Index,
-            beti, betstat, betsys, beterr,
-            alfi, alfstat, alfsys, alferr,
-            .0,
-            -2
-        )
     # ----------------------------------------------------------------------------------------------
     # writing debug output
     # ----------------------------------------------------------------------------------------------
@@ -665,14 +706,14 @@ def scan_one_BPM_withsystematicerrors(madTwiss, madElements,
         beti, betstat, betsys, beterr,
         alfi, alfstat, alfsys, alferr,
         .0,
-        len(betas)
+        ncomb
     )
 
 
-def get_combo(ix, iy, sin_squared_elements, outerElmts, outerElmtsBet, outerElK2, cot_model,
-              cot_meas, outerMeasPhaseAdv,
-              combo, indx_el_probed, line_length, betmdl1, alfmdl1, range_of_bpms, m,
-              fac1, fac2, sfac1, sfac2):
+def _calculate_beta_and_alfa_for_comb(ix, iy, sin_squared_elements, outerElmts, outerElmtsBet,
+                                      outerElK2, cot_model, cot_meas, outerMeasPhaseAdv,
+                                      combo, indx_el_probed, line_length, betmdl1, alfmdl1,
+                                      range_of_bpms, m, fac1, fac2, sfac1, sfac2):
     """Calculates beta and alpha function as well as the respective covariance matrix lines for the
     given combination
     """
@@ -689,7 +730,7 @@ def get_combo(ix, iy, sin_squared_elements, outerElmts, outerElmtsBet, outerElK2
 
     # calculate beta
     denom = (cot_model[ix] - cot_model[iy]) / betmdl1
-    denomalf = denom * betmdl1 + 2 * alfmdl1
+    denomalf = cot_model[ix] + cot_model[iy] + 2 * alfmdl1
     beta_i = (cot_meas[ix] - cot_meas[iy]) / denom
     alfa_i = 0.5 * (denomalf * beta_i / betmdl1 -
                     (cot_meas[ix] + cot_meas[iy]))
@@ -820,7 +861,6 @@ def _add_header(df, header_dict, error_method, range_of_bpms):
         df.headers[key] = header_dict[key]
     df.headers['BetaAlgorithmVersion'] = __version__
     df.headers['RCond'] = RCOND
-    df.headers['ErrorsFrom'] = ID_TO_METHOD[error_method]
     df.headers['RangeOfBPMs'] = "Adjacent" if error_method == METH_3BPM else range_of_bpms
 
 

@@ -393,7 +393,11 @@ def change_color_brightness(color, amount=0.5):
         c = mc.cnames[color]
     except KeyError:
         c = color
-    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+
+    try:
+        c = colorsys.rgb_to_hls(*mc.ColorConverter().to_rgb(c))  # matplotlib 1.5
+    except AttributeError:
+        c = colorsys.rgb_to_hls(*mc.to_rgb(c))  # matplotlib > 2
     return colorsys.hls_to_rgb(c[0], 1-amount * (1-c[1]), c[2])
 
 
@@ -607,9 +611,14 @@ def small_title(ax=None):
     ax.title.set_horizontalalignment('right')
 
 
+def get_legend_ncols(labels, max_length=78):
+    """ Calulate the number of columns in legend dynamically """
+    return max([max_length/max([len(l) for l in labels]), 1])
+
+
 def make_top_legend(ax, ncol):
     """ Create a legend on top of the plot. """
-    leg = ax.legend(loc='lower right', bbox_to_anchor=(1.0, 1.01),
+    leg = ax.legend(loc='lower right', bbox_to_anchor=(1.0, 1.02),
                     fancybox=True, shadow=True, ncol=ncol)
 
     if LooseVersion(matplotlib.__version__) <= LooseVersion("2.2.0"):
@@ -620,7 +629,7 @@ def make_top_legend(ax, ncol):
     legend_width = leg.get_window_extent().inverse_transformed(leg.axes.transAxes).width
     if legend_width > 1:
         x_shift = (legend_width - 1) / 2.
-        ax.legend(loc='lower right', bbox_to_anchor=(1.0 + x_shift, 1.01),
+        ax.legend(loc='lower right', bbox_to_anchor=(1.0 + x_shift, 1.02),
                   fancybox=True, shadow=True, ncol=ncol)
 
     if LooseVersion(matplotlib.__version__) >= LooseVersion("2.2.0"):
