@@ -39,7 +39,7 @@ class DotDict(dict):
 
     def get_subdict(self, keys, strict=True):
         """ See get_subdict in dict_tools. """
-        return get_subdict(self, keys, strict)
+        return DotDict(get_subdict(self, keys, strict))
 
 
 def print_dict_tree(dictionary, name='Dictionary'):
