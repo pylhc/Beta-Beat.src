@@ -89,7 +89,7 @@ exec, save_initial_and_final_values(
     ps,
     %(STARTFROM)s,
     %(ENDAT)s,
-    "%(PATH)s/measurement_%(LABEL)s.madx",
+    "%(PATH)s/measurement%(BETAKIND)s_%(LABEL)s.madx",
     binips,
     bendps
 );
@@ -101,10 +101,10 @@ exec, extract_segment_sequence(
 );
 
 
-exec, twiss_segment(front_ps, "%(PATH)s/twiss_%(LABEL)s.dat", binips);
-exec, twiss_segment(back_ps, "%(PATH)s/twiss_%(LABEL)s_back.dat", bendps);
+exec, twiss_segment(front_ps, "%(PATH)s/twiss%(BETAKIND)s_%(LABEL)s.dat", binips);
+exec, twiss_segment(back_ps, "%(PATH)s/twiss%(BETAKIND)s_%(LABEL)s_back.dat", bendps);
 
 call, file="%(PATH)s/corrections_%(LABEL)s.madx";
 
-exec, twiss_segment(front_ps, "%(PATH)s/twiss_%(LABEL)s_cor.dat", binips);
-exec, twiss_segment(back_ps, "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", bendps);
+exec, twiss_segment(front_ps, "%(PATH)s/twiss%(BETAKIND)s_%(LABEL)s_cor.dat", binips);
+exec, twiss_segment(back_ps, "%(PATH)s/twiss%(BETAKIND)s_%(LABEL)s_cor_back.dat", bendps);

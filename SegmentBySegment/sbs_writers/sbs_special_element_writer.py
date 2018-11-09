@@ -10,18 +10,27 @@ from tfs_files import tfs_file_writer
 NAN = float("nan")
 
 
-def _get_ip_tfs_files(save_path):
-    file_ip_parabola = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_para.out"))
+def _get_ip_tfs_files(save_path,betakind):
+    '''
+    for beta from phase (default): betakind = ""  
+    for beta from amplitude :      betakind = "amp"  
+    for beta from kmod :           betakind = "kmod"  
+    '''
+    suffix = ''
+    if (betakind != ''):
+        suffix = '_beta'+betakind
+    
+    file_ip_parabola = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_para" + suffix + ".out"))
 
     file_ip_parabola.add_column_names(["NAME", "S", "BETX", "EBETX", "X", "EX", "BETY", "EBETY", "Y", "EY", "BETX_ph", "EBETX_ph", "BETY_ph", "EBETY_ph"])
     file_ip_parabola.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
-    file_ip_propagation_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_x.out"))
+    file_ip_propagation_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_x" + suffix + ".out"))
 
     file_ip_propagation_x.add_column_names(["NAME", "S", "BETSTARX", "EBETSTARX", "X[cm]", "EX[cm]", "BETIPX", "EBETIPX", "ALFIPX", "EALFIPX"])
     file_ip_propagation_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
-    file_ip_propagation_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_y.out"))
+    file_ip_propagation_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_y" + suffix + ".out"))
 
     file_ip_propagation_y.add_column_names(["NAME", "S", "BETY", "EBETY", "Y[cm]", "EY[cm]", "BETIPY", "EBETIPY", "ALFIPY", "EALFIPY"])
     file_ip_propagation_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
@@ -33,7 +42,7 @@ def write_ip(measured_hor_beta_amp, measured_ver_beta_amp,
              beta_x_ip, err_beta_x_ip, alfa_x_ip, err_alfa_x_ip,
              beta_y_ip, err_beta_y_ip, alfa_y_ip, err_alfa_y_ip,
              input_model, measured_hor_phase, measured_ver_phase, element_name,
-             accel_inst, save_path):
+             accel_inst, save_path,betakind):
     '''
     Function calculating the optics parameters at the IP
 
@@ -58,11 +67,16 @@ def write_ip(measured_hor_beta_amp, measured_ver_beta_amp,
             name of the accelerator
         'save_path': string
             where to save file
+        'betakind': string
+            for beta from phase (default): betakind = ""  
+            for beta from amplitude :      betakind = "amp"  
+            for beta from kmod :           betakind = "kmod"  
+            
     :Return: None
         nothing => writing to file in this function (new/appending)
     '''
 
-    file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y = _get_ip_tfs_files(save_path)
+    file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y = _get_ip_tfs_files(save_path,betakind)
 
     ## constructor
     accel_beam = "B" + str(accel_inst.get_beam())

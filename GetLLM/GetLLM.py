@@ -97,6 +97,7 @@ import algorithms.coupling
 import algorithms.resonant_driving_terms
 import algorithms.interaction_point
 import algorithms.chi_terms
+import algorithms.constants
 import utils.iotools
 import time, calendar
 import copy
@@ -136,6 +137,7 @@ ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 ONLYCOUPLING    = 0     #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
+DEFAULT_USE_ERROR_OF_MEAN = 0 #@IgnorePep8
 
 #===================================================================================================
 # _parse_args()-function
@@ -171,6 +173,9 @@ def _parse_args():
     parser.add_option("--nonlinear",
                     help="Run the RDT analysis",
                     metavar="NONLINEAR", default=NONLINEAR, dest="nonlinear")
+    parser.add_option("--useerrorofmean",
+                      help="If true, use standard error instread of standard deviation.", 
+                      metavar="DEFAULT_USE_ERROR_OF_MEAN",default=DEFAULT_USE_ERROR_OF_MEAN, dest="use_error_of_mean")
     parser.add_option("-b", "--bpmu",
                     help="BPMunit: um, mm, cm, m (default um)",
                     metavar="BPMUNIT", default=BPMUNIT, dest="BPMUNIT")
@@ -256,7 +261,8 @@ def main(outputpath,
          calibration_dir_path=CALIBRATION,
          errordefspath=ERRORDEFS,
          nprocesses=NPROCESSES,
-         onlycoupling=ONLYCOUPLING):
+         onlycoupling=ONLYCOUPLING,
+         use_error_of_mean=DEFAULT_USE_ERROR_OF_MEAN):
     '''
     GetLLM main function.
 
@@ -304,7 +310,9 @@ def main(outputpath,
     getllm_d.accel = accel
     getllm_d.nprocesses = nprocesses
     getllm_d.onlycoupling = onlycoupling
-
+    
+    algorithms.constants.USE_ERROR_OF_MEAN = bool(use_error_of_mean)
+    
     dinj = DepInjector()
     dinj.initial("getllm_d", getllm_d)\
         .initial("bbthreshold", bbthreshold)\
@@ -1370,7 +1378,8 @@ def _start():
          calibration_dir_path=options.calibration_dir_path,
          errordefspath=options.errordefspath,
          nprocesses=options.nprocesses,
-         onlycoupling=options.onlycoupling)
+         onlycoupling=options.onlycoupling,
+         use_error_of_mean=options.use_error_of_mean)
      
      
 if __name__ == "__main__":

@@ -110,9 +110,11 @@ class PsboosterSegmentCreator(model_creator.ModelCreator):
             "PATH": output_path,
             "OUTPUT": output_path,
             "LABEL": instance.label,
+            "BETAKIND": instance.kind,
             "STARTFROM": instance.start.name,
             "ENDAT": instance.end.name,
         }
+        
         madx_script = madx_template % replace_dict
         return madx_script
             

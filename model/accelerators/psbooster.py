@@ -233,6 +233,7 @@ class Psbooster(Accelerator):
         segment_inst.energy = tw.ENERGY
         segment_inst.sequence = tw.SEQUENCE
         segment_inst.ring = ring
+        segment_inst.kind = '' # '' means beta from phase, can be 'betaamp', in the future 'betakmod'
         
         return segment_inst    
 

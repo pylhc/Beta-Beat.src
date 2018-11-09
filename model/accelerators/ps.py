@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import datetime as dt
 from accelerator import Accelerator,Element
 from tfs_files import tfs_pandas
@@ -224,6 +225,7 @@ class Ps(Accelerator):
         segment_inst.nat_tune_x = tw.Q1
         segment_inst.nat_tune_y = tw.Q2
         segment_inst.energy = tw.ENERGY
+        segment_inst.kind = '' # '' means beta from phase, can be 'betaamp', in the future 'betakmod'
         
         return segment_inst    
 

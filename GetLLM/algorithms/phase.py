@@ -24,6 +24,7 @@ import compensate_ac_effect
 
 from beta import JPARC_intersect
 from tfs_files import tfs_file_writer
+import constants
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -551,6 +552,8 @@ def calc_phase_std(phase0, norm):
     if len(phase0) > 1:
         phase_std = math.sqrt(min_phase_std/(len(phase0)-1))
         phase_std = phase_std * t_value_correction(len(phase0)-1)
+        if constants.USE_ERROR_OF_MEAN:
+            phase_std = phase_std/math.sqrt(len(phase0)) 
     else:
         phase_std = 0
     return phase_std

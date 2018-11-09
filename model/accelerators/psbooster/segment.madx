@@ -69,7 +69,7 @@ exec, save_initial_and_final_values(
     psb%(RING)s,
     %(STARTFROM)s,
     %(ENDAT)s,
-    "%(PATH)s/measurement_%(LABEL)s.madx",
+    "%(PATH)s/measurement%(BETAKIND)s_%(LABEL)s.madx",
     binipsb%(RING)s,
     bendpsb%(RING)s
 );
@@ -83,10 +83,10 @@ exec, extract_segment_sequence(
 !exec, beam_psb%(RING)s(back_psb%(RING)s);
 
 
-exec, twiss_segment(front_psb%(RING)s, "%(PATH)s/twiss_%(LABEL)s.dat", binipsb%(RING)s);
-exec, twiss_segment(back_psb%(RING)s, "%(PATH)s/twiss_%(LABEL)s_back.dat", bendpsb%(RING)s);
+exec, twiss_segment(front_psb%(RING)s, "%(PATH)s/twiss%(BETAKIND)s_%(LABEL)s.dat", binipsb%(RING)s);
+exec, twiss_segment(back_psb%(RING)s, "%(PATH)s/twiss%(BETAKIND)s_%(LABEL)s_back.dat", bendpsb%(RING)s);
 
 call, file="%(PATH)s/corrections_%(LABEL)s.madx";
 
-exec, twiss_segment(front_psb%(RING)s, "%(PATH)s/twiss_%(LABEL)s_cor.dat", binipsb%(RING)s);
-exec, twiss_segment(back_psb%(RING)s, "%(PATH)s/twiss_%(LABEL)s_cor_back.dat", bendpsb%(RING)s);
+exec, twiss_segment(front_psb%(RING)s, "%(PATH)s/twiss%(BETAKIND)s_%(LABEL)s_cor.dat", binipsb%(RING)s);
+exec, twiss_segment(back_psb%(RING)s, "%(PATH)s/twiss%(BETAKIND)s_%(LABEL)s_cor_back.dat", bendpsb%(RING)s);

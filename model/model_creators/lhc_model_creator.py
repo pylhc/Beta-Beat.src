@@ -143,6 +143,7 @@ class LhcSegmentCreator(model_creator.ModelCreator):
             "NUM_BEAM": lhc_instance.get_beam(),
             "PATH": output_path,
             "LABEL": lhc_instance.label,
+            "BETAKIND": lhc_instance.kind,
             "STARTFROM": lhc_instance.start.name,
             "ENDAT": lhc_instance.end.name,
         }

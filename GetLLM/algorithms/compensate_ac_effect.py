@@ -25,6 +25,8 @@ from collections import OrderedDict
 import utils.bpm
 import phase
 from constants import PI, TWOPI, kEPSILON
+import constants    # needed for constants.USE_ERROR_OF_MEAN, if USE_ERROR_OF_MEAN added to the line above
+                    # its changes are not visible here (skowron) 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -431,21 +433,21 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
                 [2 * Files[i].AMPX[Files[i].indx[b[1]]] for b in all_bpms]
             )
             try:
-                 amp_err = np.array(
+                amp_err = np.array(
                     [Files[i].ERRAMPX[Files[i].indx[b[1]]] for b in all_bpms]
                 )
-                 print "CALIBRATION"
-                 print Files[i].CALIBRATION
-                 calibration = np.array(
+                print "CALIBRATION"
+                print Files[i].CALIBRATION
+                calibration = np.array(
                     [Files[i].CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
                 )
-                 calibration_error = np.array(
+                calibration_error = np.array(
                     [Files[i].ERROR_CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
                 )
             except AttributeError:
-                  amp_err = np.zeros(len(amp))
-                  calibration = np.ones(len(amp))
-                  calibration_error = np.zeros(len(amp))
+                amp_err = np.zeros(len(amp))
+                calibration = np.ones(len(amp))
+                calibration_error = np.zeros(len(amp))
             psid = bd * 2 * np.pi * np.array(
                 [Files[i].MUX[Files[i].indx[b[1]]] for b in all_bpms]
             )  # bd flips B2 phase to B1 direction
@@ -457,19 +459,19 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
                 [Files[i].MUY[Files[i].indx[b[1]]] for b in all_bpms]
             )  # bd flips B2 phase to B1 direction
             try:
-                 amp_err = np.array(
+                amp_err = np.array(
                     [Files[i].ERRAMPY[Files[i].indx[b[1]]] for b in all_bpms]
                 )
-                 calibration = np.array(
+                calibration = np.array(
                     [Files[i].CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
                 )
-                 calibration_error = np.array(
+                calibration_error = np.array(
                     [Files[i].ERROR_CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
                 )
             except AttributeError:
-                  amp_err = np.zeros(len(amp))
-                  calibration = np.ones(len(amp))
-                  calibration_error = np.zeros(len(amp))
+                amp_err = np.zeros(len(amp))
+                calibration = np.ones(len(amp))
+                calibration_error = np.zeros(len(amp))
         
 # This loop is just to fix the phase jump at the beginning of the ring.
         for k in range(len(all_bpms)):
@@ -504,10 +506,14 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
     #-- Output
     result = {}
     bb = []
+    
     for k in range(len(all_bpms)):
         betave = np.mean(betall[k])
         bet_errave = np.mean(betall_err[k])
         betstd = np.std(betall[k])
+        
+        if constants.USE_ERROR_OF_MEAN and len(betall[k]) > 0:
+            betstd = betstd/math.sqrt(len(betall[k]))
         bet_err_total = (bet_errave**2+betstd**2)**0.5
         bb.append((betave - betmdl[k]) / betmdl[k])
         result[all_bpms[k][1]] = [betave, bet_err_total, all_bpms[k][0]]
