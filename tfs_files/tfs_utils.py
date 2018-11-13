@@ -1,3 +1,9 @@
+"""
+Module tfs_files.tfs_utils
+---------------------------------
+
+Helperfunctions to handle TFS-files easier.
+"""
 from tfs_files import tfs_pandas as tfs
 from utils import logging_tools as logtools
 

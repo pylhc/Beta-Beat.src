@@ -17,7 +17,7 @@ from tfs_files import tfs_pandas as tfs
 def extract_knob_values(knob_name, time, cwd="./", server=None):
     """ Extract knob values from online model using the knob name and the time.
 
-    .. code-block:: python
+    Example Call::
 
         extract_knob_values("LHCBEAM/2018_global_ats_flat_b1_for_ip5_waist",
                             "2018-10-30 15:00:00.0",

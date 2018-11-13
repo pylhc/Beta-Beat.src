@@ -1,3 +1,9 @@
+"""
+Module tfs_files.tfs_collection
+---------------------------------
+
+Easy access to tfs-file contents via ``tfs_pandas``.
+"""
 from __future__ import print_function
 import os
 from tfs_files import tfs_pandas

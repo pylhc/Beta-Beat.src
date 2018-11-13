@@ -1,6 +1,6 @@
 """
-.. module:: tfs_file_writer
-
+Module tfs_files.tfs_file_writer
+---------------------------------
 
 This module contains the class TfsFileWriter which is used to create easily TfsFiles.
 
