@@ -16,13 +16,13 @@ Contents:
    GetLLM/index
    harmonic_analysis/index
    model/index
+   online_model/index
    plotshop/index
    segment_by_segment/index
    tfs_files/index
    tune_analysis/index
    twiss_optics/index
    utils/index
-
 
 
 Indices and tables
