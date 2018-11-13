@@ -21,7 +21,7 @@ POSITION_COLUMN = "S"
 BETA_COLUMN = "BET{plane:s}"
 ALPHA_COLUMN = "ALF{plane:s}"
 PLANES = "XY"
-RES_COLUMNS = ["LABEL", "S", "BETASTAR", "WAIST", "BETAWAIST"]
+RES_COLUMNS = ["LABEL", "S", "BETASTAR", "ALPHASTAR", "WAIST", "BETAWAIST"]
 RESULTS_PREFIX = "betaip_"
 RESULTS_SUFFIX = ".tfs"
 
@@ -30,7 +30,7 @@ def get_beta_star_and_waist_from_ip(tfs_df, beam, locations, labels=None):
     """ Get beta* and waist* info directly from IP.
 
     Args:
-        tfs: pandas dataframe or path to tfs file
+        tfs_df: pandas dataframe or path to tfs file
         locations: ip-labels to get the info from
         labels: labels to use (default: location names)
 
@@ -55,9 +55,10 @@ def get_beta_star_and_waist_from_ip(tfs_df, beam, locations, labels=None):
             pos = tfs_df.loc[loc, POSITION_COLUMN]
             beta_star = tfs_df.loc[loc, BETA_COLUMN.format(plane=plane)]
             alpha_star = tfs_df.loc[loc, ALPHA_COLUMN.format(plane=plane)]
-            beta_waist = beta_star / (1 + alpha_star)
-            waist = alpha_star * beta_waist
-            tfs_out.loc[get_full_label(lab, beam, plane)] = [pos, beta_star, waist, beta_waist]
+            beta_waist = get_beta_waist(beta_star, alpha_star)
+            waist = get_waist(beta_star, alpha_star, ip=int(loc[-1]), plane=plane, beam=beam)
+            tfs_out.loc[get_full_label(lab, beam, plane)] = [pos, beta_star, alpha_star,
+                                                             waist, beta_waist]
     return tfs_out
 
 
@@ -66,4 +67,29 @@ def get_full_label(label, beam, plane):
     return "{:s}.B{:d}.{:s}".format(label, beam, plane)
 
 
+def get_beta_waist(beta_star, alpha_star):
+    """ Get beta waist from star values. """
+    return beta_star / (1 + alpha_star ** 2)
 
+
+def get_waist(beta_star, alpha_star, ip, plane, beam):
+    """ Get waist from star values and beam parameters. """
+    sign = get_waist_sign(ip, plane, beam)
+    return sign * alpha_star * get_beta_waist(beta_star, alpha_star)
+
+
+def get_waist_wrapper(col, beta_star, alpha_star, ip, plane, beam):
+    """ Calls the appropriate getter function for the column defined by col. """
+    funmap = {
+        "WAIST": get_waist,
+        "BETAWAIST": lambda a, b, c, d, e: get_beta_waist(a, b),
+    }
+    return funmap[col](beta_star, alpha_star, ip, plane, beam)
+
+
+def get_waist_sign(ip, plane, beam):
+    """ Calculate waist sign for current settings """
+    ip_sign = 1 if ip in (1, 5) else -1
+    plane_sign = 1 if plane == "X" else -1
+    beam_sign = 1 if beam == 1 else -1
+    return ip_sign * plane_sign * beam_sign
