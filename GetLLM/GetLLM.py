@@ -1171,23 +1171,11 @@ def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
    if plane == "X":
       tune = "Q1"
       tune_rms = "Q1RMS"
-      natural_tune = "NATQ1"
-      natural_tune_rms = "NATQ1RMS"
    elif plane == "Y":
       tune = "Q2"
       tune_rms = "Q2RMS"
-      natural_tune = "NATQ2"
-      natural_tune_rms = "NATQ2RMS"
    tune_value = getattr(drive_file,tune)
-   #print "DRIVE TUNE"
-   #print tune_value
-   #print tune_value_rms
-   #print "NATURAL TUNE"
-   #print natural_tune_value
-   #print natural_tune_value_rms
    tune_value_rms = getattr(drive_file,tune_rms)
-   natural_tune_value = getattr(drive_file,natural_tune_rms)
-   natural_tune_value_rms = getattr(drive_file,natural_tune_rms)
    for bpm_name in drive_file.NAME:
        drive_index = drive_file.indx[bpm_name]
        cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
