@@ -718,41 +718,12 @@ def _get_kmod_files():
     return kmod_path_x, kmod_path_y
 
 
-def _get_calibrated_betas(plane):
-    calibration_data = None
+def _get_amp_files(plane):
     try:
-        amplitude_beta = _get_twiss_for_one_of("getampbeta{}_free.out".format(plane),
-                                               "getampbeta{}.out".format(plane))
+        return _get_twiss_for_one_of("getampbeta{}_free.out".format(plane),
+                                     "getampbeta{}.out".format(plane))
     except IOError:
         return None
-    try:
-        calibration_data = twiss(_join_output_with("calibration_" + plane + ".out"))
-    except IOError:
-        LOGGER.info('No calibration data for beta from amplitude.')
-        return amplitude_beta
-    
-    calibrated_betas = CalibratedBetas(plane)
-    index_counter = 0
-    for bpm_name in calibration_data.NAME:
-        if bpm_name in amplitude_beta.NAME:
-            amp_index = amplitude_beta.indx[bpm_name]
-            amp_beta = getattr(amplitude_beta, "BET" + plane.upper())[amp_index]
-            LOGGER.info(' %s, amp_index %f, amp_beta %f',bpm_name, amp_index, amp_beta)
-            calibrated_betas.NAME.append(bpm_name)
-            calibrated_betas.S.append(amplitude_beta.S[amp_index])
-            calibrated_betas.indx[bpm_name] = index_counter
-            index_counter += 1
-            getattr(calibrated_betas, "BET" + plane.upper()).append(amp_beta)
-            try:
-                err_amp_beta = getattr(amplitude_beta, "BET" + plane.upper()+"STD")[amp_index]
-            except AttributeError:
-                err_amp_beta = getattr(amplitude_beta, "ERRBET" + plane.upper())[amp_index]
-            
-            getattr(calibrated_betas, "BET" + plane.upper() + "STD").append(err_amp_beta)
-            
-            mdl_amp_beta = getattr(amplitude_beta, "BET" + plane.upper() + "MDL")[amp_index]
-            getattr(calibrated_betas, "BET" + plane.upper() + "MDL").append(mdl_amp_beta)
-    return calibrated_betas
 
 
 class CalibratedBetas(object):
@@ -1407,8 +1378,8 @@ class _InputData(object):
 
         self.beta_y = _get_twiss_for_one_of("getbetay_free.out", "getbetay.out")
 
-        self.amplitude_beta_x = _get_calibrated_betas("x")
-        self.amplitude_beta_y = _get_calibrated_betas("y")
+        self.amplitude_beta_x = _get_amp_files("x")
+        self.amplitude_beta_y = _get_amp_files("y")
         
         # beta from amp does not have these values in the input file 
         # the calculated values are stored here 
