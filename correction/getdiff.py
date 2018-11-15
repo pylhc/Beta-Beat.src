@@ -32,12 +32,13 @@ Some hints:
     Don't look into the coupling and chromatic coupling namings.
 """
 from __future__ import print_function
+
+import re
+import sys
+from os.path import abspath, join, dirname, isdir, exists, split, pardir
+
 import numpy as np
 import pandas as pd
-import sys
-import os
-import re
-from os.path import abspath, join, dirname, isdir, exists, split, pardir
 
 new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
@@ -271,10 +272,11 @@ def _write_betastar_diff_file(meas_path, meas, twiss_cor, twiss_no):
                 tw.loc[label, "S"] = model.loc[ip_name, "S"]
 
                 # calculate alpha* but with s-oriented waist definition
-                waist_sign = bsft.get_waist_sign(ip_map[label][-1], plane, beam)
-                meas["ALPHASTAR"] = meas["WAIST"] / meas["BETAWAIST"] * waist_sign
-                meas["ALPHASTAR_ERR"] = (meas["WAIST_ERR"] / meas["WAIST"] * waist_sign +
-                                         meas["BETAWAIST_ERR"] / meas["BETAWAIST"]) * meas["ALPHASTAR"]
+                meas["ALPHASTAR"] = meas["WAIST"] / meas["BETAWAIST"]
+                meas["ALPHASTAR_ERR"] = ((meas["WAIST_ERR"] / meas["WAIST"] +
+                                          meas["BETAWAIST_ERR"] / meas["BETAWAIST"]) *
+                                         meas["ALPHASTAR"]
+                                         )
                 for attr in bsft.RES_COLUMNS[2:]:
                     # default diff parameter
                     tw.loc[label, attr + "_MEA"] = (meas.loc[label, attr]
@@ -290,9 +292,9 @@ def _write_betastar_diff_file(meas_path, meas, twiss_cor, twiss_no):
 
                     # and the beatings
                     tw.loc[label, "B{}_MEA".format(attr)] = (tw.loc[label, attr + "_MEA"]
-                                                                / design.loc[ip_name, attr])
+                                                             / design.loc[ip_name, attr])
                     tw.loc[label, "B{}_MODEL".format(attr)] = (tw.loc[label, attr + "_MODEL"]
-                                                                / design.loc[ip_name, attr])
+                                                               / design.loc[ip_name, attr])
 
                     # special handling for the expectation values, as waist and betawaist
                     # should be derived directly from alpha* and beta*
@@ -312,9 +314,6 @@ def _write_betastar_diff_file(meas_path, meas, twiss_cor, twiss_no):
                             bsft.get_waist_wrapper(attr,
                                                    tw.loc[label, "BETASTAR_EXPECTVAL"],
                                                    tw.loc[label, "ALPHASTAR_EXPECTVAL"],
-                                                   ip=int(ip_map[label][-1]),
-                                                   plane=plane,
-                                                   beam=beam,
                                                    )
                         )
 
