@@ -99,6 +99,7 @@ def getdiff(meas_path=None, beta_file_name="getbeta"):
         _write_betabeat_diff_file(meas_path, meas, model, plane, beta_file_name)
         _write_phase_diff_file(meas_path, meas, model, plane)
         _write_disp_diff_file(meas_path, meas, model, plane)
+        _write_closed_orbit_diff_file(meas_path, meas, model, plane)
     _write_coupling_diff_file(meas_path, meas, coupling_model)
     _write_norm_disp_diff_file(meas_path, meas, model)
     _write_chromatic_coupling_files(meas_path, corrected_model_path)
@@ -163,6 +164,22 @@ def _write_disp_diff_file(meas_path, meas, model, plane):
                   tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
 
 
+def _write_closed_orbit_diff_file(meas_path, meas, model, plane):
+    LOG.debug("Calculating orbit diff.")
+    up = plane.upper()
+    try:
+        tw = pd.merge(meas.orbit[plane], model, how='inner', on='NAME')
+    except IOError:
+        LOG.debug("Orbit measurements not found. Skipped.")
+    else:
+        tw['MEA'] = tw.loc[:, up] - tw.loc[:, up + 'MDL']
+        tw['ERROR'] = tw.loc[:, 'STD' + up]
+        tw['MODEL'] = (tw.loc[:, up + '_c'] - tw.loc[:, up + '_n']) * 1000
+        tw['EXPECT'] = tw['MEA'] - tw['MODEL'] * 1000
+        write_tfs(join(meas_path, get_diff_filename('co' + plane)),
+                  tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
+
+
 def _write_norm_disp_diff_file(meas_path, meas, model):
     LOG.debug("Calculating normalized dispersion diff.")
     try:
@@ -175,7 +192,7 @@ def _write_norm_disp_diff_file(meas_path, meas, model):
         tw['MODEL'] = (tw.loc[:, 'DX_c'] / np.sqrt(tw.loc[:, 'BETX_c'])
                        - tw.loc[:, 'DX_n'] / np.sqrt(tw.loc[:, 'BETX_n']))
         tw['EXPECT'] = tw['MEA'] - tw['MODEL']
-        write_tfs(join(meas_path, 'ndx.out'),
+        write_tfs(join(meas_path, get_diff_filename('ndx')),
                   tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
 
 
