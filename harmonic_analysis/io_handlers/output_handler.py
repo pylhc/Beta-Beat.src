@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import logging
+from copy import copy
 from tfs_files import tfs_pandas
 from sdds_files import turn_by_turn_reader
 
@@ -81,3 +82,16 @@ def _write_full_spectrum(main_input, spectrum, plane):
 
 def get_outpath_with_suffix(path, output_dir, suffix):
     return os.path.join(output_dir, os.path.basename(path) + suffix)
+
+
+def handle_multibunch(main_input, tbt_files):
+    if len(tbt_files) == 1:
+        yield main_input, tbt_files[0]
+        raise StopIteration
+    for bunchfile in tbt_files:
+        new_main_input = copy(main_input)
+        outdirname = "bunchid" + str(bunchfile.bunch_id) + "_" + os.path.basename(new_main_input.outputdir)
+        new_main_input.outputdir = os.path.join(os.path.dirname(main_input.outputdir), outdirname) 
+        outdirname = "bunchid" + str(bunchfile.bunch_id) + "_" + os.path.basename(new_main_input.file)
+        new_main_input.file = os.path.join(os.path.dirname(main_input.file), outdirname) 
+        yield new_main_input, bunchfile

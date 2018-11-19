@@ -28,10 +28,17 @@ def run_all(main_input, clean_input, harpy_input, optics_input, to_log):
             return
         _setup_file_log_handler(main_input)
         LOGGER.debug(to_log)
-        tbt_files = [turn_by_turn_reader.read_tbt_file(input_file.strip())[0] for input_file in
-                     main_input.file.strip("\"").split(",")]
-        lins = map(lambda x: run_all_for_file(x, main_input, clean_input, harpy_input),
-                   [tbt_file for tbt_file in tbt_files])
+        tbt_files = [turn_by_turn_reader.read_tbt_file(input_file.strip())
+                     for input_file in main_input.file.strip("\"").split(",")]
+        
+        lins = []
+        for tbt_file in tbt_files:
+            lins.extend(
+                [run_all_for_file(bunchfile, this_main_input, clean_input, harpy_input)
+                 for this_main_input, bunchfile in
+                 output_handler.handle_multibunch(main_input, tbt_file)]
+            )
+
         if optics_input is not None:
             inputs = measure_optics.InputFiles(lins)
             iotools.create_dirs(optics_input.outputdir)
