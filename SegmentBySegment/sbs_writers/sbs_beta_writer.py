@@ -42,7 +42,7 @@ def write_beta(element_name, is_element,
     if betakind=="amp" and input_data.alphaampX_failed:
         LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
         summary_data_x = _write_zerobeta_for_plane(file_alfa_x, file_beta_x, 
-                          "X", element_name, bpms_list, 
+                          "X", element_name, bpms_list_x, 
                           input_data,input_model, 
                           save_path, is_element, beta_summary_file)
     else:
@@ -55,7 +55,7 @@ def write_beta(element_name, is_element,
     if betakind=="amp" and input_data.alphaampY_failed:
         LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
         summary_data_y = _write_zerobeta_for_plane(file_alfa_y, file_beta_y, 
-                          "Y", element_name, bpms_list, 
+                          "Y", element_name, bpms_list_y, 
                           input_data,input_model, 
                           save_path, is_element, beta_summary_file)
     
