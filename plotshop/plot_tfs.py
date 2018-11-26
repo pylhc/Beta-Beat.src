@@ -59,16 +59,23 @@ def get_params():
         nargs="+",
     )
     params.add_parameter(
-        flags="--labels",
-        help="Y-Lables for the plots, default: y_col.",
-        name="labels",
+        flags="--ylabels",
+        help="Y-Lables for the plots, default: column_labels or file_labels.",
+        name="y_labels",
         type=basestring,
         nargs="+",
     )
     params.add_parameter(
-        flags="--source_names",
+        flags="--columnlabels",
+        help="Column-Lables for the plots, default: y_column.",
+        name="column_labels",
+        type=basestring,
+        nargs="+",
+    )
+    params.add_parameter(
+        flags="--filelabels",
         help="Names for the sources for the plots, default: filenames.",
-        name="source_names",
+        name="file_labels",
         type=basestring,
         nargs="+",
     )
@@ -109,10 +116,10 @@ def get_params():
         name="auto_scale",
     )
     params.add_parameter(
-        flags="--singlefig",
-        help="Plots into one figure. (Works only with one file so far).",
+        flags="--figperfile",
+        help="Plots all columns into one figure. (Works only with one file so far).",
         action="store_true",
-        name="single_fig",
+        name="figure_per_file",
     )
     return params
 
@@ -182,12 +189,12 @@ def plot(opt):
                  **Action**: ``store_true``
         output (basestring): Base-Name of the output files. _'y_col'.pdf will be attached.
                              **Flags**: --output
-        single_fig (bool): Plots into one figure. (Works only with one file so far).
-                           **Flags**: --singlefig
+        figure_per_file (bool): Plots  all colimns into one figure. (Works only with one file so far).
+                           **Flags**: --figperfile
                            **Action**: ``store_true``
 
-        source_names (basestring): Names for the sources for the plots, default: filenames.
-                                   **Flags**: --source_names
+        file_labels (basestring): Names for the sources for the plots, default: filenames.
+                                   **Flags**: --file_labels
         x_cols (basestring): List of column names to use as x-values.
                              **Flags**: ['-x', '--x_cols']
         xy (bool): Plots X and Y for the give parameters into one figure (two axes).
@@ -204,18 +211,16 @@ def plot(opt):
 
     # plotting
     figs = _create_plots(opt.x_cols, opt.y_cols, opt.e_cols, twiss_data,
-                         opt.source_names, opt.labels,
-                         opt.xy, opt.change_marker, opt.no_legend, opt.auto_scale, opt.single_fig)
+                         opt.file_labels, opt.column_labels, opt.y_labels,
+                         opt.xy, opt.change_marker, opt.no_legend, opt.auto_scale, opt.figure_per_file)
 
     # exports
     if opt.output:
-        _export_plots(figs, opt.output)
+        export_plots(figs, opt.output)
 
     if not opt.no_show:
         plt.show()
 
-    if opt.single_fig:
-        return figs[0]
     return figs
 
 
@@ -224,7 +229,10 @@ def plot(opt):
 
 def _get_data(files):
     """ Load all data from files """
-    return [tfs.read_tfs(f) for f in files]
+    try:
+        return [tfs.read_tfs(f, index="NAME") for f in files]
+    except KeyError:
+        return [tfs.read_tfs(f) for f in files]
 
 
 class _LoopGenerator:
@@ -234,22 +242,23 @@ class _LoopGenerator:
         # just here so the IDE does not complain, reassigned below
         pass
 
-    def __init__(self, x_cols, y_cols, e_cols, datas, source_names, labels, xy, single_fig):
+    def __init__(self, x_cols, y_cols, e_cols, datas, file_labels, column_labels, y_labels, xy, figure_per_file):
         # self.gs = _get_gridspec(xy)
         self.figs = None
         self.x_cols = x_cols
         self.y_cols = y_cols
         self.e_cols = e_cols
         self.datas = datas
-        self.source_names = source_names
-        self.labels = labels
+        self.file_labels = file_labels
+        self.column_labels = column_labels
+        self.y_labels = y_labels
         self.xy = xy
-        self.single_fig = single_fig
+        self.figure_per_file = figure_per_file
 
-        if single_fig:
-            self.__call__ = self._do_sigle_fig
+        if figure_per_file:
+            self.__call__ = self._do_figure_per_file
         else:
-            self.__call__ = self._do_multi_fig
+            self.__call__ = self._do_figure_per_column
 
     def get_figs(self):
         return self.figs
@@ -267,31 +276,36 @@ class _LoopGenerator:
         except TypeError:
             return plt.subplots(1+self.xy, 1)
 
-    def _do_sigle_fig(self):
-        """ single figure: loop over the two axes as outer loop """
-        fig, axs = self._get_fig()
-        fig.canvas.set_window_title("File '{:s}'".format(self.source_names[0]))
-        self.figs = [fig]
+    def _do_figure_per_file(self):
+        """ figure per file: loop over the files as outer loop """
+        if self.y_labels is None:
+            self.y_labels = self.file_labels
+        self.figs = {}
+        for idx_file in range(len(self.file_labels)):
+            fig, axs = self._get_fig()
+            p_title = self.file_labels[idx_file]
+            if self.xy:
+                p_title += "_dualPlane"
+            fig.canvas.set_window_title("File '{:s}'".format(p_title))
+            self.figs[p_title] = fig
+            for idx_plot in range(1 + self.xy):
+                ax = self._get_current_axes(axs, idx_plot)
+                for idx_col in range(len(self.x_cols)):
+                    # ax, idx_plot, idx_line, data, x_col, y_col, e_col, legend, y_label, last_line
+                    yield (ax, idx_plot, idx_col, self.datas[idx_file],
+                           self.x_cols[idx_col], self.y_cols[idx_col], self.e_cols[idx_col],
+                           self.column_labels[idx_col], self.y_labels[idx_file],
+                           idx_col == (len(self.x_cols)-1),
+                           )
 
-        # define y_label
-        y_label = ""
-        if len(self.labels) == 1:
-            y_label = self.labels[0]
-        for idx_plot in range(1 + self.xy):
-            ax = self._get_current_axes(axs, idx_plot)
-            for idx_col in range(len(self.x_cols)):
-                yield (ax, idx_plot, idx_col, self.datas[0],
-                       self.x_cols[idx_col], self.y_cols[idx_col], self.e_cols[idx_col],
-                       self.labels[idx_col], y_label,
-                       idx_col == (len(self.x_cols)-1),
-                       )
-
-    def _do_multi_fig(self):
+    def _do_figure_per_column(self):
         """ a figure for each parameter: loop over the columns as outer loop """
+        if self.y_labels is None:
+            self.y_labels = self.column_labels
         self.figs = {}
         for idx_col in range(len(self.x_cols)):
             fig, axs = self._get_fig()
-            p_title = self.labels[idx_col]
+            p_title = self.column_labels[idx_col]
             if self.xy:
                 p_title += "_dualPlane"
             fig.canvas.set_window_title("Parameter '{:s}'".format(p_title))
@@ -299,9 +313,10 @@ class _LoopGenerator:
             for idx_plot in range(1 + self.xy):
                 ax = self._get_current_axes(axs, idx_plot)
                 for idx_data in range(len(self.datas)):
+                    # ax, idx_plot, idx_line, data, x_col, y_col, e_col, legend, y_label, last_line
                     yield (ax, idx_plot, idx_data, self.datas[idx_data],
                            self.x_cols[idx_col], self.y_cols[idx_col], self.e_cols[idx_col],
-                           self.source_names[idx_data], self.labels[idx_col],
+                           self.file_labels[idx_data], self.y_labels[idx_col],
                            idx_data == (len(self.datas)-1)
                            )
 
@@ -310,18 +325,25 @@ class _LoopGenerator:
 
         Done here, as this class divides single-plot from multiplot anyway
         """
-        names = self.labels if self.single_fig else self.source_names
-        return max([int(np.floor(MAX_LEGENDLENGTH/max([len(l) for l in names]))), 1])
+        names = self.column_labels if self.figure_per_file else self.file_labels
+        names = [n for n in names if n is not None]
+        try:
+            return ps.get_legend_ncols(names, MAX_LEGENDLENGTH)
+        except ValueError:
+            return 3
 
 
-def _create_plots(x_cols, y_cols, e_cols, datas, source_names, labels,
-                  xy, change_marker, no_legend, auto_scale, single_fig=False):
+def _create_plots(x_cols, y_cols, e_cols, datas, file_labels, column_labels, y_labels,
+                  xy, change_marker, no_legend, auto_scale, figure_per_file=False):
     # create layout
     ps.set_style("standard", MANUAL_STYLE)
     ir_positions, x_is_position = _get_ir_positions(datas, x_cols)
 
     y_lims = None
-    the_loop = _LoopGenerator(x_cols, y_cols, e_cols, datas, source_names, labels, xy, single_fig)
+    the_loop = _LoopGenerator(x_cols, y_cols, e_cols, datas,
+                              file_labels, column_labels, y_labels,
+                              xy, figure_per_file)
+
     for ax, idx_plot, idx, data, x_col, y_col, e_col, legend, y_label, last_line in the_loop():
         # plot data
         y_label_from_col, y_plane, y_col, e_col, chromatic = _get_names_and_columns(idx_plot, xy,
@@ -355,6 +377,8 @@ def _create_plots(x_cols, y_cols, e_cols, datas, source_names, labels,
                 if y_label:
                     y_label_from_label, y_plane, _, _, chromatic = _get_names_and_columns(
                         idx_plot, xy, y_label, "")
+                if xy:
+                    y_label = "{:s} {:s}".format(y_label, y_plane)
                 _set_ylabel(ax, y_label, y_label_from_label, y_plane, chromatic)
 
             # setting x limits
@@ -381,16 +405,16 @@ def _create_plots(x_cols, y_cols, e_cols, datas, source_names, labels,
     return the_loop.get_figs()
 
 
-def _export_plots(figs, output):
+def export_plots(figs, output):
     """ Export all created figures to PDF """
     for param in figs:
+        fig = figs[param]
         pdf_path = "{:s}_{:s}.pdf".format(output, param)
         mpdf = PdfPages(pdf_path)
-        fig = figs[param]
 
         try:
             mpdf.savefig(fig, bbox_inches='tight')
-            LOG.debug("Exported GetLLM results to PDF '{:s}'".format(pdf_path))
+            LOG.debug("Exported tfs-contents to PDF '{:s}'".format(pdf_path))
         finally:
             mpdf.close()
 
@@ -400,18 +424,18 @@ def _export_plots(figs, output):
 
 def _check_opt(opt):
     """ Sanity checks for the opt structure """
-    if opt.source_names is None:
-        opt.source_names = opt.files
-    elif len(opt.source_names) != len(opt.files):
-        raise AttributeError("The number of legends (source_names) and number of files differ!")
+    if opt.figure_per_file and len(opt.files) > 1:
+        raise ValueError("Figure per file plotting mode works only with one file!")
 
-    if opt.single_fig and len(opt.files) > 1:
-        raise ValueError("Single figure plotting mode works only with one file!")
+    if opt.file_labels is None:
+        opt.file_labels = opt.files
+    elif len(opt.file_labels) != len(opt.files):
+        raise AttributeError("The number of file-labels and number of files differ!")
 
-    if opt.labels is None:
-        opt.labels = [None] * len(opt.y_cols)
-    elif len(opt.labels) != len(opt.y_cols):
-        raise AttributeError("The number of labels and number of y columns differ!")
+    if opt.column_labels is None:
+        opt.column_labels = opt.y_cols
+    elif len(opt.column_labels) != len(opt.y_cols):
+        raise AttributeError("The number of column-labels and number of y columns differ!")
 
     if opt.e_cols is None:
         opt.e_cols = [""] * len(opt.y_cols)
@@ -453,6 +477,7 @@ def _find_ir_pos(all_data):
             try:
                 # loading failed, use defaults
                 return IR_POS_DEFAULT[data.SEQUENCE]
+                # return {}
             except AttributeError:
                 # continue looking
                 pass
@@ -495,7 +520,7 @@ def _get_names_and_columns(idx_plot, xy, y_col, e_col):
     chromatic = False
     if xy:
         if y_col[-5:] in COMPLEX_NAMES:
-            plane_map = {0: "R", 1: "I"}
+            plane_map = "RI"
             y_name = plane_map[idx_plot]
             if "C" == y_col[0]:
                 y_plane_name = y_col[1:]
@@ -503,7 +528,7 @@ def _get_names_and_columns(idx_plot, xy, y_col, e_col):
             else:
                 y_plane_name = y_col
         else:
-            plane_map = {0: "X", 1: "Y"}
+            plane_map = "XY"
             y_name = y_col
             y_plane_name = plane_map[idx_plot]
         y_col_full = y_col + plane_map[idx_plot]
@@ -555,6 +580,7 @@ def _map_proper_name(name):
         "I": "imag",
         "R": "real",
     }[name.upper()]
+
 
 # Script Mode ################################################################
 
