@@ -18,9 +18,10 @@ def write_beta(element_name, is_element,
                save_path, beta_summary_file,
                betakind):
     '''
-    for beta from phase (default): betakind = ""  
-    for beta from amplitude :      betakind = "amp"  
-    for beta from kmod :           betakind = "kmod"  
+    for beta from phase     and alpha from phase (default): betakind = ""  
+    for beta from amplitude and alpha from amplitude:       betakind = "amp"  
+    for beta from amplitude and alpha from phase    :       betakind = "bampaphase"  
+    for beta from kmod :                                    betakind = "kmod"  
     '''
     LOGGER.info("betakind %r, alphaampX_failed %r alphaampY_failed %r",
                 betakind,input_data.alphaampX_failed,input_data.alphaampY_failed)
@@ -122,17 +123,21 @@ def _write_summary_data(beta_summary_file, summary_data_x, summary_data_y):
 
 def _get_beta_tfs_files(element_name, save_path, is_element, betakind):
     '''
-    for beta from phase (default): betakind = ""  
-    for beta from amplitude :      betakind = "amp"  
-    for beta from kmod :           betakind = "kmod"  
+    for beta from phase     and alpha from phase (default): betakind = ""  
+    for beta from amplitude and alpha from amplitude:       betakind = "amp"  
+    for beta from amplitude and alpha from phase    :       betakind = "bampaphase"  
+    for beta from kmod :                                    betakind = "kmod"  
     '''
     if betakind is None:
         betakind = "" 
     
-    file_beta_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbeta" + betakind + "x_" + element_name + ".out"))
-    file_alfa_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfa" + betakind + "x_" + element_name + ".out"))
-    file_beta_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbeta" + betakind + "y_" + element_name + ".out"))
-    file_alfa_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfa" + betakind + "y_" + element_name + ".out"))
+    if betakind:
+        betakind += "_"
+        
+    file_beta_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetax_" + betakind + element_name + ".out"))
+    file_alfa_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfax_" + betakind + element_name + ".out"))
+    file_beta_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetay_" + betakind + element_name + ".out"))
+    file_alfa_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfay_" + betakind + element_name + ".out"))
 
     if not is_element:
         file_beta_x.add_column_names(["NAME", "S", "BETPROPX", "ERRBETPROPX", "BETCORX", "ERRBETCORX", "BETBACKX", "ERRBETBACKX", "BETBACKCORX", "ERRBETBACKCORX", "BETXMDL", "MODEL_S"])
