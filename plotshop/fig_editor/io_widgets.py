@@ -1,6 +1,8 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 
+
 # Column Selector ############################################################
+
 
 class HLine(QtWidgets.QFrame):
     """ A horizontal line for use in a widget """
@@ -33,6 +35,14 @@ class ColumnSelectorDialog(QtWidgets.QDialog):
         self._lines = []
         self._lines_layout = QtWidgets.QGridLayout()
         layout.addLayout(self._lines_layout)
+
+        self._ylabel = None
+        if not single_line:
+            label_row = QtWidgets.QHBoxLayout()
+            label_row.addWidget(QtWidgets.QLabel("Y-Label:"))
+            self._ylabel = QtWidgets.QLineEdit()
+            label_row.addWidget(self._ylabel)
+            layout.addLayout(label_row)
 
         buttons = QtWidgets.QHBoxLayout()
         self._common_x = QtWidgets.QCheckBox('Common X-Column', self)
@@ -114,7 +124,7 @@ class ColumnSelectorDialog(QtWidgets.QDialog):
     def _on_label_by_y_change(self, checked):
         if checked:
             for idx_line, line in enumerate(self._lines):
-                self._set_y_label_to_column(idx_line, line["Y"].checkedId())
+                self._set_column_name_to_label(idx_line, line["Y"].checkedId())
 
     def _on_label_change(self, idx_line, label):
         if not self._single_line and idx_line == len(self._lines) - 1:
@@ -134,7 +144,7 @@ class ColumnSelectorDialog(QtWidgets.QDialog):
                     line["X"].button(common_x_id).setChecked(True)
 
         if self._label_by_y.isChecked() and idx_type == 1:
-            self._set_y_label_to_column(idx_line, idx_button)
+            self._set_column_name_to_label(idx_line, idx_button)
 
     def _on_accept(self):
         self._accepted = True
@@ -168,7 +178,7 @@ class ColumnSelectorDialog(QtWidgets.QDialog):
         for line in self._lines[:-1]:
             line["X"].button(idx).setChecked(True)
 
-    def _set_y_label_to_column(self, idx_line, idx_button):
+    def _set_column_name_to_label(self, idx_line, idx_button):
         if idx_button >= 0:
             self._lines[idx_line]["label"].setText(self._available_columns[idx_button])
 
@@ -194,3 +204,9 @@ class ColumnSelectorDialog(QtWidgets.QDialog):
                     "e": error,
                 })
         return lines
+
+    def get_ylabel(self):
+        if self._ylabel is None:
+            return ""
+        return self._ylabel.text()
+

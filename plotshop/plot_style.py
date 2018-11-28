@@ -8,6 +8,7 @@ Helper functions to make the most awesome* plots out there.
 """
 
 import colorsys
+import re
 from itertools import cycle
 
 import matplotlib
@@ -506,6 +507,15 @@ def show_ir(ip_dict, ax=None, mode='inside'):
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+
+
+def move_ip_labels(ax, value):
+    """ Moves IP labels according to max y * value."""
+    y_max = ax.get_ylim()[1]
+    for t in ax.texts:
+        if re.match(r"^IP\s*\d$", t.get_text()):
+            x = t.get_position()[0]
+            t.set_position((x, y_max * value))
 
 
 def get_ip_positions(path):

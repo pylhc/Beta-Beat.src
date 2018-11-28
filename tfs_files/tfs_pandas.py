@@ -1,3 +1,9 @@
+"""
+Module tfs_files.tfs_pandas
+---------------------------------
+
+Pandas wrapper to read and write TFS-files.
+"""
 from collections import OrderedDict
 import sys
 import os

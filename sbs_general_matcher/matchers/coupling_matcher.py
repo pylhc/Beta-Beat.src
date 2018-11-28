@@ -78,8 +78,8 @@ class CouplingMatcher(Matcher):
             return constr_tpl.format(
                 cls_name=self.name, name=line.NAME, weight=1.0, s=line.S,
                 f1001abs=line.F1001ABS, f1010abs=line.F1010ABS,
-                f1001r=line.F1001REMEAS, f1001i=line.F1001REMEAS,
-                f1010r=line.F1010REMEAS, f1010i=line.F1010REMEAS,
+                f1001r=line.F1001REMEAS, f1001i=line.F1001IMMEAS,
+                f1010r=line.F1010REMEAS, f1010i=line.F1010IMMEAS,
             )
 
         return "\n".join(sbs_data.apply(_to_line, axis=1))

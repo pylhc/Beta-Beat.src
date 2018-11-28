@@ -3,6 +3,9 @@ import os
 import sys
 import argparse
 import logging
+import datetime
+from collections import OrderedDict
+import pandas as pd
 from sbs_general_matcher import log_handler
 from sbs_general_matcher.matchers import (
     phase_matcher,
@@ -13,6 +16,7 @@ from sbs_general_matcher.matchers import (
 from sbs_general_matcher.template_manager.template_processor import TemplateProcessor
 from SegmentBySegment import SegmentBySegmentMain
 from utils.contexts import silence
+from tfs_files import tfs_pandas
 
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
@@ -77,31 +81,53 @@ def _write_sbs_data(segment_inst, temporary_path):
     input_data = SegmentBySegmentMain._InputData(temporary_path)
     prop_models = SegmentBySegmentMain._PropagatedModels(
         save_path,
-        segment_inst.label
+        segment_inst.label,
+        '',
     )
     SegmentBySegmentMain.getAndWriteData(
         segment_inst.label, input_data, None, prop_models, save_path,
         False, False, True, False,
         segment_inst,
-        None, None, None
+        None, None, None, "",
     )
 
 
 def _build_changeparameters_file(input_data):
-    original_changeparameters_file = os.path.join(input_data.match_path, "changeparameters.madx")
-    changeparameters_match_file = os.path.join(input_data.match_path, "changeparameters_match.madx")
-    with open(original_changeparameters_file, "r") as original_changeparameters_data:
-        with open(changeparameters_match_file, "w") as changeparameters_match_data:
-            for original_line in original_changeparameters_data:
-                parts = original_line.split("=")
-                variable_name = parts[0].replace("d", "", 1).strip()
-                variable_value = -float(parts[1].replace(";", "").strip())
-                sign = " - " if variable_value < 0.0 else " + "
-                changeparameters_match_data.write(
-                    variable_name + " = " +
-                    variable_name + sign + str(abs(variable_value)) + ";\n"
-                )
-            changeparameters_match_data.write("return;\n")
+    original_file =\
+        os.path.join(input_data.match_path, "changeparameters.madx")
+    output_dir = os.path.join(input_data.match_path, "results")
+    os.mkdir(output_dir)
+    vars_dict = OrderedDict()
+    with open(original_file, "r") as original_file_data:
+        for original_line in original_file_data:
+            parts = original_line.split("=")
+            variable_name = parts[0].replace("d", "", 1).strip()
+            variable_value = float(parts[1].replace(";", "").strip())
+            vars_dict[variable_name] = variable_value
+    tfs_pandas.write_tfs(
+        os.path.join(output_dir, "changeparameters.tfs"),
+        pd.DataFrame(data={"NAME": vars_dict.keys(),
+                           "DELTA": vars_dict.values()}).loc[:, ["NAME", "DELTA"]],
+        headers_dict={"DATE": datetime.datetime.now().strftime("%a %b %d %H:%M:%S %Y")},
+    )
+    changeparameters_correct =\
+        os.path.join(output_dir, "changeparameters_correct.madx")
+    changeparameters_match =\
+        os.path.join(output_dir, "changeparameters.madx")
+    with open(changeparameters_correct, "w") as correct_data,\
+         open(changeparameters_match, "w") as match_data:
+        for varname in vars_dict:
+            value = vars_dict[varname]
+            sign = "+" if value >= 0 else "-"
+            sign_correct = "-" if value >= 0 else "+"  # Flip sign to correct
+            correct_data.write(
+                "{name} = {name} {sign} {value};\n"
+                .format(name=varname, sign=sign_correct, value=abs(value))
+            )
+            match_data.write(
+                "{name} = {name} {sign} {value};\n"
+                .format(name=varname, sign=sign, value=abs(value))
+            )
 
 
 class InputData():

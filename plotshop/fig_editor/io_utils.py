@@ -39,6 +39,7 @@ def load_tfs():
                 df = tfs.read_tfs(paths[0])
             except tfs.TfsFormatError:
                 LOG.error("File '{}' is not of TFS format!".format(paths[0]))
+                return None
             else:
                 column_selector = ColumnSelectorDialog(df.columns.tolist())
                 selected = column_selector.get_selected_columns()
@@ -48,13 +49,14 @@ def load_tfs():
                         x_cols=[s["x"] for s in selected],
                         y_cols=[s["y"] for s in selected],
                         e_cols=[s["e"] for s in selected],
-                        labels=[s["l"] for s in selected],
+                        column_labels=[s["l"] for s in selected],
+                        file_labels=[column_selector.get_ylabel()],
                         no_show=True,
-                        single_fig=True,
-                    )
+                        figure_per_file=True,
+                    ).values()[0]
         return fig
     LOG.debug("No files chosen.")
-    return None
+    return fig
 
 
 def load_dly():

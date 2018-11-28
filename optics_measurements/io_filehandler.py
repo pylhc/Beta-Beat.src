@@ -20,6 +20,7 @@ class OpticsMeasurement(TfsCollection):
     phase = Tfs("getphase")
     phasetot = Tfs("getphasetot")
     disp = Tfs("getD")
+    orbit = Tfs("getCO")
     coupling = Tfs("getcouple", two_planes=False)
     norm_disp = Tfs("getNDx", two_planes=False)
 

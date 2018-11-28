@@ -217,7 +217,8 @@ class Matcher(object):
         segment = accel_cls.get_segment(self.label,
                                         range_start,
                                         range_end,
-                                        optics_file)
+                                        optics_file,
+                                        None)
         return segment
 
     @staticmethod

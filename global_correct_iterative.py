@@ -52,6 +52,7 @@ import time
 
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import OrthogonalMatchingPursuit
 
 import madx_wrapper
 from correction.fullresponse import response_twiss
@@ -61,7 +62,6 @@ from twiss_optics.optics_class import TwissOptics
 from utils import logging_tools
 from utils import iotools
 from tfs_files import tfs_pandas as tfs
-from utils.dict_tools import DotDict
 from utils.entrypoint import entrypoint, EntryPointParameters
 from utils.logging_tools import log_pandas_settings_with_copy
 
@@ -217,6 +217,19 @@ def _get_params():
         default=DEFAULT_ARGS["svd_cut"],
     )
     params.add_parameter(
+        flags="--n_correctors",
+        help=("Maximum number of correctors to use. (Method: 'omp')"),
+        name="n_correctors",
+        type=int,
+    )
+    params.add_parameter(
+        flags="--min_corrector_strength",
+        help=("Minimum (absolute) strength of correctors."),
+        name="min_corrector_strength",
+        type=float,
+        default=0.,
+    )
+    params.add_parameter(
         flags="--model_cut",
         help=("Reject BPMs whose deviation to the model is higher than the "
               "correspoding input. Input in order of optics_params."),
@@ -268,11 +281,11 @@ def _get_params():
     )
     params.add_parameter(
         flags="--method",
-        help="Optimization method to use. (Not implemented yet)",
+        help="Optimization method to use.",
         name="method",
         type=str,
         default=DEFAULT_ARGS["method"],
-        choices=["pinv"]
+        choices=["pinv", "omp"]
     )
     params.add_parameter(
         flags="--max_iter",
@@ -335,13 +348,18 @@ def global_correction(opt, accel_opt):
                         (like in the old days).
                         **Flags**: --max_iter
                         **Default**: ``3``
-        method (str): Optimization method to use. (Not implemented yet)
+        method (str): Optimization method to use.
                       **Flags**: --method
-                      **Choices**: ['pinv']
+                      **Choices**: ['pinv', 'omp']
                       **Default**: ``pinv``
+        min_corrector_strength (float): Minimum (absolute) strength of correctors.
+                                **Flags**: --min_corrector_strength
+                                **Default**: ``0.``
         modelcut (float): Reject BPMs whose deviation to the model is higher than the
                           correspoding input. Input in order of optics_params.
                           **Flags**: --model_cut
+        n_correctors (int): Maximum number of correctors to use. (Method: 'omp')
+                            **Flags**: --n_correctors
         optics_file: Path to the optics file to use, usually modifiers.madx.
                      If not present will default to model_path/modifiers.madx
                      **Flags**: --optics_file
@@ -466,6 +484,10 @@ def global_correction(opt, accel_opt):
             delta += _calculate_delta(
                 resp_matrix, meas_dict, optics_params, vars_list, opt.method, meth_opt)
 
+            delta, resp_matrix, vars_list = _filter_by_strength(delta, resp_matrix,
+                                                                opt.min_corrector_strength)
+            # remove unused correctors from vars_list
+
             writeparams(opt.change_params_path, delta)
             writeparams(opt.change_params_correct_path, -delta)
             LOG.debug("Cumulative delta: {:.5e}".format(
@@ -515,27 +537,24 @@ def _check_opt(opt):
 def _get_method_opt(opt):
     """ Slightly unnecessary function to separate method-options
     for easier debugging and readability """
-    meth_opt = DotDict(
-        svd_cut=opt.svd_cut,
-    )
-    return meth_opt
+    return opt.get_subdict(["svd_cut", "n_correctors"])
 
 
 def _print_rms(meas, diff_w, r_delta_w):
     """ Prints current RMS status """
     f_str = "{:>20s} : {:.5e}"
 
-    LOG.debug("RMS Model - Measure (before correction, w/o weigths):")
+    LOG.debug("RMS Measure - Model (before correction, w/o weigths):")
     for key in meas:
         LOG.debug(f_str.format(key, _rms(meas[key].loc[:, 'DIFF'].values)))
 
-    LOG.info("RMS Model - Measure (before correction, w/ weigths):")
+    LOG.info("RMS Measure - Model (before correction, w/ weigths):")
     for key in meas:
         LOG.info(f_str.format(
             key, _rms(meas[key].loc[:, 'DIFF'].values * meas[key].loc[:, 'WEIGHT'].values)))
     LOG.info(f_str.format("All", _rms(diff_w)))
     LOG.debug(f_str.format("R * delta", _rms(r_delta_w)))
-    LOG.debug("(Model - Measure) - (R * delta)   ")
+    LOG.debug("(Measure - Model) - (R * delta)   ")
     LOG.debug(f_str.format("", _rms(diff_w - r_delta_w)))
 
 
@@ -882,7 +901,7 @@ def _get_model_tunes(model, meas, key):
     return meas
 
 
-# Main Calculation ################################################################
+# Main Calculation #############################################################
 
 
 def _calculate_delta(resp_matrix, meas_dict, keys, vars_list, method, meth_opt):
@@ -898,24 +917,45 @@ def _calculate_delta(resp_matrix, meas_dict, keys, vars_list, method, meth_opt):
     delta = _get_method_fun(method)(resp_weighted, diff_weighted, meth_opt)
     delta = tfs.TfsDataFrame(delta, index=vars_list, columns=["DELTA"])
 
+    # check calculations
     update = np.dot(resp_weighted, delta["DELTA"])
     _print_rms(meas_dict, diff_weighted, update)
+
     return delta
 
 
 def _get_method_fun(method):
     funcs = {
-        "pinv": _pseudo_inverse
+        "pinv": _pseudo_inverse,
+        "omp": _orthogonal_matching_pursuit,
     }
     return funcs[method]
 
 
 def _pseudo_inverse(response_mat, diff_vec, opt):
     """ Calculates the pseudo-inverse of the response via svd. (numpy) """
+    if opt.svd_cut is None:
+        raise ValueError("svd_cut setting needed for pseudo inverse method.")
+
     return np.dot(np.linalg.pinv(response_mat, opt.svd_cut), diff_vec)
 
 
-# MADX related ###############################################################
+def _orthogonal_matching_pursuit(response_mat, diff_vec, opt):
+    """ Calculated n_correctors via orthogonal matching pursuit"""
+    if opt.n_correctors is None:
+        raise ValueError("n_correctors setting needed for orthogonal matching pursuit.")
+
+    # return orthogonal_mp(response_mat, diff_vec, opt.n_correctors)
+    res = OrthogonalMatchingPursuit(opt.n_correctors).fit(response_mat, diff_vec)
+    coef = res.coef_
+    LOG.debug("Orthogonal Matching Pursuit Results:")
+    LOG.debug("  Chosen variables: {:s}".format(str(response_mat.columns.values[coef.nonzero()])))
+    LOG.debug("  Score: {:f}".format(res.score(response_mat, diff_vec)))
+
+    return coef
+
+
+# MADX related #################################################################
 
 
 def _create_corrected_model(twiss_out, change_params, accel_inst, debug):
@@ -972,6 +1012,11 @@ def _join_columns(col, meas, keys):
     """ Retuns vector: N= #BPMs * #Parameters (BBX, MUX etc.) """
     return np.concatenate([meas[key].loc[:, col].values for key in keys], axis=0)
 
+
+def _filter_by_strength(delta, resp_matrix, min_strength=0):
+    """ Remove too small correctors """
+    delta = delta.loc[delta["DELTA"].abs() > min_strength]
+    return delta, resp_matrix.loc[:, delta.index], delta.index.values
 
 # Main invocation ############################################################
 

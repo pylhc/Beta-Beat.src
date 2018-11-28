@@ -1,6 +1,6 @@
 """
-.. module:: tfs_file_writer
-
+Module tfs_files.tfs_file_writer
+---------------------------------
 
 This module contains the class TfsFileWriter which is used to create easily TfsFiles.
 
@@ -105,7 +105,7 @@ class TfsFileWriter(object):
         self.__file_name = file_name
 
     def set_outputpath(self, outputpath):
-        if outputpath is None or not isinstance(outputpath, str):
+        if outputpath is None or not isinstance(outputpath, str) or outputpath == "":
             outputpath = os.path.abspath("./")
         if iotools.not_exists_directory(outputpath):
             iotools.create_dirs(outputpath)

@@ -32,12 +32,13 @@ Some hints:
     Don't look into the coupling and chromatic coupling namings.
 """
 from __future__ import print_function
+
+import re
+import sys
+from os.path import abspath, join, dirname, isdir, exists, split, pardir
+
 import numpy as np
 import pandas as pd
-import sys
-import os
-import re
-from os.path import abspath, join, dirname, isdir, exists, split, pardir
 
 new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
@@ -46,7 +47,7 @@ if new_path not in sys.path:
 from optics_measurements.io_filehandler import OpticsMeasurement
 from twiss_optics.optics_class import TwissOptics
 from tfs_files.tfs_pandas import read_tfs, write_tfs
-from utils import logging_tools, beta_star_from_twiss
+from utils import logging_tools, beta_star_from_twiss as bsft
 
 LOG = logging_tools.get_logger(__name__)
 
@@ -98,6 +99,7 @@ def getdiff(meas_path=None, beta_file_name="getbeta"):
         _write_betabeat_diff_file(meas_path, meas, model, plane, beta_file_name)
         _write_phase_diff_file(meas_path, meas, model, plane)
         _write_disp_diff_file(meas_path, meas, model, plane)
+        _write_closed_orbit_diff_file(meas_path, meas, model, plane)
     _write_coupling_diff_file(meas_path, meas, coupling_model)
     _write_norm_disp_diff_file(meas_path, meas, model)
     _write_chromatic_coupling_files(meas_path, corrected_model_path)
@@ -162,6 +164,22 @@ def _write_disp_diff_file(meas_path, meas, model, plane):
                   tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
 
 
+def _write_closed_orbit_diff_file(meas_path, meas, model, plane):
+    LOG.debug("Calculating orbit diff.")
+    up = plane.upper()
+    try:
+        tw = pd.merge(meas.orbit[plane], model, how='inner', on='NAME')
+    except IOError:
+        LOG.debug("Orbit measurements not found. Skipped.")
+    else:
+        tw['MEA'] = tw.loc[:, up] - tw.loc[:, up + 'MDL']
+        tw['ERROR'] = tw.loc[:, 'STD' + up]
+        tw['MODEL'] = (tw.loc[:, up + '_c'] - tw.loc[:, up + '_n']) * 1000
+        tw['EXPECT'] = tw['MEA'] - tw['MODEL'] * 1000
+        write_tfs(join(meas_path, get_diff_filename('co' + plane)),
+                  tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
+
+
 def _write_norm_disp_diff_file(meas_path, meas, model):
     LOG.debug("Calculating normalized dispersion diff.")
     try:
@@ -174,7 +192,7 @@ def _write_norm_disp_diff_file(meas_path, meas, model):
         tw['MODEL'] = (tw.loc[:, 'DX_c'] / np.sqrt(tw.loc[:, 'BETX_c'])
                        - tw.loc[:, 'DX_n'] / np.sqrt(tw.loc[:, 'BETX_n']))
         tw['EXPECT'] = tw['MEA'] - tw['MODEL']
-        write_tfs(join(meas_path, 'ndx.out'),
+        write_tfs(join(meas_path, get_diff_filename('ndx')),
                   tw.loc[:, ['NAME', 'S', 'MEA', 'ERROR', 'MODEL', 'EXPECT']])
 
 
@@ -239,7 +257,7 @@ def _write_chromatic_coupling_files(meas_path, cor_path):
 def _write_betastar_diff_file(meas_path, meas, twiss_cor, twiss_no):
     LOG.debug("Calculating betastar diff at the IPs.")
     try:
-        meas = meas.kmod_betastar.set_index(beta_star_from_twiss.RES_COLUMNS[0])
+        meas = meas.kmod_betastar.set_index(bsft.RES_COLUMNS[0])
     except IOError:
         LOG.debug("Beta* measurements not found. Skipped.")
     else:
@@ -258,8 +276,8 @@ def _write_betastar_diff_file(meas_path, meas, twiss_cor, twiss_no):
         all_ips = set(ip_map.values())
         try:
             # calculate waist and so on
-            model = beta_star_from_twiss.get_beta_star_and_waist_from_ip(twiss_cor, beam, all_ips)
-            design = beta_star_from_twiss.get_beta_star_and_waist_from_ip(twiss_no, beam, all_ips)
+            model = bsft.get_beta_star_and_waist_from_ip(twiss_cor, beam, all_ips)
+            design = bsft.get_beta_star_and_waist_from_ip(twiss_no, beam, all_ips)
         except KeyError:
             LOG.warn("Can't find all IPs in twiss files. Skipped beta* calculations.")
         else:
@@ -267,34 +285,63 @@ def _write_betastar_diff_file(meas_path, meas, twiss_cor, twiss_no):
             tw = pd.DataFrame()
             for label in meas.index:
                 plane = label[-1]
-                ip_name = beta_star_from_twiss.get_full_label(ip_map[label], beam, plane)
+                ip_name = bsft.get_full_label(ip_map[label], beam, plane)
                 tw.loc[label, "S"] = model.loc[ip_name, "S"]
-                for attr in beta_star_from_twiss.RES_COLUMNS[2:]:
+
+                # calculate alpha* but with s-oriented waist definition
+                meas["ALPHASTAR"] = meas["WAIST"] / meas["BETAWAIST"]
+                meas["ALPHASTAR_ERR"] = ((meas["WAIST_ERR"] / meas["WAIST"] +
+                                          meas["BETAWAIST_ERR"] / meas["BETAWAIST"]) *
+                                         meas["ALPHASTAR"]
+                                         )
+                for attr in bsft.RES_COLUMNS[2:]:
                     # default diff parameter
                     tw.loc[label, attr + "_MEA"] = (meas.loc[label, attr]
                                                     - design.loc[ip_name, attr])
                     tw.loc[label, attr + "_ERROR"] = meas.loc[label, attr + "_ERR"]
                     tw.loc[label, attr + "_MODEL"] = (model.loc[ip_name, attr]
                                                       - design.loc[ip_name, attr])
-                    tw.loc[label, attr + "_EXPECT"] = (tw.loc[label, attr + "_MEA"]
-                                                       - tw.loc[label, attr + "_MODEL"])
-                    # additional for debug reasons
+
+                    # additional for checks (e.g. for betastar* panel)
                     tw.loc[label, attr + "_MEAVAL"] = meas.loc[label, attr]
-                    tw.loc[label, attr + "_DESIGN"] = design.loc[ip_name, attr]
-                    tw.loc[label, attr + "_EXPECTVAL"] = (design.loc[ip_name, attr]
-                                                          + tw.loc[label, attr + "_EXPECT"])
+                    tw.loc[label, attr + "_DESIGNVAL"] = design.loc[ip_name, attr]
+                    tw.loc[label, attr + "_MODELVAL"] = model.loc[ip_name, attr]
+
                     # and the beatings
-                    if "BETA" in attr:
-                        tw.loc[label, "B{}_MEA".format(attr)] = (tw.loc[label, attr + "_MEA"]
-                                                                    / design.loc[ip_name, attr])
-                        tw.loc[label, "B{}_MODEL".format(attr)] = (tw.loc[label, attr + "_MODEL"]
-                                                                    / design.loc[ip_name, attr])
+                    tw.loc[label, "B{}_MEA".format(attr)] = (tw.loc[label, attr + "_MEA"]
+                                                             / design.loc[ip_name, attr])
+                    tw.loc[label, "B{}_MODEL".format(attr)] = (tw.loc[label, attr + "_MODEL"]
+                                                               / design.loc[ip_name, attr])
+
+                    # special handling for the expectation values, as waist and betawaist
+                    # should be derived directly from alpha* and beta*
+                    if attr in bsft.RES_COLUMNS[2:4]:
+                        # beta* and alpha*: as usual
+                        tw.loc[label, attr + "_EXPECT"] = (tw.loc[label, attr + "_MEA"]
+                                                           - tw.loc[label, attr + "_MODEL"])
+                        tw.loc[label, attr + "_EXPECTVAL"] = (design.loc[ip_name, attr]
+                                                              + tw.loc[label, attr + "_EXPECT"])
                         tw.loc[label, "B{}_EXPECT".format(attr)] = (
                                 tw.loc[label, "B{}_MEA".format(attr)]
                                 - tw.loc[label, "B{}_MODEL".format(attr)])
 
+                    else:
+                        # waist and betawaist: calculate expected value directly and go from there
+                        tw.loc[label, attr + "_EXPECTVAL"] = (
+                            bsft.get_waist_wrapper(attr,
+                                                   tw.loc[label, "BETASTAR_EXPECTVAL"],
+                                                   tw.loc[label, "ALPHASTAR_EXPECTVAL"],
+                                                   )
+                        )
+
+                        tw.loc[label, attr + "_EXPECT"] = (
+                                tw.loc[label, attr + "_EXPECTVAL"] - design.loc[ip_name, attr])
+
+                        tw.loc[label, "B{}_EXPECT".format(attr)] = (
+                                tw.loc[label, attr + "_EXPECTVAL"] / design.loc[ip_name, attr])
+
             write_tfs(join(meas_path, get_diff_filename('betastar')), tw,
-                      save_index=beta_star_from_twiss.RES_COLUMNS[0])
+                      save_index=bsft.RES_COLUMNS[0])
 
 
 # Script Mode ################################################################
