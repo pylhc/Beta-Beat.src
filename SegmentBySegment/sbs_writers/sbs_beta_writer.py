@@ -241,8 +241,16 @@ def _write_beta_for_plane(file_alfa, file_beta,
 
         if not is_element:
             model_s = measured_beta.S[measured_beta.indx[bpm_name]]
-            beta_model = getattr(input_model, "BET" + plane )[input_model.indx[bpm_name]]
-            alfa_model = getattr(input_model, "ALF" + plane )[input_model.indx[bpm_name]]
+            
+            if input_model is None:
+                # this the case of matcher, which does not know the model
+                # it will now work for bet from amplitude as gatampbetax*.out does not have ALFXMDL columnt 
+                beta_model = getattr(measured_beta, "BET" + plane + "MDL")[measured_beta.indx[bpm_name]]
+                alfa_model = getattr(measured_beta, "ALF" + plane + "MDL")[measured_beta.indx[bpm_name]]
+            else:
+                beta_model = getattr(input_model, "BET" + plane )[input_model.indx[bpm_name]]
+                alfa_model = getattr(input_model, "ALF" + plane )[input_model.indx[bpm_name]]
+            
             
             beta_cor = getattr(model_cor, "BET" + plane)[model_cor.indx[bpm_name]]
             err_beta_cor = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase_corr, beta_cor, beta_start, alfa_start)
