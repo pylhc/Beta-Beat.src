@@ -12,9 +12,10 @@ FIRST_BPM_B2 = "BPMSW.1L8.B2"
 
 
 def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_hor_beta, measured_ver_beta,
-                    input_data, propagated_models, save_path):
+                    input_data, propagated_models, save_path,
+                    betakind):
 
-    file_phase_x, file_phase_y = _get_phase_tfs_files(element_name, save_path)
+    file_phase_x, file_phase_y = _get_phase_tfs_files(element_name, save_path,betakind)
 
     model_propagation = propagated_models.propagation
     model_back_propagation = propagated_models.back_propagation
@@ -24,9 +25,15 @@ def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_h
     bpms_list_x = intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_hor_phase])
     bpms_list_y = intersect([model_propagation, model_cor, model_back_propagation, model_back_cor, measured_ver_phase])
 
-    _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list_x, measured_hor_phase, measured_hor_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    if betakind=="amp" and input_data.alphaampX_failed:
+        _write_zerophase_for_plane(file_phase_x, element_name, "X", bpms_list_x, measured_hor_phase, measured_hor_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    else:
+        _write_phase_for_plane(file_phase_x, element_name, "X", bpms_list_x, measured_hor_phase, measured_hor_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
-    _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list_y, measured_ver_phase, measured_ver_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    if betakind=="amp" and input_data.alphaampY_failed:
+        _write_zerophase_for_plane(file_phase_y, element_name, "Y", bpms_list_y, measured_ver_phase, measured_ver_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor)
+    else:
+        _write_phase_for_plane(file_phase_y, element_name, "Y", bpms_list_y, measured_ver_phase, measured_ver_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor)
 
 
 def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor):
@@ -102,9 +109,37 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
     file_phase.write_to_file()
 
 
-def _get_phase_tfs_files(element_name, save_path):
-    file_phase_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphasext_" + element_name + ".out"))
-    file_phase_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphaseyt_" + element_name + ".out"))
+
+def _write_zerophase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor):
+
+
+    for bpm in bpms_list:
+        bpm_s = bpm[0]
+        bpm_name = bpm[1]
+
+        model_s = measured_phase.S[measured_phase.indx[bpm_name]]
+
+        file_phase.add_table_row([bpm_name, bpm_s, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, model_s])
+
+    file_phase.write_to_file()
+
+
+def _get_phase_tfs_files(element_name, save_path, betakind):
+    '''
+    for beta from phase     and alpha from phase (default): betakind = ""  
+    for beta from amplitude and alpha from amplitude:       betakind = "amp"  
+    for beta from amplitude and alpha from phase    :       betakind = "bampaphase"  
+    for beta from kmod :                                    betakind = "kmod"  
+    '''
+
+    if betakind is None:
+        betakind = "" 
+    
+    if betakind:
+        betakind += "_"
+    
+    file_phase_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphasext_" + betakind + element_name + ".out"))
+    file_phase_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphaseyt_" + betakind + element_name + ".out"))
     file_phase_x.add_string_descriptor("TYPE", "USER")  # Needed for sbs match
     file_phase_y.add_string_descriptor("TYPE", "USER")  # Needed for sbs match
 

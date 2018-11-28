@@ -18,9 +18,10 @@ def write_beta(element_name, is_element,
                save_path, beta_summary_file,
                betakind):
     '''
-    for beta from phase (default): betakind = ""  
-    for beta from amplitude :      betakind = "amp"  
-    for beta from kmod :           betakind = "kmod"  
+    for beta from phase     and alpha from phase (default): betakind = ""  
+    for beta from amplitude and alpha from amplitude:       betakind = "amp"  
+    for beta from amplitude and alpha from phase    :       betakind = "bampaphase"  
+    for beta from kmod :                                    betakind = "kmod"  
     '''
     LOGGER.info("betakind %r, alphaampX_failed %r alphaampY_failed %r",
                 betakind,input_data.alphaampX_failed,input_data.alphaampY_failed)
@@ -42,7 +43,7 @@ def write_beta(element_name, is_element,
     if betakind=="amp" and input_data.alphaampX_failed:
         LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
         summary_data_x = _write_zerobeta_for_plane(file_alfa_x, file_beta_x, 
-                          "X", element_name, bpms_list, 
+                          "X", element_name, bpms_list_x, 
                           input_data,input_model, 
                           save_path, is_element, beta_summary_file)
     else:
@@ -55,7 +56,7 @@ def write_beta(element_name, is_element,
     if betakind=="amp" and input_data.alphaampY_failed:
         LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
         summary_data_y = _write_zerobeta_for_plane(file_alfa_y, file_beta_y, 
-                          "Y", element_name, bpms_list, 
+                          "Y", element_name, bpms_list_y, 
                           input_data,input_model, 
                           save_path, is_element, beta_summary_file)
     
@@ -122,17 +123,21 @@ def _write_summary_data(beta_summary_file, summary_data_x, summary_data_y):
 
 def _get_beta_tfs_files(element_name, save_path, is_element, betakind):
     '''
-    for beta from phase (default): betakind = ""  
-    for beta from amplitude :      betakind = "amp"  
-    for beta from kmod :           betakind = "kmod"  
+    for beta from phase     and alpha from phase (default): betakind = ""  
+    for beta from amplitude and alpha from amplitude:       betakind = "amp"  
+    for beta from amplitude and alpha from phase    :       betakind = "bampaphase"  
+    for beta from kmod :                                    betakind = "kmod"  
     '''
     if betakind is None:
         betakind = "" 
     
-    file_beta_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbeta" + betakind + "x_" + element_name + ".out"))
-    file_alfa_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfa" + betakind + "x_" + element_name + ".out"))
-    file_beta_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbeta" + betakind + "y_" + element_name + ".out"))
-    file_alfa_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfa" + betakind + "y_" + element_name + ".out"))
+    if betakind:
+        betakind += "_"
+        
+    file_beta_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetax_" + betakind + element_name + ".out"))
+    file_alfa_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfax_" + betakind + element_name + ".out"))
+    file_beta_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetay_" + betakind + element_name + ".out"))
+    file_alfa_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsalfay_" + betakind + element_name + ".out"))
 
     if not is_element:
         file_beta_x.add_column_names(["NAME", "S", "BETPROPX", "ERRBETPROPX", "BETCORX", "ERRBETCORX", "BETBACKX", "ERRBETBACKX", "BETBACKCORX", "ERRBETBACKCORX", "BETXMDL", "MODEL_S"])
@@ -236,8 +241,16 @@ def _write_beta_for_plane(file_alfa, file_beta,
 
         if not is_element:
             model_s = measured_beta.S[measured_beta.indx[bpm_name]]
-            beta_model = getattr(input_model, "BET" + plane )[input_model.indx[bpm_name]]
-            alfa_model = getattr(input_model, "ALF" + plane )[input_model.indx[bpm_name]]
+            
+            if input_model is None:
+                # this the case of matcher, which does not know the model
+                # it will now work for bet from amplitude as gatampbetax*.out does not have ALFXMDL columnt 
+                beta_model = getattr(measured_beta, "BET" + plane + "MDL")[measured_beta.indx[bpm_name]]
+                alfa_model = getattr(measured_beta, "ALF" + plane + "MDL")[measured_beta.indx[bpm_name]]
+            else:
+                beta_model = getattr(input_model, "BET" + plane )[input_model.indx[bpm_name]]
+                alfa_model = getattr(input_model, "ALF" + plane )[input_model.indx[bpm_name]]
+            
             
             beta_cor = getattr(model_cor, "BET" + plane)[model_cor.indx[bpm_name]]
             err_beta_cor = _propagate_error_beta(err_beta_start, err_alfa_start, delta_phase_corr, beta_cor, beta_start, alfa_start)

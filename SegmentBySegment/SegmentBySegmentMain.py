@@ -1023,24 +1023,26 @@ def getAndWriteData(
         input_model,
         propagated_models,
         save_path, beta_summary, 
-        betakind
-    )
+        betakind )
     
-    if not is_element and betaphase:
+    if not is_element:
         sbs_phase_writer.write_phase(
             element_name,
             input_data.total_phase_x, input_data.total_phase_y,
             tfsbeta_x, tfsbeta_y,
             input_data,
-            propagated_models, save_path
-        )
+            propagated_models, save_path, 
+            betakind )
+        
+    if not is_element and betaphase:
         sbs_beta_beating_writer.write_beta_beat(
             element_name,
             input_data.beta_x, input_data.beta_y,
             input_data.amplitude_beta_x, input_data.amplitude_beta_y,
             kmod_data_x, kmod_data_y,
             input_data,
-            propagated_models, save_path)
+            propagated_models, save_path, 
+            betakind )
     
     
     
@@ -1346,11 +1348,20 @@ class _PropagatedModels(object):
 class _Summaries(object):
 
     def __init__(self, save_path):
+        
+        #sbs_summary_bet.out
         self.beta = sbs_beta_writer.get_beta_summary_file(save_path)
+        
+        #sbs_summary_betamp.out
         self.betaamp = sbs_beta_writer.get_betaamp_summary_file(save_path)
+        
+        #sbs_summary_betampaphase.out
         self.betaampaphase = sbs_beta_writer.get_betaamp_alphaphase_summary_file(save_path)
+        #sbs_summary_cou.out
         self.coupling = sbs_coupling_writer.get_coupling_summary_file(save_path)
+        #sbs_summary_disp.out
         self.dispersion = sbs_dispersion_writer.get_dispersion_summary_file(save_path)
+        #sbs_summary_chrom.out
         self.chrom = sbs_chromatic_writer.get_chrom_summary_file(save_path)
 
     def write_summaries_to_files(self):
