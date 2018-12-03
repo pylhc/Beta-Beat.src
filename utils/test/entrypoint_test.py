@@ -20,8 +20,8 @@ from utils.entrypoint import EntryPoint
 from utils.entrypoint import EntryPointParameters
 from utils.entrypoint import entrypoint
 
-from model import manager
-manager._get_params()
+# from model import manager
+# manager._get_params()
 
 LOG = logging_tools.get_logger(__name__, level_console=0, fmt="%(levelname)7s | %(message)s")
 THISDIR = os.path.dirname(os.path.abspath(__file__))
@@ -161,7 +161,7 @@ def _get_params_list():
 def some_function(options, unknown_options):
     LOG.info("Some Function")
     print_dict_tree(options)
-    LOG.info("Unknown Options: \n {:s}".format(unknown_options))
+    LOG.info("Unknown Options: \n {:s}".format(str(unknown_options)))
     LOG.info("\n")
 
 
@@ -176,7 +176,7 @@ def strict_function(options):
 def some_other_function(options, unknown_options):
     LOG.info("Some Other Function")
     print_dict_tree(options)
-    LOG.info("Unknown Options: \n {:s}".format(unknown_options))
+    LOG.info("Unknown Options: \n {:s}".format(str(unknown_options)))
     LOG.info("\n")
 
 
@@ -184,7 +184,7 @@ def some_other_function(options, unknown_options):
 def some_function_list_param(options, unknown_options):
     LOG.info("Some Function with list params")
     print_dict_tree(options)
-    LOG.info("Unknown Options: \n {:s}".format(unknown_options))
+    LOG.info("Unknown Options: \n {:s}".format(str(unknown_options)))
     LOG.info("\n")
 
 
@@ -193,7 +193,7 @@ class TestClass(object):
     def instance_function(self, options, unknowns):
         LOG.info("Class Function with dict params")
         print_dict_tree(options)
-        LOG.info("Unknown Options: \n {:s}".format(unknowns))
+        LOG.info("Unknown Options: \n {:s}".format(str(unknowns)))
         LOG.info("\n")
 
     @classmethod
@@ -201,7 +201,7 @@ class TestClass(object):
     def class_function(cls, options, unknowns):
         LOG.info("Class Function with dict params")
         print_dict_tree(options)
-        LOG.info("Unknown Options: \n {:s}".format(unknowns))
+        LOG.info("Unknown Options: \n {:s}".format(str(unknowns)))
         LOG.info("\n")
 
 
@@ -279,25 +279,25 @@ def some_function_test():
     try:
         strict_function(**kw_w_unknowns)
     except ArgumentError as e:
-        LOG.error(e.message)
+        LOG.error(e.args[0])
         LOG.error("\n")
     LOG.info("KW-Arguments, entry_dict")
     try:
         strict_function(entry_dict=kw_w_unknowns)
     except ArgumentError as e:
-        LOG.error(e.message)
+        LOG.error(e.args[0])
         LOG.error("\n")
     LOG.info("Positional argument, dict")
     try:
         strict_function(kw_w_unknowns)
     except ArgumentError as e:
-        LOG.error(e.message)
+        LOG.error(e.args[0])
         LOG.error("\n")
     LOG.info("Positional argument, list")
     try:
         strict_function(arg_list_unknowns.split(" "))
     except ArgumentError as e:
-        LOG.error(e.message)
+        LOG.error(e.args[0])
         LOG.error("\n")
     LOG.info("\n\n")
 
