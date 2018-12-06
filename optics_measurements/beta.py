@@ -176,12 +176,14 @@ def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, ran
     if phase_adv_driven is not None:
         comp_model = free_model.loc[phase_adv_driven["MEAS"].index]
         model = driven_model.loc[phase_adv_free["MEAS"].index]
+        bk_model = bk_model.loc[phase_adv_free["MEAS"].index]
+        comp_bk_model = comp_model  # we need a driven best knowledge model here
     else:
         model = free_model.loc[phase_adv_free["MEAS"].index]
         phase_adv = phase_adv_free
+        bk_model = bk_model.loc[phase_adv_free["MEAS"].index]
 
 
-    bk_model = bk_model.loc[phase_adv_free["MEAS"].index]
 
     # if DEBUG create a binary debugfile where the algorithm is writing matrices, beta-values,
     # weights etc.
@@ -190,7 +192,7 @@ def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, ran
             "getbeta{}.bdebug".format(plane_for_file)  # TODO change working path
         )
 
-    beta_df = _beta_from_phase(model, elements, phase_adv, plane, range_of_bpms,
+    beta_df = _beta_from_phase(bk_model, model, elements, phase_adv, plane, range_of_bpms,
                                error_method, Qf, Qmdlf % 1.0)
 
     beta_df.headers["FILENAME"] = "getbeta{}.out".format(plane_for_file)
@@ -207,7 +209,7 @@ def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, ran
             )
 
         compensated_beta_df = _beta_from_phase(
-            comp_model, elements,
+            comp_bk_model, comp_model, elements,
             phase_adv_free, plane, range_of_bpms, error_method, Q, Qmdl % 1.0
         )
         compensated_beta_df.headers["FILENAME"] = "getbeta{}_free.out".format(plane_for_file)
@@ -221,13 +223,13 @@ def _beta_from_phase_for_plane(free_model, driven_model, bk_model, elements, ran
     return beta_df, compensated_beta_df
 
 
-def _beta_from_phase(madTwiss, madElements, phase, plane,
+def _beta_from_phase(bk_model, model, madElements, phase, plane,
                      range_of_bpms, errors_method, tune, mdltune):
     '''
     Calculate the beta function from phase advances.
 
     Parameters:
-        madTwiss: model tfs file
+        bk_model: model tfs file
         madElements: model tfs file with all relevant elements (quadrupoles, sextupoles, drifts)
         phase: matrix with phase advances
         plane: 'X' or 'Y'
@@ -240,12 +242,12 @@ def _beta_from_phase(madTwiss, madElements, phase, plane,
     plane_alf = "ALF" + plane
     st = time.time()
 
-    beta_df = tfs_pandas.TfsDataFrame(madTwiss).loc[phase["MEAS"].index, ["S", plane_bet, plane_alf]]
+    beta_df = tfs_pandas.TfsDataFrame(model).loc[phase["MEAS"].index, ["S", plane_bet, plane_alf]]
 
     beta_df = beta_df.rename(columns={plane_bet: plane_bet + "MDL", plane_alf: plane_alf + "MDL"})
 
     if errors_method == METH_A_NBPM:
-        beta_df = _scan_all_BPMs_withsystematicerrors(madTwiss, madElements, phase, plane,
+        beta_df = _scan_all_BPMs_withsystematicerrors(bk_model, madElements, phase, plane,
                                                       range_of_bpms,
                                                       tune, mdltune,
                                                       beta_df)
