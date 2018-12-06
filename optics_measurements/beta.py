@@ -420,7 +420,7 @@ def _scan_all_BPMs_withsystematicerrors(madTwiss, madElements,
     LOGGER.debug("starting scan_all_BPMs_withsystematicerrors")
     # ---------- setup -----------------------------------------------------------------------------
     # setup combinations
-    width = range_of_bpms / 2
+    width = int(range_of_bpms / 2)
     left_bpm = range(-width, 0)
     right_bpm = range(0 + 1, width + 1)
     BBA_combo = [[x, y] for x in left_bpm for y in left_bpm if x < y]
@@ -501,7 +501,7 @@ def _scan_one_BPM_withsystematicerrors(madTwiss, madElements,
     alfsys = .0
     alferr = DEFAULT_WRONG_BETA
 
-    m = range_of_bpms / 2
+    m = int(range_of_bpms / 2)
     indx_first = Index - m
     indx_last = Index + m
     name_first = madTwiss.index[indx_first]
