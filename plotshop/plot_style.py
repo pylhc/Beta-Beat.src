@@ -402,6 +402,19 @@ def change_color_brightness(color, amount=0.5):
     return colorsys.hls_to_rgb(c[0], 1-amount * (1-c[1]), c[2])
 
 
+def change_ebar_alpha_for_line(ebar, alpha):
+    """ loop through bars (ebar[1]) and caps (ebar[2]) and set the alpha value """
+    for bars_or_caps in ebar[1:]:
+        for bar_or_cap in bars_or_caps:
+            bar_or_cap.set_alpha(alpha)
+
+
+def change_ebar_alpha_for_axes(ax, alpha):
+    """ Wrapper for change_ebar_alpha_for_line """
+    for ebar in ax.containers:
+        change_ebar_alpha_for_line(ebar, alpha)
+
+
 # Labels #####################################################################
 
 
