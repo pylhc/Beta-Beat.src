@@ -459,7 +459,10 @@ def set_yaxis_label(param, plane, ax=None, delta=False, chromcoup=False):  # plo
         raise ArgumentError("Label '" + param + "' not found.")
 
     if delta:
-        label = r'$\Delta ' + label[1:]
+        if param.startswith("beta") or param.startswith("norm"):
+            label = r'$\Delta(' + label[1:-1] + ")$"
+        else:
+            label = r'$\Delta ' + label[1:]
 
     if chromcoup:
         label = label[:-1] + r'/\Delta\delta$'
@@ -516,7 +519,7 @@ def show_ir(ip_dict, ax=None, mode='inside'):
                     ypos = ylim[0] + (ylim[1] - ylim[0]) * 0.01
                     ax.text(xpos, ypos, ip, color='grey', ha='center')
                 else:
-                    ax.text(xpos, ylim[1] * 1.03, ip, ha='center')
+                    ax.text(xpos, ylim[1] * 1.1, ip, ha='center')
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
