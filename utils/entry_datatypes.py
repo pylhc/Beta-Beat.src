@@ -91,6 +91,20 @@ class BoolOrString(object):
             return str.__new__(str, value)
 
 
+class BoolOrList(object):
+    """ A class that behaves like a boolean when possible, otherwise like a list."""
+    __metaclass__ = get_instance_faker_meta(bool, list)
+
+    def __new__(cls, value):
+        if value in ["True", "1", True, 1]:
+            return bool.__new__(bool, True)
+
+        elif value in ["False", "0", False, 0]:
+            return bool.__new__(bool, False)
+
+        else:
+            return list.__new__(list, value)
+
 # Test #########################################################################
 
 
@@ -114,6 +128,12 @@ def get_params():
         type=BoolOrString,
         help="either bool or string",
     )
+    params.add_parameter(
+        flags="--bool_or_list",
+        name="bool_or_list",
+        type=BoolOrList,
+        help="either bool or list",
+    )
     return params
 
 
@@ -121,15 +141,17 @@ def get_params():
 def tester(opt, other):
     print("Opt:")
     print(opt)
-    print("\n")
     print("Other:")
     print(other)
+    print("\n")
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         tester(dict={"test": 5}, bool_or_str="test", int_or_str="test")
         tester(dict={"test": 5}, bool_or_str=False, int_or_str=10)
+        tester(bool_or_list=True)
+        tester(bool_or_list=["This", "Is", "A", 1])
     else:
         tester()
         # e.g.
