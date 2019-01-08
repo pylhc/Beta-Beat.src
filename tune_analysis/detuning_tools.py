@@ -42,9 +42,6 @@ def linear_model(beta, x):
 def do_linear_odr(x, y, xerr, yerr):
     """ Returns linear odr fit.
 
-    Important: In contrast to "normal" ODR, this function uses x_err and y_err as weights
-    instead of their squares.
-
     Args:
         x: Series of x data
         y: Series of y data
