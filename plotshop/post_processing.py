@@ -6,6 +6,7 @@ Functions for plot post-processing.
 """
 import numpy as np
 from matplotlib import pyplot as plt
+import matplotlib as mpl
 
 
 # Public Functions #############################################################
@@ -73,13 +74,14 @@ def get_errorbar_data(ax):
     """
     data = []
     for idx, ebar in enumerate(ax.containers):
-        line_dict = _extract_line_data(ebar[0])
-        line_dict.update({
-            "label": ebar.get_label(),
-            "xerr": _get_ebar_err(ebar, "x"),
-            "yerr": _get_ebar_err(ebar, "y"),
-        })
-        data.append(line_dict)
+        if isinstance(ebar, mpl.container.ErrorbarContainer):
+            line_dict = _extract_line_data(ebar[0])
+            line_dict.update({
+                "label": ebar.get_label(),
+                "xerr": _get_ebar_err(ebar, "x"),
+                "yerr": _get_ebar_err(ebar, "y"),
+            })
+            data.append(line_dict)
     return data
 
 
@@ -106,7 +108,8 @@ def get_line_data(ax):
         ``get_errorbar_data()``
 
     """
-    ax_errorbars = [ebar[0] for ebar in ax.containers]
+    ax_errorbars = [ebar[0] for ebar in ax.containers
+                    if isinstance(ebar, mpl.container.ErrorbarContainer)]
     data = []
     for idx, line in enumerate(ax.get_lines()):
         if line not in ax_errorbars:
