@@ -138,6 +138,8 @@ def add_odr(kickac_df, odr_fit, action_plane, tune_plane):
 
 def add_total_natq_std(kickac_df):
     """ Add the total standard deviation of the natural tune to the kickac.
+    The total standard deviation is here defined as the standard deviation of the measurement
+    plus the standard deviation of the moving average.
 
     Args:
         kickac_df: Dataframe containing the data
