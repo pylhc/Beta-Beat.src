@@ -37,7 +37,7 @@ import compensate_ac_effect
 
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
-
+SMALL_NUMBER=1e-10
 #===================================================================================================
 # main part
 #===================================================================================================
@@ -284,8 +284,12 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
             try:
                 if C01ij==0.0: 
                     C01ij = tw_x.AVG_NOISE[tw_x.indx[bn1]]
+                    if C01ij==0.0:
+                        C01ij = SMALL_NUMBER
                 if C10ij==0.0:
                     C10ij = tw_y.AVG_NOISE[tw_y.indx[bn1]]
+                    if C10ij == 0.0:
+                        C10ij = SMALL_NUMBER
             except AttributeError:
                 print "AVG_NOISE column not found, cannot estimate C matrix."
             # Get noise standard deviation to estimate uncertainty of amplitudes
@@ -489,12 +493,20 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             try:
                 if amp01_1 == float("inf") or amp01_1 == 0:
                     amp01_1 = tw_x.AVG_NOISE[tw_x.indx[bn1]] / ampx_1
+                    if amp01_1 == float("inf") or amp01_1 == 0:
+                        amp01_1 = SMALL_NUMBER
                 if amp10_1 == float("inf") or amp10_1 == 0:
                     amp10_1 = tw_y.AVG_NOISE[tw_y.indx[bn1]] / ampy_1
+                    if amp10_1 == float("inf") or amp10_1 == 0:
+                        amp10_1 = SMALL_NUMBER
                 if amp01_2 == float("inf") or amp01_2 == 0:
                     amp01_2 = tw_x.AVG_NOISE[tw_x.indx[bn1]] / ampx_2
+                    if amp01_2 == float("inf") or amp01_2 == 0:
+                        amp01_2 = SMALL_NUMBER
                 if amp10_2 == float("inf") or amp10_2 == 0:
                     amp10_2 = tw_y.AVG_NOISE[tw_y.indx[bn1]] / ampy_2
+                    if amp10_2 == float("inf") or amp10_2 == 0:
+                        amp10_2 = SMALL_NUMBER
             except AttributeError:
                 print "AVG_NOISE column not found, cannot use noise floor."
 
