@@ -92,7 +92,9 @@ class BoolOrString(object):
 
 
 class BoolOrList(object):
-    """ A class that behaves like a boolean when possible, otherwise like a list."""
+    """ A class that behaves like a boolean when possible, otherwise like a list.
+
+    Hint: 'list.__new__(list, value)' returns an empty list."""
     __metaclass__ = get_instance_faker_meta(bool, list)
 
     def __new__(cls, value):
@@ -103,7 +105,7 @@ class BoolOrList(object):
             return bool.__new__(bool, False)
 
         else:
-            return list.__new__(list, value)
+            return list(value)
 
 # Test #########################################################################
 
