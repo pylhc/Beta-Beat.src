@@ -26,6 +26,7 @@ import re
 import multiprocessing
 import time
 from constants import PI, TWOPI
+from tfs_utils_getllm import GetllmTfsFile
 
 __version__ = "2017.3.2"
 
@@ -914,12 +915,20 @@ def get_best_three_bpms_with_beta_and_alfa(madTwiss, phase, plane, commonbpms, i
         bn4 = str.upper(commonbpms[(probed_index + i + 1) % len(commonbpms)][1])
         bn5 = str.upper(commonbpms[(probed_index + i + 2) % len(commonbpms)][1])
         candidates = []
+
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, _ = _beta_from_phase_BPM_right(bn1, bn2, bn3, madTwiss, phase, plane, 0, 0, 0, True)
+        #print('skowron RIGHT bet = %f  %s %s %s '%(tbet,bn1, bn2, bn3))
         candidates.append([tbetstd, tbet, talfstd, talf])
+        
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, _ = _beta_from_phase_BPM_mid(bn2, bn3, bn4, madTwiss, phase, plane, 0, 0, 0, True)
         candidates.append([tbetstd, tbet, talfstd, talf])
+        #print('skowron MIDLE bet = %f  %s %s %s '%(tbet,bn2, bn3, bn4))
+        
         tbet, tbetstd, talf, talfstd, mdlerr, t1, t2, _ = _beta_from_phase_BPM_left(bn3, bn4, bn5, madTwiss, phase, plane, 0, 0, 0, True)
         candidates.append([tbetstd, tbet, talfstd, talf])
+        #print('skowron LEFT bet = %f  %s %s %s '%(tbet,bn3, bn4, bn5))
+        #print('')
+        
         return candidates, bn3, []
 
     bpm_name = {}
@@ -2558,11 +2567,17 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
     try:
         definitions = Python_Classes4MAD.metaclass.twiss(errordefspath)
         filename = "error_elements_" + plane + ".dat"
-        errorfile = tfs_files.tfs_file_writer.TfsFileWriter(filename)
+        # this class has already static output path set
+        errorfile = GetllmTfsFile(filename)
+        print_("errorfile.__outputpath %s = "%errorfile.get_absolute_file_name_path())
+        
     except:
         print >> sys.stderr, "loading errorfile didnt work"
         print >> sys.stderr, "errordefspath = {0:s}".format(errordefspath)
         return None
+    
+    
+    
      
     errorfile.add_column_names(     ["NAME",    "BET",  "BETEND",   "MU",   "MUEND",    "dK1",  "K1L",  "K1LEND",   "K2L",  "dX",   "dS", "DEBUG"])  #@IgnorePep8
     errorfile.add_column_datatypes( ["%s",      "%le",  "%le",      "%le",  "%le",      "%le",  "%le",  "%le",      "%le",  "%le",  "%le", "%s"])  #@IgnorePep8
