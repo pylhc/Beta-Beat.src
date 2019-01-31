@@ -204,11 +204,11 @@ class EntryPoint(object):
             options = DotDict(vars(options))
             if self.strict:
                 if unknown_opts:
-                    raise ArgumentError("Unknown options: {:s}".format(unknown_opts))
+                    raise ArgumentError("Unknown options: {:s}".format(str(unknown_opts)))
                 return options
             else:
                 if unknown_opts:
-                    LOG.debug("Unknown options: {:s}".format(unknown_opts))
+                    LOG.debug("Unknown options: {:s}".format(str(unknown_opts)))
                 return options, unknown_opts
         else:
             # parse config file
@@ -443,10 +443,7 @@ def add_params_to_generic(parser, params):
     """ Adds entry-point style parameter to either
     ArgumentParser, DictParser or EntryPointArguments
     """
-    try:
-        params = copy.deepcopy(params)
-    except TypeError:
-        pass  # Python 3
+    params = copy.deepcopy(params)
 
     if isinstance(params, dict):
         params = EntryPoint._dict2list_param(params)

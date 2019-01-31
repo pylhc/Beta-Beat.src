@@ -297,7 +297,7 @@ class DictParser(object):
             arg_dict.pop(key, None)  # Default value avoids KeyError
 
         if len(arg_dict) > 0:
-            error_message = "Unknown Options: '{:s}'.".format(arg_dict.keys())
+            error_message = "Unknown Options: '{:s}'.".format(str(list(arg_dict.keys())))
             if self.strict:
                 raise ArgumentError(error_message)
             LOG.debug(error_message)

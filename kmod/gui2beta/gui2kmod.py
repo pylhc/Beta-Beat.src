@@ -458,26 +458,26 @@ def lin_fit_data(path, beam, working_directory, magnet1, magnet2, log, logfile, 
     file_path_1 = working_directory + '/' + magnet1 + '.' + beam + '.dat'
     file_path_2 = working_directory + '/' + magnet2 + '.' + beam + '.dat'
 
-    right_data = metaclass.twiss(file_path_1)
-    left_data = metaclass.twiss(file_path_2)
+    left_data = metaclass.twiss(file_path_1)
+    right_data = metaclass.twiss(file_path_2)
 
     if auto_clean == True:
-        cleaned_x1 = start_cleaning_data(right_data.K, right_data.TUNEX, right_data.TUNEX_ERR)
-        cleaned_y1 = start_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
-        cleaned_x2 = start_cleaning_data(left_data.K, left_data.TUNEX, left_data.TUNEX_ERR)
-        cleaned_y2 = start_cleaning_data(left_data.K, left_data.TUNEY, left_data.TUNEY_ERR)
+        cleaned_x1 = start_cleaning_data(left_data.K, left_data.TUNEX, left_data.TUNEX_ERR)
+        cleaned_y1 = start_cleaning_data(left_data.K, left_data.TUNEY, left_data.TUNEY_ERR)
+        cleaned_x2 = start_cleaning_data(right_data.K, right_data.TUNEX, right_data.TUNEX_ERR)
+        cleaned_y2 = start_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
     else:
-        cleaned_x1 = automatic_cleaning_data(right_data.K, right_data.TUNEX, right_data.TUNEX_ERR)
-        cleaned_y1 = automatic_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
-        cleaned_x2 = automatic_cleaning_data(left_data.K, left_data.TUNEX, left_data.TUNEX_ERR)
-        cleaned_y2 = automatic_cleaning_data(left_data.K, left_data.TUNEY, left_data.TUNEY_ERR)
+        cleaned_x1 = automatic_cleaning_data(left_data.K, left_data.TUNEX, left_data.TUNEX_ERR)
+        cleaned_y1 = automatic_cleaning_data(left_data.K, left_data.TUNEY, left_data.TUNEY_ERR)
+        cleaned_x2 = automatic_cleaning_data(right_data.K, right_data.TUNEX, right_data.TUNEX_ERR)
+        cleaned_y2 = automatic_cleaning_data(right_data.K, right_data.TUNEY, right_data.TUNEY_ERR)
 
     fitx_1, covx_1 = np.polyfit(cleaned_x1[:, 0], cleaned_x1[:, 1], 1, cov=True, w=1 / cleaned_x1[:, 2] ** 2)
     fity_1, covy_1 = np.polyfit(cleaned_y1[:, 0], cleaned_y1[:, 1], 1, cov=True, w=1 / cleaned_y1[:, 2] ** 2)
     fitx_2, covx_2 = np.polyfit(cleaned_x2[:, 0], cleaned_x2[:, 1], 1, cov=True, w=1 / cleaned_x2[:, 2] ** 2)
     fity_2, covy_2 = np.polyfit(cleaned_y2[:, 0], cleaned_y2[:, 1], 1, cov=True, w=1 / cleaned_y2[:, 2] ** 2)
 
-    plot_fitting(fitx_2, fitx_1, fity_2, fity_1, left_data, right_data, path)
+    plot_fitting(fitx_1, fitx_2, fity_1, fity_2, left_data, right_data, path)
 
     dK = 1.0e-5
     K2 = np.average(cleaned_x2[:, 0])

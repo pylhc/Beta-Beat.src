@@ -22,9 +22,6 @@ Entrypoint Measure Optics
 Amplitude Detuning
 =======================
 
-Entrypoint Amplitude Detuning Analysis
-------------------------------------------------
-
 .. automodule:: amplitude_detuning_analysis
     :members:
 
