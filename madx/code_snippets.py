@@ -22,7 +22,8 @@ def get_ptc_amplitude_detuning(path, id):
     """ Create PTC universe, do ptc_normal for amplitude detuning """
     return (
         "ptc_create_universe;\n"
-        "    ptc_create_layout,model=3,method=6,nst=3,resplit,thin=0.0005,xbend=0.0005;\n"
+        "!    ptc_create_layout,model=3,method=6,nst=3,resplit,thin=0.0005,xbend=0.0005;\n"
+        "    ptc_create_layout,model=3,method=4,nst=3,exact;" 
         "    ptc_align;\n"
         "!    ptc_setswitch, fringe=True;\n"
         "    select_ptc_normal,  q1=0, q2=0;\n"
