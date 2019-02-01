@@ -424,8 +424,11 @@ def export_plots(figs, output):
 
 def _check_opt(opt):
     """ Sanity checks for the opt structure """
-    if opt.figure_per_file and len(opt.files) > 1:
-        raise ValueError("Figure per file plotting mode works only with one file!")
+    if opt.figure_per_file and opt.y_labels:
+        if len(opt.y_labels) == 1:
+            opt.y_labels = opt.y_lables * len(opt.files)
+        elif len(opt.y_labels) != len(opt.files):
+            raise ValueError("Supply either one y-label or one y-label per file!")
 
     if opt.file_labels is None:
         opt.file_labels = opt.files
@@ -438,7 +441,7 @@ def _check_opt(opt):
         raise AttributeError("The number of column-labels and number of y columns differ!")
 
     if opt.e_cols is None:
-        opt.e_cols = [""] * len(opt.y_cols)
+        opt.e_cols = [None] * len(opt.y_cols)
     elif len(opt.e_cols) != len(opt.y_cols):
         raise AttributeError("The number of error columns and number of y columns differ!")
 
@@ -510,7 +513,7 @@ def _get_column_data(data, x_col, y_col, e_col):
     y_val = data[y_col]
     try:
         e_val = data[e_col]
-    except KeyError:
+    except (KeyError, ValueError):
         e_val = None
     return x_val, y_val, e_val
 
@@ -532,7 +535,9 @@ def _get_names_and_columns(idx_plot, xy, y_col, e_col):
             y_name = y_col
             y_plane_name = plane_map[idx_plot]
         y_col_full = y_col + plane_map[idx_plot]
-        e_col_full = e_col + plane_map[idx_plot]
+        e_col_full = None
+        if e_col is not None:
+            e_col_full = e_col + plane_map[idx_plot]
     else:
         if y_col[-5:] in COMPLEX_NAMES:
             y_name = y_col[-1]
