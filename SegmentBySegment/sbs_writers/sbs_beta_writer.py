@@ -23,9 +23,7 @@ def write_beta(element_name, is_element,
     for beta from amplitude and alpha from phase    :       betakind = "bampaphase"  
     for beta from kmod :                                    betakind = "kmod"  
     '''
-    LOGGER.info("betakind %r, alphaampX_failed %r alphaampY_failed %r",
-                betakind,input_data.alphaampX_failed,input_data.alphaampY_failed)
-    
+
     file_alfa_x, file_beta_x, file_alfa_y, file_beta_y = _get_beta_tfs_files(element_name, save_path, is_element,betakind)
 
     model_propagation = propagated_models.propagation
@@ -40,32 +38,32 @@ def write_beta(element_name, is_element,
         bpms_list = intersect([model_cor, model_propagation, model_back_propagation, model_back_cor, input_model])
         bpms_list_x = bpms_list_y = bpms_list
 
-    if betakind=="amp" and input_data.alphaampX_failed:
-        LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
-        summary_data_x = _write_zerobeta_for_plane(file_alfa_x, file_beta_x, 
-                          "X", element_name, bpms_list_x, 
-                          input_data,input_model, 
-                          save_path, is_element, beta_summary_file)
-    else:
-        summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
-                                           element_name, bpms_list_x, measured_hor_beta,
-                                           input_data,input_model,
-                                           model_propagation, model_cor, model_back_propagation, model_back_cor,
-                                           save_path, is_element, beta_summary_file)
+#     if betakind=="amp" and (input_data.alphaampXfwd_failed or input_data.alphaampXbak_failed):
+#         LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
+#         summary_data_x = _write_zerobeta_for_plane(file_alfa_x, file_beta_x, 
+#                           "X", element_name, bpms_list_x, 
+#                           input_data,input_model, 
+#                           save_path, is_element, beta_summary_file)
+#     else:
+    summary_data_x = _write_beta_for_plane(file_alfa_x, file_beta_x, "X",
+                                       element_name, bpms_list_x, measured_hor_beta,
+                                       input_data,input_model,
+                                       model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                       save_path, is_element, beta_summary_file)
 
-    if betakind=="amp" and input_data.alphaampY_failed:
-        LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
-        summary_data_y = _write_zerobeta_for_plane(file_alfa_y, file_beta_y, 
-                          "Y", element_name, bpms_list_y, 
-                          input_data,input_model, 
-                          save_path, is_element, beta_summary_file)
-    
-    else:
-        summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
-                                           element_name, bpms_list_y, measured_ver_beta,
-                                           input_data,input_model,
-                                           model_propagation, model_cor, model_back_propagation, model_back_cor,
-                                           save_path, is_element, beta_summary_file)
+#     if betakind=="amp" and ( input_data.alphaampYfwd_failed or input_data.alphaampYbak_failed):
+#         LOGGER.debug("Alpha calculation failed for plane X, writing zeros to output file")    
+#         summary_data_y = _write_zerobeta_for_plane(file_alfa_y, file_beta_y, 
+#                           "Y", element_name, bpms_list_y, 
+#                           input_data,input_model, 
+#                           save_path, is_element, beta_summary_file)
+#     
+#     else:
+    summary_data_y = _write_beta_for_plane(file_alfa_y, file_beta_y, "Y",
+                                       element_name, bpms_list_y, measured_ver_beta,
+                                       input_data,input_model,
+                                       model_propagation, model_cor, model_back_propagation, model_back_cor,
+                                       save_path, is_element, beta_summary_file)
     
     if is_element:
         _write_summary_data(beta_summary_file, summary_data_x, summary_data_y)
@@ -198,6 +196,7 @@ def _write_zerobeta_for_plane(file_alfa, file_beta,
     
     return summary_data
 
+
 def _write_beta_for_plane(file_alfa, file_beta, 
                           plane, element_name, bpms_list, 
                           measured_beta, 
@@ -213,6 +212,13 @@ def _write_beta_for_plane(file_alfa, file_beta,
     LOGGER.debug("%s %s : beta_start %f, err_beta_start %f, alfa_start %f, err_alfa_start %f",
                  element_name, plane,
                  beta_start, err_beta_start, alfa_start, err_alfa_start)
+    
+    # This can be true only in beta from amplitude
+    # it is there the only place where it is set to true
+    # so we do not need to ckeck beta kind
+    alphaampfwd_failed = getattr(input_data, "alphaamp" + plane + "fwd_failed")
+    alphaampbak_failed = getattr(input_data, "alphaamp" + plane + "bak_failed")
+        
     
     summary_data = []
 
@@ -263,7 +269,27 @@ def _write_beta_for_plane(file_alfa, file_beta,
 
             alfa_back_cor = getattr(model_back_cor, "ALF" + plane)[model_back_cor.indx[bpm_name]]
             err_alfa_back_cor = _propagate_error_alfa(err_beta_start, err_alfa_start, delta_phase_back_corr, alfa_back_cor, beta_start, alfa_start)
+            
+            if alphaampfwd_failed: # it may be true only for beta from amplitude
+                beta_propagation = 0
+                err_beta_prop    = 0
+                beta_cor         = 0
+                err_beta_cor     = 0
+                alfa_propagation = 0
+                err_alfa_prop    = 0
+                alfa_cor         = 0
+                err_alfa_cor     = 0
 
+            if alphaampbak_failed:
+                beta_back_propagation = 0
+                err_beta_back         = 0
+                beta_back_cor         = 0
+                err_beta_back_cor     = 0
+                alfa_back_propagation = 0
+                err_alfa_back         = 0
+                alfa_back_cor         = 0
+                err_alfa_back_cor     = 0
+                        
             file_beta.add_table_row([bpm_name, bpm_s,
                                      beta_propagation, err_beta_prop, beta_cor, err_beta_cor,
                                      beta_back_propagation, err_beta_back, beta_back_cor, err_beta_back_cor,
@@ -316,9 +342,17 @@ def _write_beta_for_plane(file_alfa, file_beta,
             err_beta_prop = np.sqrt(err_beta_prop**2 + sum([x**2 for x in magnet_err_forward])) 
             err_beta_back = np.sqrt(err_beta_back**2 + sum([x**2 for x in magnet_err_back])) 
 
-            averaged_beta, final_beta_error = weighted_average_for_SbS_elements(beta_propagation, err_beta_prop, beta_back_propagation, err_beta_back)
-            averaged_alfa, final_alfa_error = weighted_average_for_SbS_elements(alfa_propagation, err_alfa_prop, alfa_back_propagation, err_alfa_back)
             
+            if alphaampfwd_failed or alphaampbak_failed: # it may be true only for beta from amplitude
+                averaged_alfa = 0
+                final_alfa_error = 0
+                averaged_beta = 0
+                final_beta_error = 0
+            else:
+                averaged_beta, final_beta_error = weighted_average_for_SbS_elements(beta_propagation, err_beta_prop, beta_back_propagation, err_beta_back)
+                averaged_alfa, final_alfa_error = weighted_average_for_SbS_elements(alfa_propagation, err_alfa_prop, alfa_back_propagation, err_alfa_back)
+                
+
             LOGGER.debug("%s : beta_model %f, averaged_beta %f, beta_propagation %f, beta_back_propagation %f",
                         element_name,beta_model,averaged_beta, beta_propagation,beta_back_propagation)
             
