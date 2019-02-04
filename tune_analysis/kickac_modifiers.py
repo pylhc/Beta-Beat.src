@@ -165,7 +165,7 @@ def get_odr_data(kickac_df, action_plane, tune_plane, corrected=False):
         tune_plane: Plane of the tune
 
     Returns:
-        Dictionary containing x,y, offset and label
+        Dictionary containing x,y, ylower, yupper, offset and label
 
     """
     header_slope, header_slope_std, header_offset = _get_odr_headers(corrected)
@@ -174,11 +174,15 @@ def get_odr_data(kickac_df, action_plane, tune_plane, corrected=False):
     slope_std = kickac_df.headers[header_slope_std(action_plane, tune_plane)]
     x = [0, max(kickac_df[COL_ACTION(action_plane)])*1.05]
     y = [0, x[1] * slope]
+    y_low = [0, x[1] * (slope - slope_std)]
+    y_upp = [0, x[1] * (slope + slope_std)]
     return {
         "x": np.array(x),
         "y": np.array(y),
         "label": '${:.4f}\, \pm\, {:.4f}$'.format(slope, slope_std),
-        "offset": kickac_df.headers[header_offset(action_plane, tune_plane)]
+        "offset": kickac_df.headers[header_offset(action_plane, tune_plane)],
+        "ylower": np.array(y_low),
+        "yupper": np.array(y_upp),
     }
 
 
