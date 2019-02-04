@@ -1311,7 +1311,9 @@ def scan_all_BPMs_withsystematicerrors(madTwiss, errorfile, phase, plane, getllm
              9: delbeta
     '''
     
-    print_("INFO: errorfile given. Create list_of_Ks")
+    
+    print_("INFO: errorfile given. " + errorfile.filename)
+    print_("INFO:  Create list_of_Ks")
     list_of_Ks = []
     
     errors_method = "Analytical Formula"
@@ -2676,7 +2678,7 @@ def create_errorfile(errordefspath, model, twiss_full, twiss_full_centre, common
 
     print_("DONE creating errofile.")
 
-    return Python_Classes4MAD.metaclass.twiss(filename)
+    return Python_Classes4MAD.metaclass.twiss(errorfile.get_absolute_file_name_path())
 
 
 def printMatrix(debugfile, M, name):
