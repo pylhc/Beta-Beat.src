@@ -155,9 +155,9 @@ class TwissOptics(object):
         if method == 'rdt':
             if "F1001" not in self._results_df or "F1010" not in self._results_df:
                 self.calc_rdts(['F1001', 'F1010'])
-                res_df = self._results_df.loc[:, ['S', 'F1001', 'F1010']]
-                res_df.loc[:, "F1001"].real *= -1
-                res_df.loc[:, "F1010"].real *= -1
+            res_df = self._results_df.loc[:, ['S', 'F1001', 'F1010']]
+            res_df.loc[:, "F1001"].real *= -1
+            res_df.loc[:, "F1010"].real *= -1
             return res_df
         elif method == 'cmatrix':
             if "F1001_C" not in self._results_df:
@@ -286,11 +286,10 @@ class TwissOptics(object):
                     j, k, l, m = int(rdt[1]), int(rdt[2]), int(rdt[3]), int(rdt[4])
                     n = j + k + l + m
 
-
                     assertion(n >= 2, ValueError(
                         "The RDT-order has to be >1 but was {:d} for {:s}".format(n, rdt)))
 
-                    denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m) *2**n)
+                    denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m) * 2**n)
                     denom2 = 1./(1. - np.exp(i2pi * ((j-k) * tw.Q1 + (l-m) * tw.Q2)))
 
                     if (l + m) % 2 == 0:
@@ -316,11 +315,12 @@ class TwissOptics(object):
                         phy = dphi(phs_adv['Y'].loc[mask_in, :], tw.Q2)
                         phase_term = ((j-k) * phx + (l-m) * phy).applymap(lambda p: np.exp(i2pi*p))
 
-                        beta_term = tw.loc[mask_in, src] * \
-                                    tw.loc[mask_in, 'BETX'] ** ((j+k) / 2.) * \
-                                    tw.loc[mask_in, 'BETY'] ** ((l+m) / 2.)
+                        beta_term = (tw.loc[mask_in, src] *
+                                     tw.loc[mask_in, 'BETX'] ** ((j+k) / 2.) *
+                                     tw.loc[mask_in, 'BETY'] ** ((l+m) / 2.)
+                                     )
 
-                        res.loc[:, rdt.upper().replace('F','H')] = sign * phase_term.multiply(
+                        res.loc[:, rdt.upper().replace('F', 'H')] = sign * phase_term.multiply(
                             beta_term, axis="index").sum(axis=0).transpose() * denom1
 
                         res.loc[:, rdt.upper()] = sign * phase_term.multiply(
@@ -331,11 +331,9 @@ class TwissOptics(object):
 
         self._log_added(*rdt_list)
 
-
     ################################
     #   AC Dipole Driving Terms
     ################################
-
 
     def calc_ac_dipole_driving_terms(self, order_or_terms, spectral_line, plane, ac_tunes, acd_name):
         """ Calculates the Hamiltonian Terms under Forced Motion.
@@ -346,10 +344,12 @@ class TwissOptics(object):
                 will be calculated.
                 The strings are assumed to be the desired driving term names, e.g. "F1001"
             spectral_line: tuple
-                Needed to determine what phase advance is needed before and after AC dipole location, depends on detal+ and delta-.
+                Needed to determine what phase advance is needed before and
+                after AC dipole location, depends on detal+ and delta-.
                 Sample input: (2,-1)
             plane: string
-                Either 'H' or 'V' to determine phase term of AC dipole before and after ACD location.
+                Either 'H' or 'V' to determine phase term of
+                AC dipole before and after ACD location.
             ac_tunes: tuple
                 Contains horizontal and vertical AC dipole tunes, i.e. (0.302, 0.33)
         """
@@ -366,9 +366,9 @@ class TwissOptics(object):
 
             i2pi = 2j * np.pi
             tw = self.twiss_df
-            print('STARTING phase advance calculation...')
+            LOG.debug('STARTING phase advance calculation...')
             phs_adv = self.get_phase_adv()
-            print('phase advance calculation done...')
+            LOG.debug('phase advance calculation done...')
             res = self._results_df
 
             for rdt in rdt_list:
@@ -393,7 +393,6 @@ class TwissOptics(object):
                         src = 'K' + str(n-1) + 'SL'
                         sign = -(1j ** (l+m+1))
 
-                    
                     if spectral_line[1] < 0:
                         c, d = 0, abs(spectral_line[1])
                     elif spectral_line[1] > 0:
@@ -401,10 +400,10 @@ class TwissOptics(object):
                     elif spectral_line[1] == 0:
                         c, d = 0, 0
                     
-                    Qx_min  = ac_tunes[0]-tw.Q1 
-                    Qy_min  = ac_tunes[1]-tw.Q2 
-                    Qx_plus = ac_tunes[0]+tw.Q1 
-                    Qy_plus = ac_tunes[1]+tw.Q2 
+                    qx_min = ac_tunes[0]-tw.Q1
+                    qy_min = ac_tunes[1]-tw.Q2
+                    qx_plus = ac_tunes[0]+tw.Q1
+                    qy_plus = ac_tunes[1]+tw.Q2
                     
                     if plane == 'H':
                         if spectral_line[0] == (k-j+1):
@@ -412,39 +411,55 @@ class TwissOptics(object):
                         elif spectral_line[0] == -(k-j+1):
                             a, b = j-1, k
                         else:
-                            print("Line of different order than main driving term")
+                            LOG.warning("Line of different order than main driving term")
                         
                         if spectral_line[1] == (m-l):
                             c, d = 0, 0 
                         elif spectral_line[1] == -(m-l):
                             c, d = l, m
                         else:
-                            print("Line of different order than main driving term")
+                            LOG.warning("Line of different order than main driving term")
                         
-                        acd_ph = np.exp(i2pi*( (k-j+1+a-b)*Qx_min + (b-a)*Qx_plus + (m-l+c-d)*Qy_min + (d-c)*Qy_plus ))
+                        acd_ph = np.exp(i2pi * (
+                                (k - j + 1 + a - b) * qx_min +
+                                (b - a) * qx_plus +
+                                (m - l + c - d) * qy_min +
+                                (d - c) * qy_plus
+                        ))
                         # acd_ph = np.exp(i2pi*( (k-j+1)*Qx_min + (m-l)*Qy_min ))
-                        denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m)*2**n)
-                        denom2 = 1./(1. - np.exp(-i2pi * (-tw.Q1 + spectral_line[0]*ac_tunes[0] + spectral_line[1]*ac_tunes[1] )))
+                        denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m) *
+                                     2**n)
+                        denom2 = 1./(1. - np.exp(-i2pi * (-tw.Q1 + spectral_line[0] * ac_tunes[0] +
+                                                          spectral_line[1] * ac_tunes[1]))
+                                     )
                         # denom2 = 1./(1. - np.exp(i2pi * ((j-k)*tw.Q1 + (l-m)*tw.Q2 )))
+
                     elif plane == 'V':
                         if spectral_line[0] == (k-j):
                             a, b = 0, 0 
                         elif spectral_line[0] == -(k-j):
                             a, b = j-1, k
                         else:
-                            print("Line of different order than main driving term")
+                            LOG.warning("Line of different order than main driving term")
                         
                         if spectral_line[1] == (m-l+1):
                             a, b = 0, 0 
                         elif spectral_line[1] == -(m-l+1):
                             a, b = j-1, k
                         else:
-                            print("Line of different order than main driving term")
+                            LOG.warning("Line of different order than main driving term")
                         
-                        acd_ph = np.exp(i2pi*( (k-j+a-b)*Qx_min + (b-a)*Qx_plus + (m-l+1+c-d)*Qy_min + (d-c)*Qy_plus ))
-                        denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m)*2**n)
-                        denom2 = 1./(1. - np.exp(i2pi * (-tw.Q2 + spectral_line[0]*ac_tunes[0] + spectral_line[1]*ac_tunes[1] )))
-                    
+                        acd_ph = np.exp(i2pi * (
+                                (k - j + a - b) * qx_min +
+                                (b - a) * qx_plus +
+                                (m - l + 1 + c - d) * qy_min +
+                                (d - c) * qy_plus
+                        ))
+                        denom1 = 1./(factorial(j) * factorial(k) * factorial(l) * factorial(m) *
+                                     2**n)
+                        denom2 = 1./(1. - np.exp(i2pi * (-tw.Q2 + spectral_line[0] * ac_tunes[0] +
+                                                         spectral_line[1] * ac_tunes[1]))
+                                     )
 
                     try:
                         mask_in = (tw[src] != 0) | (tw.index == acd_name)
@@ -461,7 +476,8 @@ class TwissOptics(object):
                         phx = dphi(phs_adv['X'].loc[mask_in, :], tw.Q1)
                         phy = dphi(phs_adv['Y'].loc[mask_in, :], tw.Q2)
                         
-                        phs_acd = pd.DataFrame(columns=phs_adv['X'].loc[mask_in, :].columns, index=phs_adv['X'].loc[mask_in, :].index)
+                        phs_acd = pd.DataFrame(columns=phs_adv['X'].loc[mask_in, :].columns,
+                                               index=phs_adv['X'].loc[mask_in, :].index)
                         phs_acd[:] = acd_ph
                         mk_acd = phs_adv['X'].loc[mask_in, :] > 0
                         phs_acd.where(mk_acd, 1., inplace=True) 
@@ -483,7 +499,6 @@ class TwissOptics(object):
                             np.abs(res.loc[:, rdt.upper()]))))
 
         self._log_added(*rdt_list)
-
 
     def get_rdts(self, rdt_names=None):
         """ Return Resonance Driving Terms. """

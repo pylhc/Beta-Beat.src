@@ -1,4 +1,7 @@
 """
+Entrypoint Amplitude Detuning Analysis
+------------------------------------------------
+
 Entrypoint for amplitude detuning analysis.
 
 This module provides functionality to run amplitude detuning analysis with
@@ -431,20 +434,21 @@ def analyse_with_bbq_corrections(opt):
 
         # amplitude detuning odr and plotting
         for tune_plane in PLANES:
-            for corr in ["", "_corrected"]:
-                fun_get_data = getattr(kickac_modifiers, "get{}_ampdet_data".format(corr))
-                fun_add_odr = getattr(kickac_modifiers, "add{}_odr".format(corr))
+            for corr in [False, True]:
+                corr_label = "_corrected" if corr else ""
 
                 # get the proper data
-                data = fun_get_data(kickac_df, opt.plane, tune_plane)
+                data = kickac_modifiers.get_ampdet_data(kickac_df, opt.plane, tune_plane,
+                                                        corrected=corr)
 
                 # make the odr
                 odr_fit = detuning_tools.do_linear_odr(**data)
-                kickac_df = fun_add_odr(kickac_df, odr_fit, opt.plane, tune_plane)
+                kickac_df = kickac_modifiers.add_odr(kickac_df, odr_fit, opt.plane, tune_plane,
+                                                     corrected=corr)
 
                 # plotting
                 labels = ta_const.get_paired_lables(opt.plane, tune_plane)
-                id_str = "J{:s}_Q{:s}{:s}".format(opt.plane.upper(), tune_plane.upper(), corr)
+                id_str = "J{:s}_Q{:s}{:s}".format(opt.plane.upper(), tune_plane.upper(), corr_label)
 
                 try:
                     output = os.path.splitext(opt.ampdet_plot_out)

@@ -4,7 +4,7 @@
 Runs MADX with a file or a string as an input, it processes @required macros.
 If defined, writes the processed MADX script and logging output into files.
 TODO: write tests
-TODO: Possibly more anotation from MADX...
+
 """
 from os.path import abspath, join, dirname
 import os
@@ -32,6 +32,12 @@ else:
 
 MADX_PATH = abspath(join(_LOCAL_PATH, _MADX_BIN))
 MADX_AFS_PATH = abspath(join(_AFS_PATH, _MADX_BIN))
+
+
+def get_madx_path():
+    if os.path.exists(MADX_AFS_PATH):
+        return MADX_AFS_PATH
+    return MADX_PATH
 
 
 class MadxError(Exception):
@@ -65,7 +71,7 @@ def _parse_args():
 
 
 def resolve_and_run_file(input_file, output_file=None, log_file=None,
-                         madx_path=MADX_PATH, cwd=None):
+                         madx_path=get_madx_path(), cwd=None):
     """Runs MADX in a subprocess.
 
     Attributes:

@@ -12,9 +12,10 @@ FIRST_BPM_B2 = "BPMSW.1L8.B2"
 
 
 def write_phase(element_name, measured_hor_phase, measured_ver_phase, measured_hor_beta, measured_ver_beta,
-                    input_data, propagated_models, save_path):
+                    input_data, propagated_models, save_path,
+                    betakind):
 
-    file_phase_x, file_phase_y = _get_phase_tfs_files(element_name, save_path)
+    file_phase_x, file_phase_y = _get_phase_tfs_files(element_name, save_path,betakind)
 
     model_propagation = propagated_models.propagation
     model_back_propagation = propagated_models.back_propagation
@@ -41,6 +42,13 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
     if first_bpm_on_ring in model_propagation.NAME:
         fix_start_s = model_propagation.S[model_propagation.indx[first_bpm_on_ring]]
         tune["X"], tune["Y"] = measured_phase.Q1, measured_phase.Q2
+
+
+    # This can be true only in beta from amplitude
+    # it is there the only place where it is set to true
+    # so we do not need to ckeck beta kind
+    alphaampfwd_failed = getattr(input_data, "alphaamp" + plane + "fwd_failed")
+    alphaampbak_failed = getattr(input_data, "alphaamp" + plane + "bak_failed")
 
     for bpm in bpms_list:
         bpm_s = bpm[0]
@@ -97,14 +105,58 @@ def _write_phase_for_plane(file_phase, element_name, plane, bpms_list, measured_
         back_meas_diff_error = np.sqrt(back_phase_error ** 2 + std_err_phase ** 2)
         back_cor_diff_error = np.sqrt(back_meas_diff_error ** 2 + back_cor_phase_error ** 2)
 
-        file_phase.add_table_row([bpm_name, bpm_s, meas_phase, std_err_phase, prop_phase_difference, prop_meas_diff_error, prop_cor_phase, prop_cor_diff_error, back_prop_phase_difference, back_meas_diff_error, back_cor_phase, back_cor_diff_error, model_s])
+        if alphaampfwd_failed: # it may be true only for beta from amplitude
+            prop_phase_difference = 0
+            prop_meas_diff_error  = 0
+            prop_cor_phase        = 0
+            prop_cor_diff_error   = 0
+        
+        if alphaampbak_failed:
+            back_prop_phase_difference = 0
+            back_meas_diff_error = 0
+            back_cor_phase = 0
+            back_cor_diff_error = 0
+            
+            
+        file_phase.add_table_row([bpm_name, bpm_s, meas_phase, std_err_phase, 
+                                  prop_phase_difference, prop_meas_diff_error, prop_cor_phase, prop_cor_diff_error, 
+                                  back_prop_phase_difference, back_meas_diff_error, back_cor_phase, back_cor_diff_error, 
+                                  model_s])
 
     file_phase.write_to_file()
 
 
-def _get_phase_tfs_files(element_name, save_path):
-    file_phase_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphasext_" + element_name + ".out"))
-    file_phase_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphaseyt_" + element_name + ".out"))
+
+def _write_zerophase_for_plane(file_phase, element_name, plane, bpms_list, measured_phase, measured_beta, input_data, model_propagation, model_cor, model_back_propagation, model_back_cor):
+
+
+    for bpm in bpms_list:
+        bpm_s = bpm[0]
+        bpm_name = bpm[1]
+
+        model_s = measured_phase.S[measured_phase.indx[bpm_name]]
+
+        file_phase.add_table_row([bpm_name, bpm_s, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, model_s])
+
+    file_phase.write_to_file()
+
+
+def _get_phase_tfs_files(element_name, save_path, betakind):
+    '''
+    for beta from phase     and alpha from phase (default): betakind = ""  
+    for beta from amplitude and alpha from amplitude:       betakind = "amp"  
+    for beta from amplitude and alpha from phase    :       betakind = "bampaphase"  
+    for beta from kmod :                                    betakind = "kmod"  
+    '''
+
+    if betakind is None:
+        betakind = "" 
+    
+    if betakind:
+        betakind += "_"
+    
+    file_phase_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphasext_" + betakind + element_name + ".out"))
+    file_phase_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsphaseyt_" + betakind + element_name + ".out"))
     file_phase_x.add_string_descriptor("TYPE", "USER")  # Needed for sbs match
     file_phase_y.add_string_descriptor("TYPE", "USER")  # Needed for sbs match
 

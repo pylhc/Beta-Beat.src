@@ -104,6 +104,8 @@ import copy
 
 from numpy import array
 
+from utils import logging_tools
+LOGGER = logging_tools.get_logger(__name__)
 
 ####
 #######
@@ -333,6 +335,9 @@ def main(outputpath,
 
     if sys.flags.debug:
         print "INFO: DEBUG ON"
+        LOGGER.setLevel(logging_tools.DEBUG)
+    else:
+        LOGGER.setLevel(logging_tools.WARNING)
 
     # Creates the output files dictionary
     files_dict = _create_tfs_files(getllm_d, model_filename, nonlinear)
@@ -1371,4 +1376,5 @@ def _start():
      
      
 if __name__ == "__main__":
+    LOGGER.info("The command: %s ", sys.argv)
     _start()

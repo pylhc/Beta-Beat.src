@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 from distutils.version import LooseVersion
 import pandas as pd
+import numpy as np
 
 from tfs_files import tfs_pandas as tfs
 
@@ -48,7 +49,7 @@ _PRESENTATION_PARAMS = {
     u'figure.frameon': True,
     u'figure.titlesize': u'xx-large',
     u'figure.titleweight': u'bold',
-    u'font.size': 15.0,
+    u'font.size': 20.0,
     u'font.stretch': u'normal',
     u'font.weight': u'bold',
     u'font.family': 'sans-serif',
@@ -60,7 +61,7 @@ _PRESENTATION_PARAMS = {
     u'legend.edgecolor': u'0.8',
     u'legend.facecolor': u'inherit',
     u'legend.fancybox': True,
-    u'legend.fontsize': u'medium',
+    u'legend.fontsize': 20.0,
     u'legend.framealpha': 0.9,
     u'legend.frameon': True,
     u'legend.handleheight': 0.7,
@@ -254,7 +255,7 @@ def sync2d(axs, ax_str='xy', ax_lim=()):
         ax_lim: predefined limits (list or list of lists)
         ax_str: string 'x','y' or 'xy' defining the axes to sync
     """
-    if isinstance(axs, list):
+    if isinstance(axs, (list, np.ndarray)):
         if isinstance(axs[0], matplotlib.figure.Figure):
             # axs is list of figures: get all axes and call sync2D
             sync2d([ax for fig in axs for ax in fig.axes], ax_str)
@@ -298,7 +299,7 @@ def sync2d(axs, ax_str='xy', ax_lim=()):
         sync2d(axs.axes, ax_str)
 
     else:
-        raise TypeError(__file__[:-3] + '.sync2d input is of unknown type (' + type(axs) + ')')
+        raise TypeError(__file__[:-3] + '.sync2d input is of unknown type (' + str(type(axs)) + ')')
 
 
 def set_xLimits(accel, ax=None):
@@ -402,6 +403,20 @@ def change_color_brightness(color, amount=0.5):
     return colorsys.hls_to_rgb(c[0], 1-amount * (1-c[1]), c[2])
 
 
+def change_ebar_alpha_for_line(ebar, alpha):
+    """ loop through bars (ebar[1]) and caps (ebar[2]) and set the alpha value """
+    for bars_or_caps in ebar[1:]:
+        for bar_or_cap in bars_or_caps:
+            bar_or_cap.set_alpha(alpha)
+
+
+def change_ebar_alpha_for_axes(ax, alpha):
+    """ Wrapper for change_ebar_alpha_for_line """
+    for ebar in ax.containers:
+        if isinstance(ebar, matplotlib.container.ErrorbarContainer):
+            change_ebar_alpha_for_line(ebar, alpha)
+
+
 # Labels #####################################################################
 
 
@@ -446,7 +461,10 @@ def set_yaxis_label(param, plane, ax=None, delta=False, chromcoup=False):  # plo
         raise ArgumentError("Label '" + param + "' not found.")
 
     if delta:
-        label = r'$\Delta ' + label[1:]
+        if param.startswith("beta") or param.startswith("norm"):
+            label = r'$\Delta(' + label[1:-1] + ")$"
+        else:
+            label = r'$\Delta ' + label[1:]
 
     if chromcoup:
         label = label[:-1] + r'/\Delta\delta$'
@@ -503,7 +521,7 @@ def show_ir(ip_dict, ax=None, mode='inside'):
                     ypos = ylim[0] + (ylim[1] - ylim[0]) * 0.01
                     ax.text(xpos, ypos, ip, color='grey', ha='center')
                 else:
-                    ax.text(xpos, ylim[1] * 1.03, ip, ha='center')
+                    ax.text(xpos, ylim[1] * 1.1, ip, ha='center')
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
@@ -626,9 +644,9 @@ def get_legend_ncols(labels, max_length=78):
     return max([max_length/max([len(l) for l in labels]), 1])
 
 
-def make_top_legend(ax, ncol):
+def make_top_legend(ax, ncol, handles=None, labels=None):
     """ Create a legend on top of the plot. """
-    leg = ax.legend(loc='lower right', bbox_to_anchor=(1.0, 1.02),
+    leg = ax.legend(handles=handles, labels=labels, loc='lower right', bbox_to_anchor=(1.0, 1.02),
                     fancybox=True, shadow=True, ncol=ncol)
 
     if LooseVersion(matplotlib.__version__) <= LooseVersion("2.2.0"):
@@ -639,9 +657,11 @@ def make_top_legend(ax, ncol):
     legend_width = leg.get_window_extent().inverse_transformed(leg.axes.transAxes).width
     if legend_width > 1:
         x_shift = (legend_width - 1) / 2.
-        ax.legend(loc='lower right', bbox_to_anchor=(1.0 + x_shift, 1.02),
+        ax.legend(handles=handles, labels=labels, loc='lower right', bbox_to_anchor=(1.0 + x_shift, 1.02),
                   fancybox=True, shadow=True, ncol=ncol)
 
     if LooseVersion(matplotlib.__version__) >= LooseVersion("2.2.0"):
         ax.figure.tight_layout()
+
+    return leg
 

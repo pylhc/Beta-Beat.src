@@ -204,11 +204,11 @@ class EntryPoint(object):
             options = DotDict(vars(options))
             if self.strict:
                 if unknown_opts:
-                    raise ArgumentError("Unknown options: {:s}".format(unknown_opts))
+                    raise ArgumentError("Unknown options: {:s}".format(str(unknown_opts)))
                 return options
             else:
                 if unknown_opts:
-                    LOG.debug("Unknown options: {:s}".format(unknown_opts))
+                    LOG.debug("Unknown options: {:s}".format(str(unknown_opts)))
                 return options, unknown_opts
         else:
             # parse config file
@@ -443,10 +443,7 @@ def add_params_to_generic(parser, params):
     """ Adds entry-point style parameter to either
     ArgumentParser, DictParser or EntryPointArguments
     """
-    try:
-        params = copy.deepcopy(params)
-    except TypeError:
-        pass  # Python 3
+    params = copy.deepcopy(params)
 
     if isinstance(params, dict):
         params = EntryPoint._dict2list_param(params)
@@ -539,22 +536,17 @@ def param_names(params):
     return names
 
 
-class CreateParamHelp(object):
+def create_parameter_help(module, param_fun=None):
     """ Print params help quickly but changing the logging format first.
 
     Usage Example::
 
         import amplitude_detuning_analysis
-        help = CreateParamHelp()
-        help(amplitude_detuning_analysis)
-        help(amplitude_detuning_analysis, "_get_plot_params")
+        create_parameter_help(amplitude_detuning_analysis)
+        create_parameter_help(amplitude_detuning_analysis, "_get_plot_params")
 
     """
-    def __init__(self):
-        logtools.getLogger("").handlers = []  # remove all handlers from root-logger
-        logtools.get_logger("__main__", fmt="%(message)s")  # set up new
-
-    def __call__(self, module, param_fun=None):
+    with logtools.unformatted_console_logging():
         if param_fun is None:
             try:
                 module.get_params().help()

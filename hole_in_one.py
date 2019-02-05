@@ -213,9 +213,9 @@ def _get_orbit_data(lin_frame, bpm_data, bpm_res):
         lin_frame['BPM_RES'] = bpm_res.loc[lin_frame.index]
         # TODO: Magic number 10?:
         lin_frame['NOISE'] = bpm_res / np.sqrt(bpm_data.shape[1]) / 10.0
-        lin_frame['AVG_NOISE'] = lin_frame['NOISE']
     else:
         lin_frame['NOISE'] = 0.0
+    lin_frame['AVG_NOISE'] = lin_frame['NOISE']
     return lin_frame
 
 
