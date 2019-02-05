@@ -32,13 +32,6 @@ RDT_LIST = ['f1001H', 'f1010H', 'f0110V', 'f1010V',  #Quadrupolar
             'f4000H', 'f1300H', 'f2002H', 'f1120H',  #Normal Octupolar
             'f1102H', 'f2020H', 'f2020V', 'f2011V', 
             'f0220V', 'f0211V', 'f0040V', 'f0013V',
-            'f3001H', 'f1210H', 'f0130V', 'f1012V',  #Skew Octupolar
-            'f3010H', 'f2101V', 'f1030V', 'f1021V',  #Skew Octupolar
-            'f1220H', 'f3002H', 'f1130H', 'f2003H',
-            'f0050V', 'f0014V', 'f0140V', 'f0113V',
-#             'f6000H', 'f1500H', 'f8000H', 'f1700H',
-#             'f0220V', 'f2011V', 'f1201H', 'f3010H',  ## LINES NOT IN DRIVE, YET....
-#             'f1003H', 'f1030H', 'f0310V', 'f3010V'   ## LINES NOT IN DRIVE, YET....
             ]
 
 def determine_lines(rdt):
@@ -249,7 +242,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     real_part = np.cos(2*np.pi*rdt_angles)
     imag_part = np.sin(2*np.pi*rdt_angles)
     inv_x = np.array(inv_x)
-    inv_y = np.array(inv_x)
+    inv_y = np.array(inv_y)
     
     for k in range(len(line_amplitudes)/len(list_zero_dpp)):
         num_meas = len(list_zero_dpp)
