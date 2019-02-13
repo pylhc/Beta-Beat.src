@@ -35,14 +35,18 @@ import phase
 import helper
 import compensate_ac_effect
 
+from utils import logging_tools
+LOGGER = logging_tools.get_logger(__name__)
 
-DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+import warnings
+
+
 SMALL_NUMBER=1e-10
 #===================================================================================================
 # main part
 #===================================================================================================
 
-def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y,):
+def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, files_dict, pseudo_list_x, pseudo_list_y):
     '''
     Calculates coupling and fills the following TfsFiles:
         getcouple.out        getcouple_free.out        getcouple_free2.out        getcoupleterms.out
@@ -59,8 +63,10 @@ def calculate_coupling(getllm_d, twiss_d, phase_d, tune_d, mad_twiss, mad_ac, fi
     :Return: _TuneData
         the same instance as param tune_d to indicate that tunes will be set.
     '''
-    print "Calculating coupling using the {0}-BPM-method and {1} file(s)".format(getllm_d.num_bpms_for_coupling,len(twiss_d.zero_dpp_x))
-
+    #print "Calculating coupling using the {0}-BPM-method and {1} file(s)".format(getllm_d.num_bpms_for_coupling,len(twiss_d.zero_dpp_x))
+    
+    LOGGER.info("Calculating coupling using the {0}-BPM-method and {1} file(s)".format(getllm_d.num_bpms_for_coupling,len(twiss_d.zero_dpp_x)))
+    
     if twiss_d.has_zero_dpp_x() and twiss_d.has_zero_dpp_y():
         #-- Coupling in the model
         try:
@@ -410,6 +416,319 @@ def GetCoupling1(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, out
 
 ### END of GetCoupling1 ###
 
+def GetCoupling2NoNoise(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel, outputpath):
+    """Calculate coupling and phase with 2-BPM method for all BPMs and overall
+    https://cds.cern.ch/record/1264111/files/CERN-BE-Note-2010-016.pdf
+    INPUT
+     MADTwiss        - twiss instance of model from MAD 
+     list_zero_dpp_x - list with twiss objects for horizontal data
+     list_zero_dpp_y - list with twiss objects for vertical data
+     tune_x          - horizontal tune (use natural/free tunes!)
+     tune_y          - vertical tune (use natural/free tunes!)
+     phasex          - horizontal phase (usage with phase.py in algorithms)
+     phasey          - vertical phase (usage with phase.py in algorithms)
+     beam_direction  - direction of beam, LHCB1: 1, LHCB2: -1
+     accel           - accelerator (LHCB1, LHCB2, LHCB4(?), SPS, RHIC,TEVATRON)
+     outputpath      - directory which contains the Drive.inp file to determine operation point
+    OUTPUT
+     fwqw            - library with BPMs and corresponding results
+     dbpms           - list of BPMs with correct phase
+    """
+
+    #warnings.filterwarnings('error')
+    
+    ### Prepare BPM lists ###
+
+    # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
+    # come from the same (simultaneous) measurement. It might be redundant check.
+    if len(list_zero_dpp_x) != len(list_zero_dpp_y):
+        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+        dum0 = {"Global": [0.0, 0.0]}
+        dum1 = []
+        return [dum0, dum1]
+    # Determine intersection of BPM-lists between measurement and model, create list dbpms
+    XplusY = list_zero_dpp_x + list_zero_dpp_y
+    dbpms = utils.bpm.intersect(XplusY)
+    dbpms = utils.bpm.model_intersect(dbpms, MADTwiss)
+
+    ### Calculate fw and qw, exclude BPMs having wrong phases ###
+
+    # Initialize dictionary of BPMs with results
+    fwqw = {}
+    # Initialize dictionary of BPMs with results for old method
+    f_old_out = {}
+    # Initialize list of BPMs with correct phases
+    dbpmt = []
+    # Count number of BPM-pairs in intersection of model and measurement
+    Numbpmpairs = len(dbpms) - 1
+    # Loop through BPM-pairs
+    for i in range(Numbpmpairs):
+        # Get BPM names
+        bn1 = str.upper(dbpms[i][1])
+        bn2 = str.upper(dbpms[i + 1][1])
+        delx = phasex[bn1][0] - 0.25  # Missprint in the coupling note
+        dely = phasey[bn1][0] - 0.25
+
+        LOGGER.debug(" >>>>>>>>>>>>>>>>>>                       ")
+        LOGGER.debug(" %s <--> %s                          ",bn1,bn2)
+        LOGGER.debug(" delx, dely  = %f, %f             ",phasex[bn1][0],phasey[bn1][0])
+
+        # Initialize result-lists (coupling, error on coupling and phases)
+        f1001ij = []
+        f1010ij = []
+        std_f1001ij = []
+        std_f1010ij = []
+        q1js = []
+        q2js = []
+        q1jd = []
+        q2jd = []
+        # Initialize as not bad BPM
+        badbpm = 0
+        # Loop through files to analyze
+        for j in range(0, len(list_zero_dpp_x)):
+            LOGGER.debug("------------")
+            LOGGER.debug(" j=FileNo=%d  i=BPMpairNo=%d  %s <--> %s                      ", j,i,bn1,bn2)
+
+            # Get twiss instance for current BPM and file
+            tw_x = list_zero_dpp_x[j]
+            tw_y = list_zero_dpp_y[j]
+            # Get main amplitude
+            [ampx_1, ampy_1] = [tw_x.AMPX[tw_x.indx[bn1]], tw_y.AMPY[tw_y.indx[bn1]]]
+            [ampx_2, ampy_2] = [tw_x.AMPX[tw_x.indx[bn2]], tw_y.AMPY[tw_y.indx[bn2]]]
+            
+            # Exclude BPM if no main line was found
+            if ampx_1 == 0 or ampy_1 == 0 or ampx_2 == 0 or ampy_2 == 0:
+                badbpm = 1
+                ampx_1 = 1  # Dummy value, badbpm variable makes sure the BPM is ignored
+                ampy_1 = 1  # Dummy value, badbpm variable makes sure the BPM is ignored
+                ampx_2 = 1  # Dummy value, badbpm variable makes sure the BPM is ignored
+                ampy_2 = 1  # Dummy value, badbpm variable makes sure the BPM is ignored
+            
+            # Get coupled amplitude ratios
+            [amp01_1, amp10_1] = [tw_x.AMP01[tw_x.indx[bn1]], tw_y.AMP10[tw_y.indx[bn1]]]
+            [amp01_2, amp10_2] = [tw_x.AMP01[tw_x.indx[bn2]], tw_y.AMP10[tw_y.indx[bn2]]]
+            
+
+            [phi01_1, phi10_1] = [tw_x.PHASE01[tw_x.indx[bn1]], tw_y.PHASE10[tw_y.indx[bn1]]]
+            [phi01_2, phi10_2] = [tw_x.PHASE01[tw_x.indx[bn2]], tw_y.PHASE10[tw_y.indx[bn2]]]
+            LOGGER.debug(" < ")
+            LOGGER.debug("BPM1 %s: AMPX   = %f   AMPY = %f         ",bn1, ampx_1, ampy_1)
+            LOGGER.debug("BPM1 %s: AMPX01 = %f   AMPY10 = %f         ",bn1, amp01_1, amp10_1)
+            LOGGER.debug("BPM1 %s: PHIX01 = %f   PHIY10 = %f         ",bn1, phi01_1, phi10_1)
+            LOGGER.debug(" > ")
+            LOGGER.debug("BPM2 %s: AMPX   = %f   AMPY = %f         ",bn2, ampx_2, ampy_2)
+            LOGGER.debug("BPM2 %s: AMPX01 = %f   AMPY10 = %f         ",bn2, amp01_2, amp10_2)
+            LOGGER.debug("BPM2 %s: PHIX01 = %f   PHIY10 = %f         ",bn2, phi01_2, phi10_2)
+            
+            
+
+            # Call routine in helper.py to get secondary lines for 2-BPM method
+            [SA0p1ij,phi0p1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2, phi01_1,  phi01_2)
+            [SA0m1ij,phi0m1ij] = helper.ComplexSecondaryLine(delx, amp01_1, amp01_2,-phi01_1, -phi01_2)
+            [TBp10ij,phip10ij] = helper.ComplexSecondaryLine(dely, amp10_1, amp10_2, phi10_1,  phi10_2)
+            [TBm10ij,phim10ij] = helper.ComplexSecondaryLine(dely, amp10_1, amp10_2,-phi10_1, -phi10_2)
+            
+            LOGGER.debug("SA0p1ij,phi0p1ij:  %f,%f", SA0p1ij, phi0p1ij)
+            LOGGER.debug("SA0m1ij,phi0m1ij:  %f,%f", SA0m1ij, phi0m1ij)
+
+            LOGGER.debug("TBp10ij,phip10ij:  %f,%f", TBp10ij, phip10ij)
+            LOGGER.debug("TBm10ij,phim10ij:  %f,%f", TBm10ij, phim10ij)
+            
+
+            # Append results for the coupling parameters
+            f1001ij.append(0.5*math.sqrt(TBp10ij*SA0p1ij/2.0/2.0)) # division by 2 for each ratio as the scale of the #
+            f1010ij.append(0.5*math.sqrt(TBm10ij*SA0m1ij/2.0/2.0)) # main lines is 2 (also see appendix of the note)  #
+            
+
+            LOGGER.debug("beam_direction = {}".format(beam_direction))
+            LOGGER.debug("old sizes q1jd,q1jd = {},{}".format(len(q1jd),len(q2jd)))
+
+            if beam_direction == 1:
+                q1jd.append(( phi0p1ij-tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+                q2jd.append((-phip10ij+tw_x.MUX[tw_x.indx[bn1]]-0.25)%1.0)
+            elif beam_direction == -1:
+                q1jd.append( (phi0p1ij-tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+                q2jd.append(-(-phip10ij+tw_x.MUX[tw_x.indx[bn1]]-0.25)%1.0)
+
+            LOGGER.debug("new sizes q1jd,q1jd = {},{}".format(len(q1jd),len(q2jd)))
+
+
+            # This sign change in the real part is to comply with MAD output
+            q1jd[j] = (0.5-q1jd[j])%1.0 
+            q2jd[j] = (0.5-q2jd[j])%1.0
+
+            if beam_direction==1:
+                q1js.append((phi0m1ij+tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+                q2js.append((phim10ij+tw_x.MUX[tw_x.indx[bn1]]+0.25)%1.0)
+            if beam_direction==-1:
+                q1js.append( (phi0m1ij+tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
+                q2js.append(-(phim10ij+tw_x.MUX[tw_x.indx[bn1]]+0.25)%1.0)
+            
+            # This sign change in the real part is to comply with MAD output
+            q1js[j] = (0.5-q1js[j])%1.0
+            q2js[j] = (0.5-q2js[j])%1.0
+        
+        
+        # Finished all the files
+        
+        q1jd = np.array(q1jd)
+        q2jd = np.array(q2jd)
+        q1d = phase.calc_phase_mean(q1jd,1.0)
+        q2d = phase.calc_phase_mean(q2jd,1.0)
+
+        q1js = np.array(q1js)
+        q2js = np.array(q2js)
+        q1s = phase.calc_phase_mean(q1js,1.0)
+        q2s = phase.calc_phase_mean(q2js,1.0)
+
+        LOGGER.debug("      q1s=%f q2s=%f q1d=%f q2d=%f",q1s,q2s,q1d,q2d)
+        
+        checkOnePlane = 0
+        # Take SPS and RHIC out of the badbpm procedure (badbpm stays 0 as initialized) and set phases 
+        if (accel == "SPS" or accel == "RHIC"):
+            LOGGER.warn("accel is %s disabling wrong phase check",accel)
+            
+            q1010i = q1d
+            q1010i = q1s
+
+        # Check phase and set badbpm for wrong phase (only for other accels than SPS and RHIC)
+            
+        else:
+            if min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25:
+                LOGGER.debug("Bad BPM because min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25  ")
+                badbpm = 1
+            if min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25:
+                LOGGER.debug("Bad BPM because min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25  ")
+                LOGGER.debug(" i,j: %d,%d          q1s,q2s: %f,%f           ",i, j,q1s,q2s) 
+                badbpm = 1
+           
+
+        # Piotr for understanding PS issues
+        #if (accel == "PS"):
+        #    LOGGER.debug(" check V")
+        #    badbpm = 0
+        #    checkOnePlane = 2
+        checkOnePlane = 0
+
+        # If accel is SPS or RHIC or no no wrong phase was detected, process results
+        if badbpm==0:
+            # Cast coupling parameters and errors as np.arrays for later calculations
+            f1001ij = np.array(f1001ij)
+            f1010ij = np.array(f1010ij)
+
+            # Old cminus method: averaging abs values
+            if beam_direction==1:
+                f_old_out[bn1] = np.average(abs(f1001ij))
+            elif beam_direction==-1:
+                f_old_out[bn1] = np.average(abs(f1010ij))
+
+            # Use variance-weighted average to determine f and its std
+            f1001i = np.average(f1001ij)
+            f1010i = np.average(f1010ij)
+            
+            f1001istd = np.std(f1001ij)
+            f1010istd = np.std(f1010ij)
+
+            # Use routines in phase.py to get mean and std of the phase terms q1001 and q1010
+            q1001i = phase.calc_phase_mean(np.array([q1d,q2d]),1.0)
+            q1010i = phase.calc_phase_mean(np.array([q1s,q2s]),1.0)
+            
+            q1001istd = phase.calc_phase_std(np.append(q1jd,q2jd),1.0)
+            q1010istd = phase.calc_phase_std(np.append(q1js,q2js),1.0)
+            
+            if checkOnePlane == 1:
+                q1001i = phase.calc_phase_mean(np.array([q1d]),1.0)
+                q1010i = phase.calc_phase_mean(np.array([q1s]),1.0)
+                q1001istd = phase.calc_phase_std(q1jd,1.0)
+                q1010istd = phase.calc_phase_std(q1js,1.0)
+
+            if checkOnePlane == 2:
+                q1001i = phase.calc_phase_mean(np.array([q2d]),1.0)
+                q1010i = phase.calc_phase_mean(np.array([q2s]),1.0)
+                q1001istd = phase.calc_phase_std(q2jd,1.0)
+                q1010istd = phase.calc_phase_std(q2js,1.0)
+                
+            
+            LOGGER.debug("1001: f,q %f %f",f1001i,q1001i)
+            LOGGER.debug("1010: f,q %f %f",f1010i,q1010i)
+            # Calculate complex coupling terms using phases from above
+            f1001i = f1001i*complex(np.cos(2.0*np.pi*q1001i),np.sin(2.0*np.pi*q1001i))
+            f1010i = f1010i*complex(np.cos(2.0*np.pi*q1010i),np.sin(2.0*np.pi*q1010i))
+            # Add BPM to list of BPMs with correct phase
+            dbpmt.append([dbpms[i][0],dbpms[i][1]])
+
+            # Save results to BPM-results dictionary, sorted depending on beam_direction
+            if beam_direction==1:
+                fwqw[bn1] = [[f1001i,f1001istd,f1010i,f1010istd],[q1001i,q1001istd,q1010i,q1010istd]]
+            elif beam_direction==-1:
+                fwqw[bn1] = [[f1010i,f1010istd,f1001i,f1001istd],[q1010i,q1010istd,q1001i,q1001istd]]
+
+    # Count number of skipped BPMs because of wrong phase
+    Badbpms = len(dbpms)-len(dbpmt)
+    # Rename list of BPMs with correct phase
+    dbpms = dbpmt
+
+    # Compute global values for coupling, error and phase
+    # Initialize coupling term f
+    f_new = complex(0,0)
+    # Initialize denominator for weighted averaging
+    denom = 0
+    # Loop through BPMs with correct phase
+    
+    for i in range(0,len(dbpms)-1):
+        # Get BPM-names
+        bn1 = str.upper(dbpms[i][1])
+        bn2 = str.upper(dbpms[i+1][1])
+        mux = MADTwiss.MUX[MADTwiss.indx[bn1]]
+        muy = MADTwiss.MUY[MADTwiss.indx[bn2]]
+        LOGGER.debug("%s <--> %s  fwqw00 fwqw01  %f %f",bn1,bn2,fwqw[bn2][0][0],fwqw[bn2][0][1])
+        f_new += fwqw[bn2][0][0]*np.exp(complex(0,1)*2*np.pi*(mux-muy))/fwqw[bn2][0][1]**2 # Variance-weighted average for BPMs
+        denom += 1/fwqw[bn2][0][1]**2 # denominator for weighted average
+    
+    N = len(dbpms)
+    print("coupling.py: ",N, "denom = ",denom)
+    if denom == 0:
+        raise Exception("All BPMs were marked as bad")
+     
+    f_new_std = np.sqrt(1/denom)
+    CG_new_abs = 4*abs(tune_x-tune_y)*abs(f_new)/denom
+    CG_new_abs_std = 4*abs(tune_x-tune_y)*abs(f_new_std)
+    CG_new_phase = np.angle(f_new)
+
+    print('NewCMINUS: {0} +/- {1}'.format(CG_new_abs, CG_new_abs_std))
+    print('Skipped BPMs: {0} (badbpm) of {1}'.format(Badbpms, Numbpmpairs))
+    
+    LOGGER.info('NewCMINUS: {0} +/- {1}'.format(CG_new_abs, CG_new_abs_std))
+    LOGGER.info('Skipped BPMs: {0} (badbpm) of {1}'.format(Badbpms, Numbpmpairs))
+
+    # Old formula
+    # Initialize global values coupling CG and phse QG
+    CG = 0.0
+    QG = 0.0
+    for i in range(0,len(dbpms)-1):
+        bn1 = str.upper(dbpms[i][1])
+        CG += abs(f_old_out[bn1])
+        # For more than one file, this goes wrong, loops are mixed up for the phase calculation!
+        tw_x = list_zero_dpp_x[0]
+        tw_y = list_zero_dpp_y[0]
+        QG += fwqw[bn1][1][0]-(tw_x.MUX[tw_x.indx[bn1]]-tw_y.MUY[tw_y.indx[bn1]])
+
+    if len(dbpms)==0:
+        print >> sys.stderr, 'Warning: There is no BPM to output linear coupling properly... leaving Getcoupling.'
+        # Does this set a coupling without prefactor 4*(Qx-Qy) to global?
+        fwqw['Global']=[CG,QG] #Quick fix Evian 2012
+        return [fwqw,dbpms]
+    else:
+        CG_old = abs(4.0*(tune_x-tune_y)*CG/len(dbpms))
+    print 'OldCMINUS' ,CG_old
+    fwqw['Global'] = [CG_new_abs,CG_new_phase,CG_new_abs_std]
+
+    return [fwqw,dbpms]
+
+### END of GetCoupling2NoNoise ###
+    
+
+
 def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel, outputpath):
     """Calculate coupling and phase with 2-BPM method for all BPMs and overall
     INPUT
@@ -427,13 +746,46 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
      fwqw            - library with BPMs and corresponding results
      dbpms           - list of BPMs with correct phase
     """
+    
+    nbpmmeas = 0
+    nbpmmeasWithNoise = 0
+    
+    for j in range(0, len(list_zero_dpp_x)):
+        # Get twiss instance for current BPM and file
+        tw_x = list_zero_dpp_x[j]
+        tw_y = list_zero_dpp_y[j]
+        
+        nbpmmeas += tw_x.NOISE.size
+        nbpmmeasWithNoise += np.count_nonzero(tw_x.NOISE)
+        
+        nbpmmeas += tw_y.NOISE.size
+        nbpmmeasWithNoise += np.count_nonzero(tw_y.NOISE)
 
+    
+    if nbpmmeas == 0:
+        LOGGER.error('Leaving GetCoupling as no BPMs can be found in linx/liny files...')
+        dum0 = {"Global": [0.0, 0.0]}
+        dum1 = []
+        return [dum0, dum1]
+        
+    
+    noNoiseFactor = 1.0 - nbpmmeasWithNoise/float(nbpmmeas)
+    
+    LOGGER.debug("noNoiseFactor = %f  = 1 - %d/%d ", noNoiseFactor, nbpmmeasWithNoise, nbpmmeas)
+    
+    if noNoiseFactor > 0.0: 
+        LOGGER.warn("%f percent of measured data has zero noise, switching to the method with no error propagation due to noise",noNoiseFactor*100)
+        [fwqw,dbpms] = GetCoupling2NoNoise(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, phasex, phasey, beam_direction, accel, outputpath)
+        return [fwqw,dbpms]
+    
+    #warnings.filterwarnings('error')
+    
     ### Prepare BPM lists ###
 
     # Check linx/liny files, if it's OK it is confirmed that ListofZeroDPPX[i] and ListofZeroDPPY[i]
     # come from the same (simultaneous) measurement. It might be redundant check.
     if len(list_zero_dpp_x) != len(list_zero_dpp_y):
-        print >> sys.stderr, 'Leaving GetCoupling as linx and liny files seem not correctly paired...'
+        LOGGER.error('Leaving GetCoupling as linx and liny files seem not correctly paired...')
         dum0 = {"Global": [0.0, 0.0]}
         dum1 = []
         return [dum0, dum1]
@@ -525,6 +877,10 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             std_amp10_1 = tw_y.NOISE[tw_y.indx[bn1]]/ampy_1*math.sqrt(1+amp10_1**2)
             std_amp01_2 = tw_x.NOISE[tw_x.indx[bn2]]/ampx_2*math.sqrt(1+amp01_2**2)
             std_amp10_2 = tw_y.NOISE[tw_y.indx[bn2]]/ampy_2*math.sqrt(1+amp10_2**2)
+            
+            LOGGER.debug("std_amp01_1,std_amp10_1,std_amp01_2,std_amp10_2 = %f, %f, %f, %f", \
+                          std_amp01_1,std_amp10_1,std_amp01_2,std_amp10_2)
+            
             # Propagate to 2-BPM coupled amplitude ratio using a separate routine in helper.py
             std_SA0p1ij = helper.ComplexSecondaryLineSTD(delx, amp01_1, amp01_2,
                     tw_x.PHASE01[tw_x.indx[bn1]], tw_x.PHASE01[tw_x.indx[bn2]], std_amp01_1, std_amp01_2)
@@ -539,14 +895,24 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             f1001ij.append(0.5*math.sqrt(TBp10ij*SA0p1ij/2.0/2.0)) # division by 2 for each ratio as the scale of the #
             f1010ij.append(0.5*math.sqrt(TBm10ij*SA0m1ij/2.0/2.0)) # main lines is 2 (also see appendix of the note)  #
             # Propagate error to f1001 and f1010 if possible (no division by 0)
+            LOGGER.debug("TBp10ij = %f +/- %f, SA0p1ij = %f +/- %f",TBp10ij,std_TBp10ij,SA0p1ij,std_SA0p1ij)
             if TBp10ij==0 or SA0p1ij==0:
+                LOGGER.debug("std_f1001ij = NaN")
                 std_f1001ij.append(float("nan"))
             else:
-                std_f1001ij.append(0.25*math.sqrt(4.0/TBp10ij/SA0p1ij)*math.sqrt((std_TBp10ij*SA0p1ij/4)**2+(TBp10ij*std_SA0p1ij/4)**2))
+                v = 0.25*math.sqrt(4.0/TBp10ij/SA0p1ij)*math.sqrt((std_TBp10ij*SA0p1ij/4)**2+(TBp10ij*std_SA0p1ij/4)**2)
+                LOGGER.debug("std_f1001ij = %f",v)
+                std_f1001ij.append(v)
+            
+            LOGGER.debug("TBm10ij = %f +/- %f, SA0m1ij = %f +/- %f",TBm10ij,std_TBm10ij,SA0m1ij,std_SA0m1ij)
             if TBm10ij==0 or SA0m1ij==0:
+                LOGGER.debug("std_f1010ij is NaN")
                 std_f1010ij.append(float("nan"))
             else:
-                std_f1010ij.append(0.25*math.sqrt(4.0/TBm10ij/SA0m1ij)*math.sqrt((std_TBm10ij*SA0m1ij/4)**2+(TBm10ij*std_SA0m1ij/4)**2))
+                v = 0.25*math.sqrt(4.0/TBm10ij/SA0m1ij)*math.sqrt((std_TBm10ij*SA0m1ij/4)**2+(TBm10ij*std_SA0m1ij/4)**2)
+                LOGGER.debug("std_f1010ij = %f",v)
+                std_f1010ij.append(v)
+                
 
             if beam_direction == 1:
                 q1jd.append((phi0p1ij-tw_y.MUY[tw_y.indx[bn1]]+0.25)%1.0) # note that phases are in units of 2pi
@@ -579,14 +945,13 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         q1s = phase.calc_phase_mean(q1js,1.0)
         q2s = phase.calc_phase_mean(q2js,1.0)
 
-        if DEBUG:
-            print("\n")
-            print("i=",i," j=", j," ",bn1," <--> ",bn2)
-            print("      q1s=",q1s," q2s=",q2s," q1d=",q1d," q2d=",q2d)
+        LOGGER.debug("\n")
+        LOGGER.debug("i=%d j=%d  %s <--> %s                       ", i,j,bn1,bn2)
+        LOGGER.debug("      q1s=%f q2s=%f q1d=%f q2d=%f",q1s,q2s,q1d,q2d)
 
         # Take SPS and RHIC out of the badbpm procedure (badbpm stays 0 as initialized) and set phases 
         if (accel == "SPS" or accel == "RHIC"):
-            print("accel is ", accel, " disabling wrong phase check")
+            LOGGER.warn("accel is %s disabling wrong phase check",accel)
             
             q1010i = q1d
             q1010i = q1s
@@ -594,13 +959,11 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         # Check phase and set badbpm for wrong phase (only for other accels than SPS and RHIC)
         else:
             if min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25:
-                if DEBUG:
-                    print("Bad BPM because min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25")
+                LOGGER.debug("Bad BPM because min(abs(q1d-q2d),1.0-abs(q1d-q2d))>0.25  ")
                 badbpm = 1
             if min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25:
-                if DEBUG:
-                    print("Bad BPM because min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25")
-                    print(" i j ",i, j," q1s, q2s",q1s,q2s) 
+                LOGGER.debug("Bad BPM because min(abs(q1s-q2s),1.0-abs(q1s-q2s))>0.25  ")
+                LOGGER.debug(" i,j: %d,%d          q1s,q2s: %f,%f           ",i, j,q1s,q2s) 
                 badbpm = 1
            
 
@@ -621,6 +984,11 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             # Use variance-weighted average to determine f and its std
             f1001i = np.average(f1001ij, weights=1/std_f1001ij**2)
             f1010i = np.average(f1010ij, weights=1/std_f1010ij**2)
+            
+            #LOGGER.warn("Skowron: code changed")
+            #f1001i = np.average(f1001ij)
+            #f1010i = np.average(f1010ij)
+
             # Set std of f1001 and f1010 by calculating the std of the weighted average
             f1001istd = np.sqrt(1/sum(1/std_f1001ij**2))
             f1010istd = np.sqrt(1/sum(1/std_f1010ij**2))
@@ -630,6 +998,9 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
             q1010i = phase.calc_phase_mean(np.array([q1s,q2s]),1.0)
             q1001istd = phase.calc_phase_std(np.append(q1jd,q2jd),1.0)
             q1010istd = phase.calc_phase_std(np.append(q1js,q2js),1.0)
+            
+            LOGGER.debug("1001: f,q %f %f",f1001i,q1001i)
+            LOGGER.debug("1010: f,q %f %f",f1010i,q1010i)
             # Calculate complex coupling terms using phases from above
             f1001i = f1001i*complex(np.cos(2.0*np.pi*q1001i),np.sin(2.0*np.pi*q1001i))
             f1010i = f1010i*complex(np.cos(2.0*np.pi*q1010i),np.sin(2.0*np.pi*q1010i))
@@ -660,6 +1031,7 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
         bn2 = str.upper(dbpms[i+1][1])
         mux = MADTwiss.MUX[MADTwiss.indx[bn1]]
         muy = MADTwiss.MUY[MADTwiss.indx[bn2]]
+        LOGGER.debug("%s <--> %s  fwqw00 fwqw01  %f %f",bn1,bn2,fwqw[bn2][0][0],fwqw[bn2][0][1])
         f_new += fwqw[bn2][0][0]*np.exp(complex(0,1)*2*np.pi*(mux-muy))/fwqw[bn2][0][1]**2 # Variance-weighted average for BPMs
         denom += 1/fwqw[bn2][0][1]**2 # denominator for weighted average
     
@@ -675,6 +1047,9 @@ def GetCoupling2(MADTwiss, list_zero_dpp_x, list_zero_dpp_y, tune_x, tune_y, pha
 
     print('NewCMINUS: {0} +/- {1}'.format(CG_new_abs, CG_new_abs_std))
     print('Skipped BPMs: {0} (badbpm) of {1}'.format(Badbpms, Numbpmpairs))
+    
+    LOGGER.info('NewCMINUS: {0} +/- {1}'.format(CG_new_abs, CG_new_abs_std))
+    LOGGER.info('Skipped BPMs: {0} (badbpm) of {1}'.format(Badbpms, Numbpmpairs))
 
     # Old formula
     # Initialize global values coupling CG and phse QG
@@ -794,8 +1169,8 @@ def _find_sign_QxmQy(outputpath, tune_x, tune_y):
 #===================================================================================================
 
 def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms):
-    if DEBUG:
-        print "Calculating free fterms"
+    
+    LOGGER.debug("Calculating free fterms")
     couple={}
     couple['Global']=[fterm['Global'][0],fterm['Global'][1]]
 
@@ -828,8 +1203,7 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
 
     factor_diff=abs((factor_top_diff/factor_bottom_diff))
 
-    if DEBUG:
-        print "Factor for coupling diff ",factor_diff
+    LOGGER.debug("Factor for coupling diff %f",factor_diff)
 
     # sum f1010
     factor_top_sum=math.sqrt(np.sin(np.pi*(tunedrivenx+tunefreey))*np.sin(np.pi*(tunefreex+tunedriveny)))
@@ -837,8 +1211,7 @@ def getFreeCoupling(tunefreex,tunefreey,tunedrivenx,tunedriveny,fterm,twiss,bpms
 
     factor_sum=abs((factor_top_sum/factor_bottom_sum))
 
-    if DEBUG:
-        print "Factor for coupling sum ",factor_sum
+    LOGGER.debug("Factor for coupling sum %f",factor_sum)
 
     for bpm in bpms:
 
