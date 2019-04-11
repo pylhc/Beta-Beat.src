@@ -125,7 +125,8 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     else:
         phase_data = phase_d.ph_y
         list_zero_dpp = twiss_d.zero_dpp_y
-
+    
+    # both planes need to be there because both phases advances are needed 
     dbpms = utils.bpm.intersect(twiss_d.zero_dpp_y+twiss_d.zero_dpp_x)
     dbpms = utils.bpm.model_intersect(dbpms, mad_twiss)
     bpm_positions, bpm_names = zip(*dbpms)
@@ -135,8 +136,9 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     out_file.add_column_names(["NAME", "S", "COUNT", "AMP", "EAMP", "PHASE", "EPHASE"])
     out_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le"])
 
-    line_amplitudes = []
+    line_amplitudes = [] # stored 1 entry per BPM per file, one after another 
     line_amplitudes_err = []
+    line_amp_bpmidx = [] #book keeping of BPM index so the 2 above can be assigned to the good BPM when one is bad
     rdt_phases_averaged = []
     rdt_phases_averaged_std = []
 
@@ -176,11 +178,22 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         LogRdt.debug("%s: First BPM is %s",strline,bpmRef)
         LogRdt.debug("%s: First BPM spos %f", strline, bpm_positions[bpm_names.index(bpmRef)] )
         
+
+        LogRdt.debug("%s: There is %d BPMs",strline,len(dbpms))
+        for i in range(len(dbpms)):
+            bpm1 = dbpms[i][1].upper()
+            LogRdt.debug("bpm1: %s",bpm1)
+            
+        
         
           
         for i in range(len(dbpms)):
+            LogRdt.debug("  ")
+            LogRdt.debug(" -------- ------------------------------------------------ ")
+            LogRdt.debug("  ")
+
             bpm1 = dbpms[i][1].upper()
-            
+            LogRdt.debug("bpm1: %s",bpm1)
             bpm1spos = bpm_positions[bpm_names.index(bpm1)]
             
             try:
@@ -188,12 +201,19 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 # filled by get_phases in phase.py
                 bpm_pair_data = phase_data[bpm1][7], phase_data[bpm1][8], phase_data[bpm1][9]
             except KeyError:
-                LogRdt.warn("%s: Could not find a BPM pair (%s, %s)!",strline, plane, bpm1)
+                LogRdt.warn("%s: Could not find a BPM pair (%s, %s)! No data for pi/2 BPM",strline, plane, bpm1)
                 #print >> sys.stderr, "Could not find a BPM pair (%s, %s)!" % (plane, bpm1)
                 continue
             
             # BPM name closest to 90 degreees downstream 
             bpm2 = bpm_pair_data[0]
+             
+            if bpm2 not in bpm_names:
+                # this happens when the pi/2 BPM was cleaned in the other plane 
+                LogRdt.warn("%s: Could not find a BPM pair (%s, %s)! missing data for pi/2 BPM %s",
+                            strline, plane, bpm1, bpm2)
+                continue
+                
             bpm2spos = bpm_positions[bpm_names.index(bpm2)]
             
             rdt_phases_per_bpm = []
@@ -202,9 +222,6 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             if beam==-1:
                 delta = -delta
             
-            LogRdt.debug("  ")
-            LogRdt.debug(" -------- ------------------------------------------------ ")
-            LogRdt.debug("  ")
             LogRdt.debug("%s: %s <--> %s : %f",strline,bpm1, bpm2, delta)
             LogRdt.debug("  ")
             amplist = []
@@ -214,18 +231,28 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             phase2list = []
             linePhaseslist = []
             #Loop over the linx/liny files in list_zero_dpp list
-            # list_zero_dpp is linx/liny for the current plane, the same as one of linx_data,liny_data 
+            # list_zero_dpp is linx/liny for the current plane, the same as one of linx_data,liny_data
+            
+            LogRdt.debug("Starting loop !! ")
+            LogRdt.debug(len(list_zero_dpp))
+            LogRdt.debug("Starting loop !! ")
+            
             for j in range(0,len(list_zero_dpp)):
                 
+                LogRdt.debug("Loop j = %d ",j)
 
                 idxlxbpm1 = linx_data[j].indx[bpm1]
-                idxlybpm1 = linx_data[j].indx[bpm1]
+                idxlybpm1 = liny_data[j].indx[bpm1]
+                LogRdt.debug("Getting mux and muy from %d and %d", idxlxbpm1, idxlybpm1)
                 # phase of tune line
                 ph_H10 = getattr(linx_data[j], "MUX")[idxlxbpm1]%1
                 ph_V01 = getattr(liny_data[j], "MUY")[idxlybpm1]%1
                 # tunes
                 q1 = getattr(linx_data[j], "TUNEX")[idxlxbpm1]%1
                 q2 = getattr(liny_data[j], "TUNEY")[idxlybpm1]%1
+                
+                #q1 = tune_d.q1f
+                #q2 = tune_d.q2f
                 
 
                 idxbpm1 = list_zero_dpp[j].indx[bpm1]
@@ -310,12 +337,15 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 LogRdt.debug("%s:   Line Amp = %f +/- %f   Phase = %f +/- %f  deltaMU = %f",
                                 strline,line_amp, line_amp_e, line_phase, line_phase_e, delta)
                 linePhaseslist.append(line_phase)
-                                
+                
+                
+                LogRdt.debug("%s:   Setting _line results for BPM %s at %f",strline, bpm1, dbpms[i][0])
                 out_file.add_table_row([bpm1, dbpms[i][0], len(list_zero_dpp), line_amp, line_amp_e, line_phase, line_phase_e])
                 
                 # these 2 lists agragate all the amps: for all BPMs and all measurements 
                 line_amplitudes.append(line_amp)
                 line_amplitudes_err.append(line_amp_e)
+                line_amp_bpmidx.append(i)
                 
                 amplist.append(line_amp)    
                     
@@ -344,6 +374,7 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             LogRdt.debug(linePhaseslist)
             
             
+            np.set_printoptions(formatter={'float': '{: 0.2f}'.format},linewidth=750)
 
             if rdt_phases_per_bpm:
                 # was simple average
@@ -357,13 +388,19 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
                 # skowron October 2018
 
                 LogRdt.debug("phases for all the files")
-                LogRdt.debug(rdt_phases_per_bpm)
+                LogRdt.debug(phases)
 
                 rdt_sinphases = np.sin( phases )
                 rdt_cosphases = np.cos( phases )
+
+                LogRdt.debug("phases sin cos")
+                LogRdt.debug(rdt_sinphases)
+                LogRdt.debug(rdt_cosphases)
                 
                 sinave = np.average(rdt_sinphases)
                 cosave = np.average(rdt_cosphases)
+
+                LogRdt.debug("phases sin cos averages %5.3f %5.3f",sinave, cosave)
                 
                 phase = np.arctan2(sinave,cosave)
                 if phase < 0:
@@ -391,6 +428,8 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
             else:
                 rdt_phases_averaged.append(0.0)
                 rdt_phases_averaged_std.append(0.0)
+            
+            np.set_printoptions(formatter=None)
 
     else:
         #print >> sys.stderr, "Could not find line for %s !" %rdt
@@ -406,10 +445,14 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
     inv_x = np.array(inv_x)
     inv_y = np.array(inv_y)
     
+    
     for k in range(len(line_amplitudes)/len(list_zero_dpp)):
         num_meas = len(list_zero_dpp)
-        bpm_name = dbpms[k][1].upper()
         bpm_rdt_data = np.array(line_amplitudes[k*num_meas:(k+1)*num_meas])
+        #bpm_idx_check = np.std(line_amp_bpmidx[k*num_meas:(k+1)*num_meas])
+        # if bpm_idx_check > 1e-6: error 
+        bpm_idx = line_amp_bpmidx[k*num_meas]
+        bpm_name = dbpms[bpm_idx][1].upper()
         #LogRdt.debug("%s: %s in  line amps :",strline,bpm_name)
         #LogRdt.debug(bpm_rdt_data)
         res, res_err = do_fitting(bpm_rdt_data, inv_x, inv_y, rdt, plane)
@@ -420,8 +463,8 @@ def _process_RDT(mad_twiss, phase_d, twiss_d, (plane, out_file, rdt_out_file, li
         if np.isinf(res_err[0]):
             #print "skowron EAMP is inf", res_err[0]
             res_err[0] = 0.0
-            
-        rdt_out_file.add_table_row([bpm_name, dbpms[k][0], len(list_zero_dpp), res[0], res_err[0], rdt_angles[k], rdt_phases_averaged_std[k], res[0]*real_part[k], res[0]*imag_part[k]])
+        LogRdt.debug("%s:   Setting results for BPM %s at %f",strline, bpm_name, dbpms[bpm_idx][0])    
+        rdt_out_file.add_table_row([bpm_name, dbpms[bpm_idx][0], len(list_zero_dpp), res[0], res_err[0], rdt_angles[k], rdt_phases_averaged_std[k], res[0]*real_part[k], res[0]*imag_part[k]])
 
 
 def calculate_rdt_phases(rdt, line_phase, ph_H10, ph_V01):
