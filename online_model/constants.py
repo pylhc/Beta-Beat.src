@@ -24,6 +24,11 @@ def get_extractor_knobs_filename():
     return "knobs.madx"
 
 
+def get_extractor_log_filename():
+    """ Default log filename (output of extractor) """
+    return "extractor.log"
+
+
 def get_default_knob_summary_filename(idx):
     """ Default knob summary filename (output of extractor) """
     return "knobs.madxsummary{:d}".format(idx)
