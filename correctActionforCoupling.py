@@ -1,8 +1,34 @@
 import numpy as np 
 import pandas as pd 
 from tfs_files import tfs_pandas
+from utils import logging_tools, iotools
+from utils.entrypoint import entrypoint, EntryPointParameters, ArgumentError
+
+LOG = logging_tools.get_logger(__name__)
 
 PLANES = ['X', 'Y']
+
+
+def _get_params():
+    params = EntryPointParameters()
+    params.add_parameter(
+        flags="--bpmfile",
+        help="Directory where the SDDS file are stored",
+        name="bpmfile",
+        type=str,
+        required=True
+    )
+    params.add_parameter(
+        flags="--analysisdir",
+        help="Directory of the analysis",
+        name="analysisdir",
+        type=str,
+        required=True
+    )
+
+    return params
+
+
 
 
 def _calc_cosh2P( coupling_df ):
@@ -26,14 +52,15 @@ def _load_lin_files(filename, plane):
     return lin_df
 
 
-def _load_beta_files( plane):
+def _load_beta_files(analysisdir, plane):
 
     beta_df = tfs_pandas.read_tfs( 'getbeta{:}'.format( plane.lower() ) )
 
     return beta_df
 
-def correct_action_for_coupling():
-
+@entrypoint( _get_params(), strict=True )
+def correct_action_for_coupling(opt):
+    LOG.info( "Starting the dark magic" )
     _calc_cosh2P(  )
 
     for plane in PLANES:
@@ -50,8 +77,13 @@ def correct_action_for_coupling():
 
         return np.array([[np.mean(meansqrt2j), np.std(meansqrt2j)], [np.mean(mean2j), np.std(mean2j)]])
 
-    return 
+    LOG.info( "Starting the dark magic" )
 
-coupl = tfs_pandas.read_tfs( '/afs/cern.ch/work/m/mihofer/public/Beta-Beat.src_mod_CouplingAction/TestData/2019-04-26/LHCB1/Results/nominal_injection/getcouple.out' )
+    return coupling_df
 
-print( _calc_cosh2P( coupling_df=coupl ) )
+
+# Script Mode ##################################################################
+
+
+if __name__ == '__main__':
+    correct_action_for_coupling()
