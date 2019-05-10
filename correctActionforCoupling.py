@@ -81,7 +81,7 @@ def _load_beta_files(opt, plane):
 
 
 def _get_time(lindir):
-    
+
     filename = os.path.split(lindir)[-1]
     kickdate, kicktime = filename.split('@')[-2:]
     kick_timestamp = time.strptime(
@@ -91,7 +91,7 @@ def _get_time(lindir):
 
 
 def _calc_corrected_action(opt, lindir, coupling_df, corr_kick_df):
-    
+
     timestamp = _get_time(lindir)
     kicks = np.zeros((8))
 
@@ -102,11 +102,11 @@ def _calc_corrected_action(opt, lindir, coupling_df, corr_kick_df):
 
         if opt.ac:
             frame = pd.merge(beta_df, lin_df.loc[:, [
-                             'AMP'+plane.lower()]], how='inner', left_index=True, right_index=True)
+                             'AMP'+plane]], how='inner', left_index=True, right_index=True)
             frame = pd.merge(frame, coupling_df.loc[:, [
                              'COSH2P']], how='inner', left_index=True, right_index=True)
             amps = 2.0 * \
-                frame.loc[:, 'AMP'+plane.lower()].values / \
+                frame.loc[:, 'AMP'+plane].values / \
                 (frame.loc[:, 'COSH2P'].values)
         else:
             frame = pd.merge(beta_df, lin_df.loc[:, [
@@ -133,12 +133,14 @@ def _get_kickfiles(opt):
 
 @entrypoint(_get_params(), strict=True)
 def correct_action_for_coupling(opt):
-    LOG.info("Starting the dark magic")
+    LOG.info("Starting dark magic")
 
+    LOG.info("Loading getcouple{:}.out from {:}".format(opt.suffix, opt.analysisdir))
     coupling_df = tfs_pandas.read_tfs(os.path.join(
         opt.analysisdir, 'getcouple{:}.out'.format(opt.suffix)), index='NAME')
     coupling_df = _calc_cosh2P(coupling_df)
 
+    LOG.info("Loading getkick{:}.out from {:}".format('ac' if opt.ac else '', opt.analysisdir))
     kick_df = tfs_pandas.read_tfs(os.path.join(
         opt.analysisdir, 'getkick{:}.out'.format('ac' if opt.ac else '')), index='TIME')
 
@@ -150,12 +152,13 @@ def correct_action_for_coupling(opt):
     kickfiles = _get_kickfiles(opt)
 
     for kick in kickfiles:
+        LOG.info("Analysis for {:}".format(kick))
         corr_kick_df = _calc_corrected_action(
             opt, kick, coupling_df, corr_kicks_df)
 
     kick_df = kick_df.join( corr_kick_df )
     
-    LOG.info("Finishing the dark magic")
+    LOG.info("Dark Ritual is finished")
 
     return coupling_df, kick_df
 
