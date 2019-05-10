@@ -144,6 +144,8 @@ def correct_action_for_coupling(opt):
     kick_df = tfs_pandas.read_tfs(os.path.join(
         opt.analysisdir, 'getkick{:}.out'.format('ac' if opt.ac else '')), index='TIME')
 
+    header = kick_df.headers
+
     column_names = [s + SUFFIX_TFS
                     for s in ["sqrt2JX", "sqrt2JXSTD", "2JX", "2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JY", "2JYSTD"]]
 
@@ -156,8 +158,10 @@ def correct_action_for_coupling(opt):
         corr_kick_df = _calc_corrected_action(
             opt, kick, coupling_df, corr_kicks_df)
 
-    kick_df = kick_df.join( corr_kick_df )
-    
+    kick_df = kick_df.join(corr_kick_df)
+    tfs_pandas.write_tfs( 
+        os.path.join(opt.analysisdir, 'getkick{:}.out'.format('ac' if opt.ac else '')), 
+        kick_df, header, save_index=True )
     LOG.info("Dark Ritual is finished")
 
     return coupling_df, kick_df
