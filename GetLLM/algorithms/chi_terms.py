@@ -24,7 +24,9 @@ import phase
 import beta
 
 
-DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+from utils import logging_tools
+LOGGER = logging_tools.get_logger(__name__)
+
 
 #===================================================================================================
 # main part
@@ -170,8 +172,8 @@ def get_chi_terms(MADTwiss,filesF,plane,name,ListOfZeroDPPX,ListOfZeroDPPY):
         invarianceJx.append(invariantJX[0])
         invarianceJy.append(invariantJY[0])
 
-    if DEBUG:
-        print "invarianceJX:",invarianceJx
+    LOGGER.debug("invarianceJX: {}".format(invarianceJx))
+    
     #### model chi
     MADTwiss.chiterms(BPMS)
     if name=='chi3000':

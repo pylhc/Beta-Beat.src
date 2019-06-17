@@ -13,13 +13,14 @@ Change history:
     <description>
 '''
 from numpy import sqrt, sin, cos, tan, pi
-
+from utils import logging_tools
 PI2 = 2 * pi
 COLUMNS = ("IP", "BETASTAR", "EBETASTAR", "PHASEADV", "EPHASEADV",
            "MDLPHADV", "LSTAR")
 PLANES = ("x", "y")
 HVPLANE = {"x": "H", "y": "V"}
 
+LOGGER = logging_tools.get_logger(__name__)
 
 def betastar_from_phase(accel, phase_d, model, files_dict):
     """Writes the getIP files with the betastar computed using phase advance.
@@ -31,6 +32,13 @@ def betastar_from_phase(accel, phase_d, model, files_dict):
         files_dict: The GetLLM files_dict, storing the tfs_file_writers to use
             to write the results.
     """
+    
+    LOGGER.debug("Accelerator is: %s",accel)
+    if "LHC" not in accel.upper():
+        LOGGER.warn("Machine %s is not of LHC type, there is no IP's to have beta star.", accel)
+        #print("Machine %s is not of LHC type, there is no IP's to have beta star"%accel)
+        return
+    
     for plane in PLANES:
         for filename, phases in _phase_d_combinations(phase_d, plane):
             tfs_writer = _get_ip_tfs_writer(files_dict, filename, plane)

@@ -26,6 +26,8 @@ import phase
 import beta
 import utils.bpm
 
+from utils import logging_tools
+LOGGER = logging_tools.get_logger(__name__)
 
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
@@ -63,8 +65,19 @@ def calculate_orbit(mad_twiss, list_of_files):
 
 
 def ComplexSecondaryLine(delta, cw, cw1, pw, pw1):
+    '''
+    Returns amplitude and phase of a line
+    The note: https://cds.cern.ch/record/1264111/files/CERN-BE-Note-2010-016.pdf
+    delta: phase adnvace between the 2 BPMs
+    cw:  amplitude of AMPX01 or AMPY10 for H or V, respectively, for BPM1
+    cw1: amplitude of AMPX01 or AMPY10 for H or V, respectively, for BPM2
+    pw, pw1: phases of the lines above
+    '''
+    LOGGER.debug("ComplexSecondaryLine: delta, cw, cw1, pw, pw1")
+    LOGGER.debug("ComplexSecondaryLine: %f %f %f %f %f",delta, cw, cw1, pw, pw1)
+    
     tp = 2.0*np.pi
-    a1 = complex(1.0,-tan(tp*delta))
+    a1 = complex(1.0,-tan(tp*delta)) #(Eq.76 of the note)
     a2 = cw*complex(cos(tp*pw),sin(tp*pw))
     a3 = -1.0/cos(tp*delta)*complex(0.0,1.0)
     a4 = cw1*complex(cos(tp*pw1),sin(tp*pw1))
@@ -76,14 +89,19 @@ def ComplexSecondaryLine(delta, cw, cw1, pw, pw1):
 
 
 def ComplexSecondaryLineSTD(delta, cw, cw1, pw, pw1, std, std1):
+    
     '''Calculates the propagated error on ComplexSecondaryLine'''
+    LOGGER.debug("ComplexSecondaryLineSTD: delta, cw, cw1, pw, pw1, std, std1")
+    LOGGER.debug("ComplexSecondaryLineSTD: %f %f %f %f %f %f %f ",delta, cw, cw1, pw, pw1, std, std1)
     tp = 2.0*np.pi
     # Aij corresponds to ai*aj from above without cw/cw1
     A12 = complex(1.0,-tan(tp*delta))*complex(cos(tp*pw),sin(tp*pw))
     A34 = -1.0/cos(tp*delta)*complex(0.0,1.0)*complex(cos(tp*pw1),sin(tp*pw1))
     # calculate the propagated STD on the output
     # the first np.abs in the sqrt suppresses an error but canNOT modify the result!
-    sigma = 0.5/np.abs(A12*cw+A34*cw1)*math.sqrt(np.abs((std*(2*np.abs(A12)**2*cw+cw1*(A12*np.conj(A34)+np.conj(A12)*A34)))**2+((std1*(2*np.abs(A34)**2*cw1+cw*(np.conj(A12)*A34+A12*np.conj(A34)))))**2))
+    sigma = 0.5/np.abs(A12*cw+A34*cw1) * \
+            math.sqrt(np.abs( (std * (2*np.abs(A12)**2*cw  + cw1*(A12*np.conj(A34) + np.conj(A12)*A34)))**2 + \
+                              (std1* (2*np.abs(A34)**2*cw1 + cw *(np.conj(A12)*A34 + A12*np.conj(A34))))**2   ) )
     
     return sigma
 
@@ -101,6 +119,8 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
              - eamp: error on amplitude of the complex signal
              - ephase: error on phase of the complex signal
     '''
+    #LOGGER.debug("ComplexSecondaryLineExtended: delta,edelta, amp1,amp2, phase1,phase2")
+    #LOGGER.debug("ComplexSecondaryLineExtended: %f %f %f %f %f %f ",delta,edelta, amp1,amp2, phase1,phase2)
 
     # functions
     tp=2.0*np.pi
@@ -113,6 +133,8 @@ def ComplexSecondaryLineExtended(delta,edelta, amp1,amp2, phase1,phase2):
     ss1=sin(tp*phase1)
     cs2=cos(tp*phase2)
     ss2=sin(tp*phase2)
+
+    #LOGGER.debug("ComplexSecondaryLineExtended: cs %f - %f = %f ; ss %f - %f = %f ",cs1,cs2,(cs1-cs2),ss1,ss2,(ss1-ss2))
 
     sig1=amp1*complex(cs1,ss1)
     sig2=amp2*complex(cs2,ss2)
@@ -311,7 +333,7 @@ def pseudo_double_plane_monitors(mad_twiss, list_of_zero_dpp_x, list_of_zero_dpp
         fbpmx[j].close()
         fbpmy[j].close()
         filex = 'temp' + str(j) + '_linx'
-        filey = 'temp' + str(j) +'_liny'
+        filey = 'temp' + str(j) + '_liny'
         pseudo_list_x.append(metaclass.twiss(filex))
         pseudo_list_y.append(metaclass.twiss(filey))
 

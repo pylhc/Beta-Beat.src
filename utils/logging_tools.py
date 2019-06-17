@@ -53,14 +53,15 @@ class DebugMode(object):
         active (bool): Defines if this manager is doing anything. (Default: ``True``)
         log_file (str): File to log into.
     """
-    def __init__(self, active=True, log_file=None):
+    def __init__(self, active=True, log_file=None, add_date_to_fname=True):
         self.active = active
         if active:
             # get current logger
             caller_file = _get_caller()
             current_module = _get_current_module(caller_file)
 
-            self.logger = logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
+            #self.logger = logging.getLogger(".".join([current_module, os.path.basename(caller_file)]))
+            self.logger = logging.getLogger("")
 
             # set level to debug
             self.current_level = self.logger.getEffectiveLevel()
@@ -72,21 +73,27 @@ class DebugMode(object):
             if log_file is None:
                 log_file = os.path.abspath(caller_file).replace(".pyc", "").replace(".py",
                                                                                     "") + ".log"
-            self.log_file = os.path.join(os.path.dirname(log_file), now + os.path.basename(log_file))
-            self.logger.debug("Writing log to file '{:s}'.".format(self.log_file))
+            if add_date_to_fname:
+                self.log_file = os.path.join(os.path.dirname(log_file), now + os.path.basename(log_file))
+            else:
+                self.log_file = os.path.join(os.path.dirname(log_file), os.path.basename(log_file))
+            print("Writing log to file '{:s}'.".format(self.log_file))
+            self.logger.info("Writing log to file '{:s}'.".format(self.log_file))
 
             # add handlers
             self.file_h = file_handler(self.log_file, level=DEBUG)
             self.console_h = stream_handler(level=DEBUG, max_level=DEBUG)
-            self.mod_logger = logging.getLogger(current_module)
+            #self.mod_logger = logging.getLogger(current_module)
+            self.mod_logger = self.logger
             self.mod_logger.addHandler(self.file_h)
             self.mod_logger.addHandler(self.console_h)
 
             # stop time
             self.start_time = time.time()
+            
 
     def __enter__(self):
-        return None
+        return self
 
     def __exit__(self, type, value, traceback):
         if self.active:

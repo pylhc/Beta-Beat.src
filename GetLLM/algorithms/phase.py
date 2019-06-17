@@ -26,7 +26,10 @@ from beta import JPARC_intersect
 from tfs_files import tfs_file_writer
 import constants
 
-DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
+from utils import logging_tools
+LOGGER = logging_tools.get_logger(__name__)
+
+LOGGER = logging_tools.get_logger(__name__)
 
 #===================================================================================================
 # main part
@@ -38,14 +41,29 @@ class PhaseData(object):
     '''
 
     def __init__(self):
+        '''
+        'ph_x': horizontal phase , Dictionary, for each BPM pair it has list of values:
+                [p_i[1], p_std[1], p_i[2], p_std[2], p_mdl[1], p_mdl[2], bpms[1], best_90degrees_bpm, best_90degrees_phase, best_90degrees_phase_std]
+                'p_i[1]'    : phase of the indexed BPM
+                'p_std[1]'  : std of the above
+                'p_i[2]'    : phase of the next BPM
+                'p_std[2]'  :
+                'p_mdl[1]'  :
+                'p_mdl[2]'  :
+                'bpms[1]'   : name of the next BPM
+                'best_90degrees_bpm'
+                'best_90degrees_phase'
+                'best_90degrees_phase_std'
+                    
+        '''
         self.acphasex_ac2bpmac = None
         self.acphasey_ac2bpmac = None
-        self.ph_x = None # horizontal phase
-        self.x_f = None
-        self.x_f2 = None
+        self.ph_x = None # horizontal phase, Dictionary, for each BPM pair it has list of values, see above 
+        self.x_f = None  # horizontal free phase
+        self.x_f2 = None # horizontal free2 phase
         self.ph_y = None # vertical phase
-        self.y_f = None
-        self.y_f2 = None
+        self.y_f = None  # vertical free  phase
+        self.y_f2 = None # vertical free2 phase
         #self.lambda_r = 1.0  # Ryoichi's lambda
 
 
@@ -483,6 +501,13 @@ def calculate_total_phase(getllm_d, twiss_d, tune_d, phase_d, mad_twiss, mad_ac,
 #===================================================================================================
 #TODO: awful name! what does this function??? (vimaier)
 def _phi_last_and_last_but_one(phi, ftune):
+    '''
+    Shifts phase by tune.
+    Apparently it is called only for the last and the last but one BPM, therefore  the awful name  
+    'phi': a phase advance
+    'ftune': tune 
+    Author unknown
+    '''
     if ftune <= 0:
         ftune += 1
     phi += ftune
@@ -580,8 +605,9 @@ def _get_phases_total(mad_twiss, src_files, tune, plane, beam_direction, accel, 
     
     bn1 = str.upper(commonbpms[0][1])
     phase_t = {}
-    if DEBUG:
-        print "Reference BPM:", bn1, "Plane:", plane
+    
+    LOGGER.debug("Reference BPM: %s Plane: %s", bn1, plane)
+    
     for i in range(0, len(commonbpms)):
         bn2 = str.upper(commonbpms[i][1])
         if plane == 'H':
@@ -626,6 +652,15 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
     tune_q will be used to fix the phase shift in LHC.
     For other accelerators use 'None'.
     """
+
+    LOGGER.debug("")
+    LOGGER.debug("##############################################")
+    LOGGER.debug("##############################################")
+    LOGGER.debug("##############################################")
+    LOGGER.debug("##############################################")
+    LOGGER.debug("##############################################")
+    LOGGER.debug("")
+    
     commonbpms = utils.bpm.intersect(ListOfFiles)
     commonbpms = utils.bpm.model_intersect(commonbpms, mad_twiss)
     commonbpms = JPARC_intersect(plane, getllm_d, commonbpms)
@@ -672,7 +707,8 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
 
     for i in range(length_commonbpms): # To calculate the tune
         bpm = str.upper(commonbpms[i % length_commonbpms][1])
-
+        
+        
         tunemi = []
         for src_twiss in ListOfFiles:
             # Phase is in units of 2pi
@@ -681,6 +717,8 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             elif plane == 'V':
                 src_twiss_tune_column = src_twiss.TUNEY
             tunemi.append(src_twiss_tune_column[src_twiss.indx[bpm]])
+        
+        LOGGER.debug("BPM %s tunes %s",bpm,str(tunemi))
 
         tunemi = np.array(tunemi)
         if i < length_commonbpms-1:
@@ -690,9 +728,14 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
         if i == length_commonbpms-2:
             tunem = np.array(tunem)
             tune = np.average(tunem)
+    
+    LOGGER.debug("Global TUNE: %f",tune)
 
     for i in range(length_commonbpms): # To find the integer part of tune as well, the loop is up to the last monitor
         bpms = [str.upper(commonbpms[j % length_commonbpms][1]) for j in range(i, i+11)] # eleven consecutive monitors
+        # p_i elements start as lists
+        # but it will become first np.array
+        # and at the just floats!!!!!! Yummy.
         p_i = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[]} # dict for the six bpm pairs i.e. p_i[1] is for pair bpm[0], bpm[1]
         
         
@@ -702,9 +745,12 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
                 p_i[10 + number] = []
                 bpms.append(second_bpm)
                 number += 1
-                   
+        
+        # For all files take phase adv diffences between this bpm (bpms[0]) and 9 following ones in list bpms             
         for src_twiss in ListOfFiles:
             # Phase is in units of 2pi
+            LOGGER.debug("Reading from file %s ",src_twiss.filename);
+            
             p_m = {}
             if plane == 'H':
                 twiss_column = src_twiss.MUX
@@ -713,6 +759,7 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
             for bpm_pair in p_i:
                 try:
                     p_m[bpm_pair] = twiss_column[src_twiss.indx[bpms[bpm_pair]]] - twiss_column[src_twiss.indx[bpms[0]]]
+                    LOGGER.debug("Phase adv between  %s <--> %s = %f ",bpms[0],bpms[bpm_pair],p_m[bpm_pair])
                 except:
                     p_m[bpm_pair] = 10000000000
                     
@@ -726,24 +773,38 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
                             p_m[bpm_pair] += -getllm_d.beam_direction*tune_q
                 except:
                     pass
+            
             for bpm_pair in p_i:
                 if p_m[bpm_pair] < 0:
                     p_m[bpm_pair] += 1
                 p_i[bpm_pair].append(p_m[bpm_pair])
 
+         
+        
+        
+        
+        # Here each p_i element becomes an np.array !!!!!!!!!!!!!!!
         for bpm_pair in p_i:
+            LOGGER.debug('phase pair %d : %s',bpm_pair,str(p_i[1]))
             p_i[bpm_pair] = np.array(p_i[bpm_pair])
-
+        
+        
+        
         if getllm_d.beam_direction == -1: # for the beam circulating reversely to the model
             for bpm_pair in p_i:
                 p_i[bpm_pair] = 1 - p_i[bpm_pair]
-
+        
+        
+        # calculate average and std for each pair
         p_std = {}
         for bpm_pair in p_i:
             p_std[bpm_pair] = calc_phase_std(p_i[bpm_pair], 1.)
+            # Here each p_i element becomes a float !!!!!!!!!!!!!!!
             p_i[bpm_pair] = calc_phase_mean(p_i[bpm_pair], 1.)
-
+        
+        # If the current BPM is less than 10 BPMs from the end
         if i >= length_commonbpms-10:
+            # add tune to phase of the last pair 
             p_i[10] = _phi_last_and_last_but_one(p_i[10], tune)
             for j in range(1,10):
                 if i >= length_commonbpms-j:
@@ -796,7 +857,11 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
         best_90degrees_bpm = bpms[best_bpm_idx + 1]
         best_90degrees_phase = phase_advances_all_bpms[best_bpm_idx]
         best_90degrees_phase_std = phase_advances_all_bpms_std[best_bpm_idx]
- 
+        
+        LOGGER.debug("%s Phase to i+1 (%s) = %f +/- %f ",bpms[0],bpms[1],p_i[1], p_std[1])
+        LOGGER.debug("%s Phase to i+2 (??) = %f +/- %f ",bpms[0],p_i[2], p_std[2])
+        LOGGER.debug("%s Phase Best90 to %s = %f +/- %f ",bpms[0],best_90degrees_bpm, best_90degrees_phase, best_90degrees_phase_std)
+        
         phase[bpms[0]] = [p_i[1], p_std[1], p_i[2], p_std[2], p_mdl[1], p_mdl[2], bpms[1], best_90degrees_bpm, best_90degrees_phase, best_90degrees_phase_std]
 
     return [phase, tune, mu, commonbpms]
@@ -813,8 +878,7 @@ def _get_free_phase(phase, tune_ac, tune, bpms, mad_ac, mad_twiss, plane):
             phi13, phstd13, phmdl12 and phmdl13 are note used.
     '''
 
-    if DEBUG:
-        print "Calculating free phase using model"
+    LOGGER.debug("Calculating free phase using model")
 
     phasef = {}
     phi = []
@@ -860,8 +924,8 @@ def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
             (bpm_name:string) --> (phase_list:[phi12,phstd12,phmdl12,bn1])
             phmdl12 and bn1 are note used.
     '''
-    if DEBUG:
-        print "Calculating free total phase using model"
+    
+    LOGGER.debug("Calculating free total phase using model")
 
     first = bpms[0][1]
 

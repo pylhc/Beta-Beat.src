@@ -1,5 +1,5 @@
 @ Energy        %s        Informatin only used for LHC to distinguish file
-@ Info                %s        1 percent magnet error (PR.BH*) after talk with PS people
+@ Info                %s        1 permil magnet error (PR.BH*) after talk with PS people
 @ Info      %s  BPMs have to be in the list to tell the algorithm their positions
 @ RELATIVE         %s        MAINFIELD
 @ RADIUS         %le        0.017

@@ -105,7 +105,8 @@ import copy
 from numpy import array
 
 from utils import logging_tools
-LOGGER = logging_tools.get_logger(__name__)
+
+LOGGER = logging_tools.get_logger(__name__,logging_tools.WARNING,logging_tools.WARNING)
 
 ####
 #######
@@ -333,11 +334,6 @@ def main(outputpath,
     kick_times = get_times(files_to_analyse)
 
 
-    if sys.flags.debug:
-        print "INFO: DEBUG ON"
-        LOGGER.setLevel(logging_tools.DEBUG)
-    else:
-        LOGGER.setLevel(logging_tools.WARNING)
 
     # Creates the output files dictionary
     files_dict = _create_tfs_files(getllm_d, model_filename, nonlinear)
@@ -1340,6 +1336,10 @@ class _TuneData(object):
             except IndexError:
                 pass
 
+def _disable_these_loggers():
+        # Disable 
+        logging_tools.getLogger('tfs_files.tfs_file_writer').setLevel(logging_tools.ERROR)
+    
 #===================================================================================================
 # main invocation
 #===================================================================================================
@@ -1373,8 +1373,18 @@ def _start():
          nprocesses=options.nprocesses,
          onlycoupling=options.onlycoupling,
          use_error_of_mean=options.use_error_of_mean)
+
      
      
 if __name__ == "__main__":
-    LOGGER.info("The command: %s ", sys.argv)
-    _start()
+    
+    # This is to enable debug to GetLLM.log file only if sys.flags.debug is True 
+    with logging_tools.DebugMode(active=sys.flags.debug, log_file="GetLLM.log",add_date_to_fname=False) as dm:
+        if dm.active:
+            #disable DEBUG level on the console (== INFO and above to console)
+            dm.console_h.setLevel(logging_tools.INFO)
+        LOGGER.debug("The command: %s ", sys.argv)
+
+        _disable_these_loggers()
+                
+        _start()
