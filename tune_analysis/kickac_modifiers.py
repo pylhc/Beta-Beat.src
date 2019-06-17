@@ -53,6 +53,18 @@ def _get_ampdet_columns(corrected):
     return COL_NATQ, COL_NATQ_STD
 
 
+def _um_to_m(f):
+    """ Convert from 1/um to 1/m and return result as rounded integer. """
+    return int(round(f*1e6))
+
+
+def _get_slope_label(slope, std):
+    """ Returns a well formatted slope label. """
+    str_slope = '{:> 7d}'.format(_um_to_m(slope))
+    str_std = '{:>6d}'.format(_um_to_m(std))
+    return '{} $\pm$ {} m$^{{-1}}$'.format(str_slope, str_std)
+
+
 # Data Addition ################################################################
 
 
@@ -179,7 +191,7 @@ def get_odr_data(kickac_df, action_plane, tune_plane, corrected=False):
     return {
         "x": np.array(x),
         "y": np.array(y),
-        "label": '${:.4f}\, \pm\, {:.4f}$'.format(slope, slope_std),
+        "label": _get_slope_label(slope, slope_std),
         "offset": kickac_df.headers[header_offset(action_plane, tune_plane)],
         "ylower": np.array(y_low),
         "yupper": np.array(y_upp),
@@ -195,6 +207,7 @@ def get_ampdet_data(kickac_df, action_plane, tune_plane, corrected=False):
         action_plane: Plane of the action
         tune_plane: Plane of the tune
 
+
     Returns:
         Dictionary containing x,y, x_err and y_err
 
@@ -206,5 +219,13 @@ def get_ampdet_data(kickac_df, action_plane, tune_plane, corrected=False):
                "y": col_natq(tune_plane),
                "yerr": col_natq_std(tune_plane),
                }
-    data = {key: kickac_df.loc[:, columns[key]] for key in columns.keys()}
-    return data
+
+    data = kickac_df.loc[:, [columns[key] for key in columns.keys()]]
+    data.columns = columns.keys()
+
+    if data.isna().any().any():
+        LOG.warn(
+            "Amplitude Detuning data for Q{} and J{} contains NaNs".format(tune_plane, action_plane)
+        )
+        data = data.dropna(axis=0)
+    return data.to_dict('series')

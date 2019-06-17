@@ -37,6 +37,7 @@ TRIM_COLUMN = const.get_trim_column(with_type=True)
 COLUMNS_K = OrderedDict([NAME_COLUMN, CIRCUIT_COLUMN, VALUE_COLUMN, DELTA_COLUMN])
 RE_K_LINE = r"\s*(?P<NAME>\S+)\s*=\s*(?P<VALUE>[^;]+)[^:]+:\s*(?P<CIRCUIT>[^/]+/[^.]+)\.[^\d+\-]+(?P<DELTA>[^.]+\.[^.]+)\."
 RE_TRIM = r"\s*(?P<trimname>" + TRIM_VALUE_NAME + r")\s*=\s*(?P<trimvalue>[^;]+)\s*;"
+RE_LOG_ALL_KNOBS = r".+\s*-\s*Knobs\s*\{(.*)\}"  # matcher for knobs line in logfile
 
 
 def knobs_k_to_tfs(knob_file=const.get_extractor_knobs_filename(), trim=None):
@@ -178,6 +179,16 @@ def get_fill_from_orbitfile(orbit_file):
     return int(tfs.read_tfs(orbit_file).headers[FILLNUMBER])
 
 
+def get_knobs_and_trims_from_log(log_file):
+    """ Extract the knobs line from the log file.
+
+    Args:
+        log_file: Path to log file.
+    """
+    knobs_str = _get_knobs_string_from_log(log_file)
+    return _get_knobs_and_trims_from_knobs_string(knobs_str)
+
+
 # Time Functions ###############################################################
 
 
@@ -221,3 +232,22 @@ def _get_trim_from_changefile(change_file):
     raise StandardError("Trim Value could not be extracted from '{:s}'".format(change_file))
 
 
+def _get_knobs_string_from_log(log_file):
+    """ Return string of knobs and values from logfile """
+    pattern = re.compile(RE_LOG_ALL_KNOBS)
+    with open(log_file, "r") as log:
+        content = log.readlines()
+    for line in reversed(content):  # should be one of the latter lines
+        match = re.match(pattern, line)
+        if match is not None:
+            return match.group(1)
+    raise RuntimeError("No knobs found in log '{:s}'".format(log_file))
+
+
+def _get_knobs_and_trims_from_knobs_string(knobs_string):
+    """ Split the knobs string into pieces and get trim values"""
+    trims = {}
+    for pair_str in knobs_string.split(","):
+        knob, value_str = pair_str.strip().split("=")
+        trims[knob] = eval(value_str.replace(" ", ","))[1]
+    return trims

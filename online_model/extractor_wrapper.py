@@ -70,6 +70,10 @@ def extract_overview(knob_names, time=None, cwd="./", server=None, show_plot=Fal
     if time is None:
         time = dc.get_utc_now()
 
+    if knob_names is None or len(knob_names) == 0:
+        raise NotImplementedError("Knob names need to be provided, due to bug in extractor.")
+        # knob_names = extract_all_knob_names(time=time, only_active=False, cwd=cwd, server=server)
+
     # extraction
     _run_overview_extraction(knob_names, time, cwd, server)
 
@@ -98,6 +102,32 @@ def extract_overview(knob_names, time=None, cwd="./", server=None, show_plot=Fal
     _plot_orbits(cwd, show_plot)
 
 
+def extract_all_knob_names(time=None, only_active=True, cwd="./", server=None):
+    """
+    DOES NOT WORK BECAUSE OF ONLINE-MODEL-EXTRACTOR BUGS....
+    Extract all knobs present at given time.
+
+     Args:
+        time: UTC time in ISO format (default: now)
+        only_active (bool): If set, returns only knobs with non-zero value.
+        cwd: output directory for results and log (default: current directory)
+        server: server to run on (default: runs local)
+     """
+    if time is None:
+        time = dc.get_utc_now()
+
+    _run_for_log(time, cwd, server)
+    trims = dc.get_knobs_and_trims_from_log(
+        os.path.join(cwd, const.get_extractor_log_filename())
+    )
+    if only_active:
+        for key, value in trims.items():
+            if value == 0:
+                del trims[key]
+    LOG.debug("Extracted Knob-Names: '{}'".format(",".join(trims.keys())))
+    return trims.keys()
+
+
 # Private Functions ############################################################
 
 
@@ -121,12 +151,23 @@ def _run_overview_extraction(knob_names, time, cwd, server):
     _run_command(cmd, server, cwd)
 
 
+def _run_for_log(time, cwd, server):
+    cmd = " ".join([const.get_om_extractor(),
+                    "-time", '"{:s}"'.format(dc.convert_utc_time_to_local(time)),
+                    "-oe",  # extract orbit
+                    "-Knames", "dummy",  # makes it crash, but knobs will be in logs
+                    "-Ktype", const.get_ktype("trim")
+                    ])
+    _run_command(cmd, server, cwd)
+
+
 # Run command
 
 def _run_command(cmd, server, cwd):
     if server:
         cmd = "ssh -t -X -o 'StrictHostKeyChecking no' {:s} 'cd {:s} ; {:s}'".format(
             server, cwd, cmd)
+    LOG.debug("Running command:\n{}".format(cmd))
     process = subprocess.Popen(cmd, shell=True, cwd=cwd)
     process.wait()
 

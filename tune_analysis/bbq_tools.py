@@ -101,8 +101,11 @@ def plot_bbq_data(bbq_df,
     """
     LOG.debug("Plotting BBQ data.")
 
-    ps.set_style("standard", {u"lines.marker": u"",
-                              u"lines.linestyle": u""})
+    ps.set_style("standard", {
+        u'figure.figsize': [12.24, 7.68],
+        u"lines.marker": u"",
+        u"lines.linestyle": u""}
+        )
 
     fig = plt.figure()
 

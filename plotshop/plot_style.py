@@ -6,7 +6,6 @@ Helper functions to make the most awesome* plots out there.
 
 * please feel free to add more stuff
 """
-
 import colorsys
 import re
 from itertools import cycle
@@ -37,8 +36,8 @@ _PRESENTATION_PARAMS = {
     u'axes.grid.which': u'major',
     u'axes.labelcolor': u'k',
     # u'axes.labelpad': 4.0,
-    u'axes.labelsize': u'x-large',
-    u'axes.labelweight': u'bold',
+    u'axes.labelsize': 22,
+    u'axes.labelweight': u'normal',
     u'axes.linewidth': 1.8,
     # u'axes.titlepad': 16.0,
     u'axes.titlesize': u'xx-large',
@@ -48,22 +47,22 @@ _PRESENTATION_PARAMS = {
     u'figure.figsize': [10.24, 7.68],
     u'figure.frameon': True,
     u'figure.titlesize': u'xx-large',
-    u'figure.titleweight': u'bold',
+    u'figure.titleweight': u'normal',
     u'font.size': 20.0,
     u'font.stretch': u'normal',
-    u'font.weight': u'bold',
+    u'font.weight': u'normal',
     u'font.family': 'sans-serif',
-    u'font.serif': ['Computer Modern'],
-    u'grid.alpha': 1.0,
+    u'font.serif': ['Computer Modern Roman'],
+    u'grid.alpha': .6,
     u'grid.color': u'#b0b0b0',
-    u'grid.linestyle': u'-',
+    u'grid.linestyle': u'--',
     u'grid.linewidth': 1,
     u'legend.edgecolor': u'0.8',
     u'legend.facecolor': u'inherit',
     u'legend.fancybox': True,
     u'legend.fontsize': 20.0,
     u'legend.framealpha': 0.9,
-    u'legend.frameon': True,
+    u'legend.frameon': False,
     u'legend.handleheight': 0.7,
     u'legend.handlelength': 2.0,
     u'legend.handletextpad': 0.8,
@@ -76,13 +75,13 @@ _PRESENTATION_PARAMS = {
     u'lines.antialiased': True,
     # u'lines.color': u'C0',
     u'lines.linestyle': u'-',
-    u'lines.linewidth': 1,
-    u'lines.marker': u'.',
-    u'lines.markeredgewidth': 1.0,
+    u'lines.linewidth': 2,
+    u'lines.marker': u'o',
+    u'lines.markeredgewidth': 2,
     u'lines.markersize': 14.0,
     u'lines.solid_capstyle': u'projecting',
     u'lines.solid_joinstyle': u'round',
-    u'markers.fillstyle': u'full',
+    u'markers.fillstyle': u'none',
     u'text.antialiased': True,
     u'text.color': u'k',
     # u'xtick.alignment': u'center',
@@ -147,10 +146,11 @@ _STANDARD_PARAMS = {
     u'font.stretch': u'normal',
     u'font.weight': u'normal',
     u'font.family': 'sans-serif',
-    u'font.serif': ['Computer Modern'],
-    u'grid.alpha': 1.0,
+    u'font.serif': ['Computer Modern Roman'],
+    u'font.sans-serif': ['Computer Modern Sans serif'],
+    u'grid.alpha': .6,
     u'grid.color': u'#b0b0b0',
-    u'grid.linestyle': u'-',
+    u'grid.linestyle': u'--',
     u'grid.linewidth': 0.6,
     u'legend.edgecolor': u'0.8',
     u'legend.facecolor': u'inherit',
@@ -517,11 +517,9 @@ def show_ir(ip_dict, ax=None, mode='inside'):
                 ax.axvline(xpos, linestyle=':', color='grey', marker='', zorder=0)
 
             if not lines_only:
-                if inside:
-                    ypos = ylim[0] + (ylim[1] - ylim[0]) * 0.01
-                    ax.text(xpos, ypos, ip, color='grey', ha='center')
-                else:
-                    ax.text(xpos, ylim[1] * 1.1, ip, ha='center')
+                ypos = ylim[not inside] + (ylim[1] - ylim[0]) * 0.01
+                c = 'grey' if inside else matplotlib.rcParams["text.color"]
+                ax.text(xpos, ypos, ip, color=c, ha='center', va='bottom')
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
@@ -644,10 +642,11 @@ def get_legend_ncols(labels, max_length=78):
     return max([max_length/max([len(l) for l in labels]), 1])
 
 
-def make_top_legend(ax, ncol, handles=None, labels=None):
+def make_top_legend(ax, ncol, frame=False, handles=None, labels=None):
     """ Create a legend on top of the plot. """
-    leg = ax.legend(handles=handles, labels=labels, loc='lower right', bbox_to_anchor=(1.0, 1.02),
-                    fancybox=True, shadow=True, ncol=ncol)
+    leg = ax.legend(handles=handles, labels=labels, loc='lower right',
+                    bbox_to_anchor=(1.0, 1.02),
+                    fancybox=frame, shadow=frame, frameon=frame, ncol=ncol)
 
     if LooseVersion(matplotlib.__version__) <= LooseVersion("2.2.0"):
         legend_height = leg.get_window_extent().inverse_transformed(leg.axes.transAxes).height
@@ -657,11 +656,61 @@ def make_top_legend(ax, ncol, handles=None, labels=None):
     legend_width = leg.get_window_extent().inverse_transformed(leg.axes.transAxes).width
     if legend_width > 1:
         x_shift = (legend_width - 1) / 2.
-        ax.legend(handles=handles, labels=labels, loc='lower right', bbox_to_anchor=(1.0 + x_shift, 1.02),
-                  fancybox=True, shadow=True, ncol=ncol)
+        ax.legend(handles=handles, labels=labels, loc='lower right',
+                  bbox_to_anchor=(1.0 + x_shift, 1.02),
+                  fancybox=frame, shadow=frame, frameon=frame, ncol=ncol)
 
     if LooseVersion(matplotlib.__version__) >= LooseVersion("2.2.0"):
         ax.figure.tight_layout()
 
     return leg
 
+
+# Tick Format #################################################################
+
+
+class OOMFormatter(matplotlib.ticker.ScalarFormatter):
+    """ Order of Magnitude Formatter.
+
+    To set a fixed order of magnitude and fixed significant numbers.
+    As seen on: https://stackoverflow.com/a/42658124/5609590
+
+    See: set_sci_magnitude
+
+    """
+    def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
+        self.oom = order
+        self.fformat = fformat
+        matplotlib.ticker.ScalarFormatter.__init__(self, useOffset=offset, useMathText=mathText)
+
+    def _set_orderOfMagnitude(self, nothing):
+        self.orderOfMagnitude = self.oom
+
+    def _set_format(self, vmin, vmax):
+        self.format = self.fformat
+        if self._useMathText:
+            self.format = '$%s$' % matplotlib.ticker._mathdefault(self.format)
+
+
+def set_sci_magnitude(ax, axis="both", order=0, fformat="%1.1f", offset=True, math_text=True):
+    """ Uses the OMMFormatter to set the scientific limits on axes.
+
+    Args:
+        ax: Plotting axes
+        axis (str): "x", "y" or "both"
+        order (int): Magnitude Order
+        fformat (str): Format to use
+        offset (bool): Formatter offset
+        math_text (bool): Whether to use mathText
+    """
+    oomf = OOMFormatter(order=order, fformat=fformat, offset=offset, mathText=math_text)
+
+    if axis == "x" or axis == "both":
+        ax.xaxis.set_major_formatter(oomf)
+
+    if axis == "y" or axis == "both":
+        ax.yaxis.set_major_formatter(oomf)
+
+    ax.ticklabel_format(axis=axis, style="sci", scilimits=(order, order), useMathText=math_text)
+
+    return ax

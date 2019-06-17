@@ -8,34 +8,7 @@ from online_model import extractor_wrapper
 from utils import logging_tools, iotools
 from utils.entrypoint import entrypoint, EntryPointParameters, ArgumentError
 
-
 LOG = logging_tools.get_logger(__name__)
-
-
-DEFAULT_KNOBS = [
-    "LHCBEAM/IP1-XING-H-MURAD",
-    "LHCBEAM/IP1-XING-V-MURAD",
-    "LHCBEAM/IP2-XING-V-MURAD",
-    "LHCBEAM/IP5-XING-H-MURAD",
-    "LHCBEAM/IP5-XING-V-MURAD",
-    "LHCBEAM/IP8-XING-H-MURAD",
-
-    "LHCBEAM/IP1-SEP-H-MM",
-    "LHCBEAM/IP1-SEP-V-MM",
-    "LHCBEAM/IP2-SEP-H-MM",
-    # "LHCBEAM/IP2-SEP-V-MM",
-    "LHCBEAM/IP5-SEP-H-MM",
-    "LHCBEAM/IP5-SEP-V-MM",
-    "LHCBEAM/IP8-SEP-V-MM",
-
-    # "LHCBEAM/IP1-OFFSET-H-MM",
-    # "LHCBEAM/IP1-OFFSET-V-MM",
-    # "LHCBEAM/IP2-OFFSET-V-2MM",
-    # "LHCBEAM/IP2-OFFSET-V-MM",
-    # "LHCBEAM/IP5-OFFSET-H-MM",
-    "LHCBEAM/IP5-OFFSET-V-MM",
-    # "LHCBEAM/IP8-OFFSET-H-MM",
-]
 
 FUNCTION_OVERVIEW = 'overview'
 FUNCTION_DEFINITION = 'definition'
@@ -54,7 +27,7 @@ def get_params():
             flags=["-k", "--knobs", "--knobnames"],
             type=str,
             nargs="+",
-            default=DEFAULT_KNOBS,
+            default=[],
             help="Names of the knobs to show."
         ),
         "time": dict(
@@ -114,6 +87,10 @@ def main(opt):
         extractor_wrapper.extract_overview(opt.knob_names, opt.time, opt.cwd,
                                            server=opt.server, show_plot=opt.show_plot)
     elif opt.function == FUNCTION_DEFINITION:
+        if not opt.knob_names:
+            raise ArgumentError(
+                "Argument 'knob_names' required for function '{:s}'.".format(FUNCTION_DEFINITION)
+            )
         if opt.time is None:
             raise ArgumentError(
                 "Argument 'time' required for function '{:s}'.".format(FUNCTION_DEFINITION)

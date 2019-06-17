@@ -357,7 +357,7 @@ class DictParser(object):
         """ Appends a complete subdictionary to existing argument structure at node 'loc'.
 
         Args:
-            loc: locination of the node to append the sub-dictionary
+            loc: location of the node to append the sub-dictionary
             dictionary: The dictionary to append
 
         Returns:
