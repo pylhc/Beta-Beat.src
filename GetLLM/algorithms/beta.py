@@ -18,7 +18,6 @@ import numpy as np
 from numpy import sin, cos, tan
 
 import Python_Classes4MAD.metaclass
-import tfs_files
 import utils.bpm
 import compensate_ac_effect
 import os
