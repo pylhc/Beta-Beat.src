@@ -29,7 +29,6 @@ import constants
 from utils import logging_tools
 LOGGER = logging_tools.get_logger(__name__)
 
-LOGGER = logging_tools.get_logger(__name__)
 
 #===================================================================================================
 # main part
