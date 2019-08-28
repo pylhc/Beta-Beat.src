@@ -6,34 +6,63 @@ from SegmentBySegment.sbs_writers import sbs_phase_writer
 from SegmentBySegment.sbs_writers.sbs_beta_writer import weighted_average_for_SbS_elements
 from tfs_files import tfs_file_writer
 
+from utils import logging_tools
+LOGGER = logging_tools.get_logger(__name__)
+
 
 NAN = float("nan")
 
+file_ip_parabola = None
+file_ip_propagation_x = None
+file_ip_propagation_y = None
+file_transverse_damper = None
 
+def write_files():
+    global file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y, file_transverse_damper
+     
+    if file_ip_parabola is not None:
+        file_ip_parabola.write_to_file()
+    if file_ip_propagation_x is not None:
+        file_ip_propagation_x.write_to_file()
+    if file_ip_propagation_y is not None:
+        file_ip_propagation_y.write_to_file()
+    if file_transverse_damper is not None:
+        file_transverse_damper.write_to_file()
+    
+    file_ip_parabola = None
+    file_ip_propagation_x = None
+    file_ip_propagation_y = None
+    file_transverse_damper = None
+    
 def _get_ip_tfs_files(save_path,betakind):
     '''
     for beta from phase (default): betakind = ""  
     for beta from amplitude :      betakind = "amp"  
     for beta from kmod :           betakind = "kmod"  
     '''
+    global file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y
+
     suffix = ''
     if (betakind != ''):
         suffix = '_beta'+betakind
     
-    file_ip_parabola = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_para" + suffix + ".out"))
+    if file_ip_parabola is None:
+        file_ip_parabola = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_para" + suffix + ".out"))
 
-    file_ip_parabola.add_column_names(["NAME", "S", "BETX", "EBETX", "X", "EX", "BETY", "EBETY", "Y", "EY", "BETX_ph", "EBETX_ph", "BETY_ph", "EBETY_ph"])
-    file_ip_parabola.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_ip_parabola.add_column_names(["NAME", "S", "BETX", "EBETX", "X", "EX", "BETY", "EBETY", "Y", "EY", "BETX_ph", "EBETX_ph", "BETY_ph", "EBETY_ph"])
+        file_ip_parabola.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
-    file_ip_propagation_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_x" + suffix + ".out"))
+    if file_ip_propagation_x is None:
+        file_ip_propagation_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_x" + suffix + ".out"))
 
-    file_ip_propagation_x.add_column_names(["NAME", "S", "BETSTARX", "EBETSTARX", "X[cm]", "EX[cm]", "BETIPX", "EBETIPX", "ALFIPX", "EALFIPX"])
-    file_ip_propagation_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_ip_propagation_x.add_column_names(["NAME", "S", "BETSTARX", "EBETSTARX", "X[cm]", "EX[cm]", "BETIPX", "EBETIPX", "ALFIPX", "EALFIPX"])
+        file_ip_propagation_x.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
-    file_ip_propagation_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_y" + suffix + ".out"))
+    if file_ip_propagation_y is None:
+        file_ip_propagation_y = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "IP_pro_y" + suffix + ".out"))
 
-    file_ip_propagation_y.add_column_names(["NAME", "S", "BETY", "EBETY", "Y[cm]", "EY[cm]", "BETIPY", "EBETIPY", "ALFIPY", "EALFIPY"])
-    file_ip_propagation_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+        file_ip_propagation_y.add_column_names(["NAME", "S", "BETY", "EBETY", "Y[cm]", "EY[cm]", "BETIPY", "EBETIPY", "ALFIPY", "EALFIPY"])
+        file_ip_propagation_y.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
 
     return file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y
 
@@ -75,7 +104,13 @@ def write_ip(measured_hor_beta_amp, measured_ver_beta_amp,
     :Return: None
         nothing => writing to file in this function (new/appending)
     '''
+    LOGGER.info("betakind = %s", betakind)
+    LOGGER.info("element_name = %s  beta_x_ip = %f  beta_y_ip = %f ", element_name,beta_x_ip,beta_y_ip)
 
+    # This can be true only in beta from amplitude
+    # it is there the only place where it is set to true
+    # so we do not need to ckeck beta kind
+    
     file_ip_parabola, file_ip_propagation_x, file_ip_propagation_y = _get_ip_tfs_files(save_path,betakind)
 
     ## constructor
@@ -105,11 +140,11 @@ def write_ip(measured_hor_beta_amp, measured_ver_beta_amp,
                                     betastar_h, errbx, location_h, errsx,
                                     betastar_v, errby, location_v, errsy,
                                     betastar_h_p, ebetastar_h_p, betastar_v_p, ebetastar_v_p])
-    file_ip_parabola.write_to_file()
 
     #betstar and waist
     #x
     betastar, errbetastar, waist, errwaist = _get_ip_from_prop(beta_x_ip, err_beta_x_ip, alfa_x_ip, err_alfa_x_ip)
+        
     file_ip_propagation_x.add_table_row([element_name, input_model.S[input_model.indx[element_name]],
                                          betastar, errbetastar, waist, errwaist, round(beta_x_ip, 3), round(err_beta_x_ip, 3), round(alfa_x_ip, 4), round(err_alfa_x_ip, 4)])
 
@@ -118,9 +153,10 @@ def write_ip(measured_hor_beta_amp, measured_ver_beta_amp,
     file_ip_propagation_y.add_table_row([element_name, input_model.S[input_model.indx[element_name]],
                                          betastar, errbetastar, waist, errwaist, round(beta_y_ip, 3), round(err_beta_y_ip, 3), round(alfa_y_ip, 4), round(err_alfa_y_ip, 4)])
 
-    file_ip_propagation_x.write_to_file()
-    file_ip_propagation_y.write_to_file()
     ##dispersion
+    
+    ## WRITE TO FILES IS DONE IN main of SegmentBySegmentMain
+    #  so all the processed elements are there (write_to_file overwrites the files)
 
 
 def _get_ip_from_prop(betaip, errbetaip, alfaip, ealfaip):
@@ -128,7 +164,11 @@ def _get_ip_from_prop(betaip, errbetaip, alfaip, ealfaip):
     #values
     betastar = betaip / (1 + alfaip ** 2)
     waist = alfaip * betaip  # (sign flip)
-
+    
+    LOGGER.debug("alfaip = %f  betaip = %f",alfaip, betaip)
+    #This may happen for beta from amplitude when the calculation has no solution
+    if (betaip < 1e-12 or abs(alfaip) < 1e-12):
+        return 0.0,0.0,0.0,0.0
     #errors
     errwaist = ((ealfaip / abs(alfaip)) + (errbetaip / abs(betaip))) * abs(waist)
     errbetastar = sqrt(errbetaip ** 2 + (((-2 * alfaip) / (1 + alfaip ** 2) ** 2) * alfaip) ** 2)
@@ -222,18 +262,15 @@ def _get_ip_from_parabola(bpmleft, bpmright, betax, betay, phasex, phasey):
         betastar_h=(2*sqrt(blx)*sqrt(brx)*sin(phix*2*pi))/(blx+brx-2*sqrt(blx)*sqrt(brx)*cos(2*pi*phix))*L
         location_h=((blx-brx)/(blx+brx-2*sqrt(blx)*sqrt(brx)*cos(2*pi*phix)))*L
 
-
-
         errbx=0
         errsx=0
-
 
         betastar_h_phase=(L)/tan(phix*pi)
         betastar_h_phase_e=(1+cos(2*phix*pi))*L/2
 
-
     else:
-        print "WARN: Will not calculate horizontal IP"
+        LOGGER.warn("Can not calculate horizontal IP values because of missing beta and/or phase for %s or %s.",
+                    bpmleft,bpmright)
         phix=NAN
         betastar_h=NAN
         location_h=NAN
@@ -263,7 +300,9 @@ def _get_ip_from_parabola(bpmleft, bpmright, betax, betay, phasex, phasey):
         errby=0
         errsy=0
     else:
-        print "WARN: Will not calculate vertical IP"
+        LOGGER.warn("Can not calculate vertical IP values because of missing beta and/or phase for %s or %s.",
+                    bpmleft,bpmright)
+
         phiy=NAN
         betastar_v=NAN
         location_v=NAN
@@ -303,7 +342,7 @@ def write_transverse_damper(propagated_models, element_name, input_model, save_p
     damper_map = {}
     bpms_map = {}
 
-    file_transverse_damper = _get_transverse_damper_tfs_file(save_path, accel)
+    outfile = _get_transverse_damper_tfs_file(save_path, accel)
 
     #beam1
     damper_map['ADTKH.D5L4.B1'] = ['BPMWA.B5L4.B1', 'BPMWA.A5L4.B1']
@@ -334,7 +373,7 @@ def write_transverse_damper(propagated_models, element_name, input_model, save_p
     bpms_map['LHCB2_2'] = ['BPMC.9L4.B2', 'BPMC.7L4.B2', 'BPMC.8L4.B2']  # V
 
     ## main
-    if file_transverse_damper._TfsFileWriter__tfs_table.is_empty():  # To check if the file is empty
+    if outfile._TfsFileWriter__tfs_table.is_empty():  # To check if the file is empty
 
         for count in [1, 2]:
 
@@ -435,7 +474,7 @@ def write_transverse_damper(propagated_models, element_name, input_model, save_p
                 errphasev = 'NIM'
                 phasemodelv = 'NIM'
 
-            file_transverse_damper.add_table_row([ref_bpm, end_bpm, input_model.S[input_model.indx[ref_bpm]], input_model.S[input_model.indx[end_bpm]], phaseh, errphaseh, phasemodelh, phasev, errphasev, phasemodelv])
+            outfile.add_table_row([ref_bpm, end_bpm, input_model.S[input_model.indx[ref_bpm]], input_model.S[input_model.indx[end_bpm]], phaseh, errphaseh, phasemodelh, phasev, errphasev, phasemodelv])
 
     if element_name in damper_map:
         bpm_pair = damper_map[element_name]
@@ -510,7 +549,7 @@ def write_transverse_damper(propagated_models, element_name, input_model, save_p
                                                                                                            err_phase_y_bpm2_prop,
                                                                                                            phase_advance_y_bpm2_back,
                                                                                                            err_phase_y_bpm2_back)
-        file_transverse_damper.add_table_row([bpm_pair[0], element_name,
+        outfile.add_table_row([bpm_pair[0], element_name,
                                               input_model.S[input_model.indx[bpm_pair[0]]],
                                               input_model.S[input_model.indx[element_name]],
                                               "%.5f" % float(average_phase_advance_x_bpm1),
@@ -519,7 +558,7 @@ def write_transverse_damper(propagated_models, element_name, input_model, save_p
                                               "%.5f" % float(average_phase_advance_y_bpm1),
                                               "%.5f" % float(final_error_phase_advance_y_bpm1),
                                               "%.5f" % float(model_phase_advance_y_bpm1)])
-        file_transverse_damper.add_table_row([element_name, bpm_pair[1],
+        outfile.add_table_row([element_name, bpm_pair[1],
                                               input_model.S[input_model.indx[element_name]],
                                               input_model.S[input_model.indx[bpm_pair[1]]],
                                               "%.5f" % float(average_phase_advance_x_bpm2),
@@ -531,10 +570,16 @@ def write_transverse_damper(propagated_models, element_name, input_model, save_p
     else:
         print "WARN: Element ", element_name, " Not found in damper_map"
 
-    file_transverse_damper.write_to_file()
+    
 
 
 def _get_transverse_damper_tfs_file(save_path, accel):
+    
+    global file_transverse_damper
+    
+    if file_transverse_damper is not None:
+        return file_transverse_damper
+    
     file_transverse_damper = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "transverse_dampers_phases.out"))
 
     file_transverse_damper.add_string_descriptor("BEAM", accel)
