@@ -67,9 +67,11 @@ def write_beta(element_name, is_element,
     
     if is_element:
         _write_summary_data(beta_summary_file, summary_data_x, summary_data_y)
+        LOGGER.info("write_beta: is element: returning %f / %f ",summary_data_x[2],summary_data_y[2])
         return (summary_data_x[2], summary_data_x[3], summary_data_x[4], summary_data_x[5],
                 summary_data_y[2], summary_data_y[3], summary_data_y[4], summary_data_y[5])
     else:
+        LOGGER.info("write_beta: is not element: returning zeros ")
         return [0, 0, 0, 0, 0, 0, 0, 0]
 
 
@@ -204,12 +206,12 @@ def _write_beta_for_plane(file_alfa, file_beta,
                           model_propagation, model_cor, model_back_propagation, model_back_cor, 
                           output_path, is_element, beta_summary_file):
     
-    LOGGER.debug("is_element %r, element_name %r",is_element,element_name)
+    LOGGER.debug("_write_beta_for_plane: is_element %r, element_name %r",is_element,element_name)
     
     (beta_start, err_beta_start, alfa_start, err_alfa_start,
      beta_end, err_beta_end, alfa_end, err_alfa_end) = _get_start_end_betas(bpms_list, measured_beta, input_data, plane)
      
-    LOGGER.debug("%s %s : beta_start %f, err_beta_start %f, alfa_start %f, err_alfa_start %f",
+    LOGGER.debug("_write_beta_for_plane: %s %s : beta_start %f, err_beta_start %f, alfa_start %f, err_alfa_start %f",
                  element_name, plane,
                  beta_start, err_beta_start, alfa_start, err_alfa_start)
     
@@ -344,6 +346,7 @@ def _write_beta_for_plane(file_alfa, file_beta,
 
             
             if alphaampfwd_failed or alphaampbak_failed: # it may be true only for beta from amplitude
+                LOGGER.debug("_write_beta_for_plane: %s: beta from amp propagation failed.",element_name)
                 averaged_alfa = 0
                 final_alfa_error = 0
                 averaged_beta = 0
@@ -359,8 +362,10 @@ def _write_beta_for_plane(file_alfa, file_beta,
             file_alfa.add_table_row([bpm_name, bpm_s, averaged_alfa, final_alfa_error, alfa_model, model_s])
             file_beta.add_table_row([bpm_name, bpm_s, averaged_beta, final_beta_error, beta_model, model_s])
             if element_name in bpm_name:
-                LOGGER.debug("%s : put to summary averaged_beta %f, final_beta_error %f, beta_model %f ",element_name, averaged_beta, final_beta_error,beta_model)
+                LOGGER.info("_write_beta_for_plane: %s : put to summary averaged_beta %f, final_beta_error %f, beta_model %f ",element_name, averaged_beta, final_beta_error,beta_model)
                 summary_data = [bpm_name, bpm_s, averaged_beta, final_beta_error, averaged_alfa, final_alfa_error, beta_model, alfa_model, model_s]
+            #else:
+            #    LOGGER.info("_write_beta_for_plane: %s : is not in bpm_name list, returning empty summary",element_name)
 
     file_beta.write_to_file()
     file_alfa.write_to_file()

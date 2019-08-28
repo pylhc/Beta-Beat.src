@@ -10,6 +10,9 @@ if new_path not in sys.path:
 from SegmentBySegment.sbs_writers import sbs_beta_writer
 from tfs_files import tfs_file_writer
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 def write_beta_beat(element_name,
                     measured_hor_beta_phase, measured_ver_beta_phase,
@@ -294,7 +297,11 @@ def _write_kmod_beta_beat_for_plane(file_kmod_beta_beat, plane, bpms_list,
         # Beta from kmod beating (front)
         beta_kmod = _get_from_twiss(measured_kmod, bpm_name, "BET", plane)
         beta_beat_kmod = (beta_kmod - beta_propagation) / beta_propagation
+        
+        # skowron 2019.08.27
         std_beta_beat_kmod = _get_from_twiss(measured_kmod, bpm_name, "STDBET", plane)
+        #std_beta_beat_kmod = _get_from_twiss(measured_kmod, bpm_name, "ERRBET", plane)
+        
         prop_err_beta_kmod = sbs_beta_writer._propagate_error_beta(
             initial_values.err_beta_start,
             initial_values.err_alfa_start,
@@ -309,7 +316,9 @@ def _write_kmod_beta_beat_for_plane(file_kmod_beta_beat, plane, bpms_list,
         # Beta from kmod beating (back)
         beta_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "BET", plane)
         beta_beat_kmod_back = (beta_kmod_back - beta_back_propagation) / beta_back_propagation
+        # skowron 2019.08.27
         std_beta_beat_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "STDBET", plane)
+        #std_beta_beat_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "ERRBET", plane)
         prop_err_beta_kmod_back = sbs_beta_writer._propagate_error_beta(
             initial_values.err_beta_end,
             initial_values.err_alfa_end,
@@ -333,7 +342,10 @@ def _write_kmod_beta_beat_for_plane(file_kmod_beta_beat, plane, bpms_list,
 
 
 def _get_from_twiss(twiss_data, element, column, plane, suffix=""):
-    return getattr(twiss_data, column + plane + suffix)[twiss_data.indx[element]]
+    attrib = column + plane + suffix
+    
+    LOGGER.debug("Looking for attribute <%s> in TFS table from <%s>",attrib,twiss_data.filename)
+    return getattr(twiss_data, attrib)[twiss_data.indx[element]]
 
 
 def intersect(list_of_files):
