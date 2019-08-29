@@ -107,7 +107,7 @@ def _process(element_name, kind, p, options, summaries):
     p.input_data.alphaampXbak_failed = False 
     p.input_data.alphaampYbak_failed = False 
     
-    print("Started processing ", element_name,' kind of beta: ',kind)
+    print("Started processing ", element_name,' kind of beta: <',kind,'>')
 
     start_bpm_name, end_bpm_name, is_element = get_good_bpms(p.input_data, p.error_cut, p.input_model, p.start_bpms, p.end_bpms, element_name)
     
@@ -244,7 +244,7 @@ def main(accel_cls, options):
     pars.error_cut = float(options.cuts)
 
     pars.twiss_file = options.twiss
-    LOGGER.debug("Input model twiss file", pars.twiss_file)
+    LOGGER.debug("Input model twiss file %s", pars.twiss_file)
     pars.input_model = _try_to_load_twiss(pars.twiss_file)
     if pars.input_model is None:
         raise IOError("Cannot read input model, aborting.")
@@ -258,20 +258,25 @@ def main(accel_cls, options):
     for element_name in elements_names:
         #print("Started processing beta from phase for ", element_name)
         _process(element_name, "", pars, options, summaries)
+    sbs_special_element_writer.write_files()
     
     
     if options.dobetaamp:
         # beta from amp, alpha from 2 betas and model transfer matrix
         for element_name in elements_names:
             _process(element_name, "betaamp", pars, options, summaries)
+        sbs_special_element_writer.write_files()
 
         # beta from amp, alpha from phase
         for element_name in elements_names:
             _process(element_name, "bampaphase", pars, options, summaries)
+        sbs_special_element_writer.write_files()
     
 
     summaries.write_summaries_to_files()
-
+    
+    
+    
     print("+++  Ended Segment by Segment   +++")
 
 # END main() ---------------------------------------------------------------------------------------
@@ -373,25 +378,24 @@ def get_alphas_from_betas(b1,b2,m,amdl1,amdl2,measuredphase):
     m12 = m[0][1]
     m21 = m[1][0]
     m22 = m[1][1]
-    print("")
-    print("")
+
     LOGGER.info('b1  = %f   b2 = %f ',b1 ,b2)
     LOGGER.info('m11 = %f  m12 = %f ',m11,m12)
     LOGGER.info('m21 = %f  m22 = %f ',m21,m22)
 
     #parameters of the quadratic equation
     aa = m12*m12/b1
-    bb = -2.0*m11*m12
+    bb = -2.0*m11*m12   
     cc = b1*m11*m11  + m12*m12/b1 - b2
     
     delta = bb*bb - 4.0*aa*cc 
     LOGGER.info("delta of the quadratic equation: %f",delta)
     if delta < 0:
-        LOGGER.error("No ALPHA")
-        LOGGER.error("No ALPHA")
-        LOGGER.error("Negative delta of quadratic equation: no solution for alpha")
-        LOGGER.error("delta of the quadratic equation: %f",delta)
-        LOGGER.error("No ALPHA")
+        LOGGER.debug("No ALPHA")
+        LOGGER.debug("No ALPHA")
+        LOGGER.debug("Negative delta of quadratic equation: no solution for alpha")
+        LOGGER.debug("delta of the quadratic equation: %f",delta)
+        LOGGER.debug("No ALPHA")
         
         #return [amdl1+1e-10,amdl2+1e-10]
         return [a1, a2] 
@@ -454,9 +458,9 @@ def get_tranfer_matrix(input_data,madTwiss, startbpm, endbpm,plane):
         alpmdl2=madTwiss.ALFX[madTwiss.indx[endbpm]]
         phmdl12=madTwiss.MUX[madTwiss.indx[endbpm]] - madTwiss.MUX[madTwiss.indx[startbpm]]
         if phmdl12 < 0:
-            print('Negative phase adv %f adding tune %f'%(phmdl12,madTwiss.Q1))
+            LOGGER.info('Negative phase adv %f adding tune %f'%(phmdl12,madTwiss.Q1))
             phmdl12 += madTwiss.Q1
-            print('New phase advance %f'%phmdl12)
+            LOGGER.info('New phase advance %f'%phmdl12)
         
     elif plane=='Y':
         betmdl1=madTwiss.BETY[madTwiss.indx[startbpm]]
@@ -611,7 +615,7 @@ def gather_twiss_sys_errors(input_data,madTwiss, startbpm, endbpm, plane):
     perr = 0 # in radians
     
     if input_data.has_model_error ==  False:
-        LOGGER.info("There is no model errors")
+        LOGGER.info("gather_twiss_sys_errors: There is no model errors")
         return berr, aerr, perr 
     
     elerr = getattr(input_data, 'modelElementErrors' +plane);
@@ -619,8 +623,8 @@ def gather_twiss_sys_errors(input_data,madTwiss, startbpm, endbpm, plane):
     idxbpm1 = elerr.indx[startbpm];
     idxbpm2 = elerr.indx[endbpm];
     
-    LOGGER.info('BPM1 %s index =  %d',startbpm, idxbpm1)
-    LOGGER.info('BPM2 %s index =  %d',endbpm, idxbpm2)
+    LOGGER.debug('gather_twiss_sys_errors: BPM1 %s index =  %d',startbpm, idxbpm1)
+    LOGGER.debug('gather_twiss_sys_errors: BPM2 %s index =  %d',endbpm, idxbpm2)
 
     if plane == 'X':
         q2pi = madTwiss.Q1 * 2 * math.pi
@@ -645,7 +649,7 @@ def gather_twiss_sys_errors(input_data,madTwiss, startbpm, endbpm, plane):
     f2sumr = 0 # sum for f2000(or f0020) for end BPM, real part only
     f2suml = 0 # sum for f2000(or f0020) for start BPM
     for i in range(idxbpm1,idxbpm2):
-        LOGGER.info('%s %f ',elerr.NAME[i],elerr.BET[i])
+        LOGGER.debug("gather_twiss_sys_errors: %s %f",elerr.NAME[i],elerr.BET[i])
         dmu = 2 * math.pi * (mu0 - elerr.MU[i]);
         bdk = elerr.BET[i]*elerr.dK1[i]
         bsum  += bdk*math.sin(2*dmu)
@@ -683,10 +687,10 @@ def gather_twiss_sys_errors(input_data,madTwiss, startbpm, endbpm, plane):
     perr = h11sum + 4*(f2r - f2l) 
     
     
-    LOGGER.info('BPM2 %s systematic errors:  ')
-    LOGGER.info('            beta  %f', berr)
-    LOGGER.info('            alpha %f', aerr)
-    LOGGER.info('            phase %f', perr)
+    LOGGER.info('gather_twiss_sys_errors: BPM2 %s systematic errors:  ',endbpm)
+    LOGGER.info('gather_twiss_sys_errors:            beta  %f', berr)
+    LOGGER.info('gather_twiss_sys_errors:            alpha %f', aerr)
+    LOGGER.info('gather_twiss_sys_errors:            phase %f', perr)
     
     
     #file_beta_x = tfs_file_writer.TfsFileWriter.open(os.path.join(save_path, "sbsbetax_" + betakind + element_name + ".out"))
@@ -706,9 +710,6 @@ def gather_data_amplitude(input_data, madTwiss, startbpm, endbpm, errorcut):
     '''
     
     LOGGER.info('#####################')
-    print("")
-    print("")
-    print("")
     LOGGER.info('#####################')
     LOGGER.info('#####################')
     LOGGER.info('gather_data_amplitude')
@@ -914,7 +915,7 @@ def _get_coupling_parameters(input_data, startbpm, endbpm):
             f_end["f1001std"] = input_data.couple.FWSTD1[input_data.couple.indx[endbpm]]
             f_end["f1010std"] = input_data.couple.FWSTD2[input_data.couple.indx[endbpm]]
             element_has_coupling = True
-            print("Start and end BPMs found in coupling measurement.")
+            LOGGER.info("Start and end BPMs found in coupling measurement.")
     else:
         print("No coupling measurement")
     return element_has_coupling, f_ini, f_end
@@ -1094,12 +1095,12 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
                     locations_list.append((current_element_idx,current_element_s))
                     LOGGER.debug('BPM %s is good ',current_element_name)
                 elif is_segment and (left_bpm_name in current_element_name or right_bpm_name in current_element_name):
-                    LOGGER.info('Segment boundary BPM %s was filtered out  ',current_element_name)
+                    LOGGER.debug('Segment boundary BPM %s was filtered out  ',current_element_name)
                     translate[current_element_s] = [False, current_element_name]
                 else:
-                    LOGGER.info('BPM %s was filtered out ',current_element_name)
+                    LOGGER.debug('BPM %s was filtered out ',current_element_name)
             else:
-                LOGGER.info('Filtering loop: BPM %s is not in both beta Twiss tables ',current_element_name)
+                LOGGER.debug('Filtering loop: BPM %s is not in both beta Twiss tables ',current_element_name)
     
     #locations_list.sort()
     
@@ -1115,7 +1116,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
     if not is_segment:
         element_location_index = locations_list.index((element_idx, element_s))
         
-        print(" skowron element_location_index %d"%element_location_index)
+        LOGGER.info("element_location_index %d",element_location_index)
         
         if element_location_index == 0:
             selected_left_bpm = translate[ll[len(ll) - 2]][1]
@@ -1130,7 +1131,7 @@ def _filter_and_find(beta_x_twiss, beta_y_twiss, element_name, segment_bpms_name
         if selected_right_bpm is element_name:
             # element_name is a BPM name
             # we want next bpm to the right 
-            print(" skowron This is the BPM we need to shift right ")
+            LOGGER.info("This is a BPM that we need to shift right ")
             if element_location_index == 0:
                 selected_right_bpm = translate[ll[2]][1]
             elif element_location_index == (len(ll) - 1):
@@ -1315,6 +1316,10 @@ def getAndWriteData(
         sbs_chromatic_writer.write_chromatic(element_name, is_element, input_data.wx, input_data.wy, input_model, propagated_models, save_path, chrom_summary)
 
     if "IP" in element_name and is_element:
+        LOGGER.info("Calling write_ip: element_name = %s",element_name)
+        LOGGER.info("   beta_x2 = %f, alfa_x2 = %f", beta_x2, alfa_x2)
+        LOGGER.info("   beta_y2 = %f, alfa_y2 = %f", beta_y2, alfa_y2)
+        
         sbs_special_element_writer.write_ip(input_data.beta_x, input_data.beta_y,
                                                         beta_x2, err_beta_x2, alfa_x2, err_alfa_x2,
                                                         beta_y2, err_beta_y2, alfa_y2, err_alfa_y2,
@@ -1769,7 +1774,7 @@ class _InputData(object):
         try:
             twiss_data = twiss(_join_output_with(file_name))
         except ValueError:
-            print("Imposible to read twiss file ", file_name, file=sys.stderr)
+            LOGGER.error("Imposible to read twiss file %s", file_name)
             return None
         return twiss_data
 

@@ -13,7 +13,6 @@ Change history:
     <description>
 '''
 
-import sys
 import math
 
 import numpy as np
