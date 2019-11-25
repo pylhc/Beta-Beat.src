@@ -125,15 +125,6 @@ def _get_beam_from_model(nominal_model):
     else:
         raise ValueError("Wrong sequence in model.")
 
-#def _get_tfs_file(output_path, plane, beam):
-#    name_file = OUTPUT_FILE_PREFIX_CALIBRATION_FILE + "_" + str(plane.lower()) + ".out"
-#    file_path = os.path.join(output_path, name_file)
-#    tfs_file_writer_calibration = tfs_writer.TfsFileWriter.open(file_path)
-#    tfs_file_writer_calibration.add_string_descriptor("PLANE", plane)
-#    tfs_file_writer_calibration.add_column_names(COLUMN_NAMES)
-#    tfs_file_writer_calibration.add_column_datatypes(["%s"] + ["%le"] * (len(COLUMN_NAMES) - 1))
-#    return tfs_file_writer_calibration
-
 
 def func_phase(x, A, B):
     return A + ((x - B) ** 2) / A

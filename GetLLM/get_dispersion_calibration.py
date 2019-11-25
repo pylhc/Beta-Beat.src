@@ -1,7 +1,11 @@
 import os
 import sys
 import scipy.io
-sys.path.append("/afs/cern.ch/eng/sl/lintrack/Beta-Beat.src")
+from os.path import abspath, join, dirname, pardir
+
+new_path = abspath(join(dirname(abspath(__file__)), pardir))
+if new_path not in sys.path:
+    sys.path.append(new_path)
 from drive import drive_runner
 from tfs_files import tfs_pandas
 import numpy as np

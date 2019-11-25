@@ -106,6 +106,7 @@ import copy
 from numpy import array
 
 from utils import logging_tools
+
 LOGGER = logging_tools.get_logger(__name__,logging_tools.WARNING,logging_tools.WARNING)
 
 ####
@@ -140,7 +141,7 @@ ERRORDEFS       = None  #@IgnorePep8
 NPROCESSES      = 16    #@IgnorePep8
 ONLYCOUPLING    = 0     #@IgnorePep8
 USE_ONLY_THREE_BPMS_FOR_BETA_FROM_PHASE   = 0    #@IgnorePep8
-DEFAULT_USE_ERROR_OF_MEAN = 0
+DEFAULT_USE_ERROR_OF_MEAN = 0 #@IgnorePep8
 
 #===================================================================================================
 # _parse_args()-function
@@ -1339,9 +1340,10 @@ class _TuneData(object):
             except IndexError:
                 pass
 
-def _disable_these_loggers():                                                                               
-          # Disable                                                                              
-          logging_tools.getLogger('tfs_files.tfs_file_writer').setLevel(logging_tools.ERROR)  
+def _disable_these_loggers():
+    # Disable
+    logging_tools.getLogger('tfs_files.tfs_file_writer').setLevel(logging_tools.ERROR)
+
 #===================================================================================================
 # main invocation
 #===================================================================================================
@@ -1378,4 +1380,14 @@ def _start():
      
      
 if __name__ == "__main__":
-    _start()
+
+    # This is to enable debug to GetLLM.log file only if sys.flags.debug is True
+    with logging_tools.DebugMode(active=sys.flags.debug, log_file="GetLLM.log",add_date_to_fname=False) as dm:
+        if dm.active:
+            #disable DEBUG level on the console (== INFO and above to console)
+            dm.console_h.setLevel(logging_tools.INFO)
+        LOGGER.debug("The command: %s ", sys.argv)
+
+        _disable_these_loggers()
+
+        _start()
