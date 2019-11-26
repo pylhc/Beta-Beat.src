@@ -4,15 +4,15 @@ from os.path import abspath, join, dirname, pardir
 new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
-
+from tfs_files import tfs_pandas
 import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-import tfs_files.tfs_file_writer as tfs_writer
-import utils.bpm
-
-from Python_Classes4MAD import metaclass
+#import tfs_files.tfs_file_writer as tfs_writer
+import utils
+import pandas as pd
+#from Python_Classes4MAD import metaclass
 from scipy.optimize import curve_fit
 from optparse import OptionParser
 
@@ -48,9 +48,10 @@ Aluminium6 = '#2E3436'
 OUTPUT_FILE_PREFIX_PLOT = "plot_beta_ip"
 OUTPUT_FILE_PREFIX_CALIBRATION_FILE = "calibration"
 
-BPM_PREFIXES = ["BPMWB.4L", "BPMSY.4L", "BPMS.2L", "BPMSW.1L", "BPMSW.1L", "BPMSW.1R", "BPMS.2R", "BPMSY.4R", "BPMWB.4R"]
-COLUMN_NAMES = ["NAME", "S", "CAL_AMP", "CAL_AMP_STD", "CALIBRATION", "ERROR_CALIBRATION", "CAL_BETA", "CAL_BETA_STD"]
-
+#BPM_PREFIXES = "BPMR.5L{ip}.B{beam},BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
+#COLUMN_NAMES = ["NAME", "S", "CAL_AMP", "CAL_AMP_STD", "CALIBRATION", "ERROR_CALIBRATION", "CAL_BETA", "CAL_BETA_STD"]
+LABELS = ["S","CALIBRATION","ERROR_CALIBRATION","CALIBRATION_PHASE_FIT","ERROR_CALIBRATION_PHASE_FIT"]
+LABELS_BETA = ["CALIBRATION_BETA","ERROR_CALIBRATION_BETA"]
 IPS = [1, 5]
 PLANES = ["X", "Y"]
 
@@ -79,17 +80,22 @@ def main(input_path, input_path_model, output_path) :
     utils.iotools.create_dirs(output_path)
     (beta_from_phase_x, beta_from_amp_x) = _get_twiss_for_one_of(input_path, "getbetax_free.out", "getbetax.out")
     (beta_from_phase_y, beta_from_amp_y) = _get_twiss_for_one_of(input_path, "getbetay_free.out", "getbetay.out")
-    nominal_model = metaclass.twiss(input_path_model)
+    nominal_model = tfs_pandas.read_tfs(input_path_model)
     _configure_plots()
     files_phase = (beta_from_phase_x, beta_from_phase_y)
     files_amplitude = (beta_from_amp_x, beta_from_amp_y)
     beam = _get_beam_from_model(nominal_model)
     for i in range(len(PLANES)):
-        tfs_file = _get_tfs_file(output_path, PLANES[i], beam)
         for ip in IPS:
-            (names_range, positions_range, amplitude_ratio_phasefit, error_amplitude_ratio_phasefit, amplitude_ratio_measured, error_amplitude_ratio_measured, beta_ratio_phasefit, error_beta_ratio_phasefit) = _compute_calibration_for_ip_and_plane(ip, PLANES[i], files_phase[i], files_amplitude[i], nominal_model, beam, output_path)
-            print_files(names_range, positions_range, amplitude_ratio_phasefit, error_amplitude_ratio_phasefit, amplitude_ratio_measured, error_amplitude_ratio_measured, beta_ratio_phasefit, error_beta_ratio_phasefit, beta_ratio_phasefit, error_beta_ratio_phasefit, tfs_file)
-        tfs_file.write_to_file()
+            (summary_amplitude,summary_beta) = _compute_calibration_for_ip_and_plane(ip, PLANES[i], files_phase[i], files_amplitude[i], nominal_model, beam, output_path)
+            name_file = OUTPUT_FILE_PREFIX_CALIBRATION_FILE + "_" + str(PLANES[i].lower()) + ".out"
+            calibration_file_path = os.path.join(output_path,name_file)
+            try:
+                summary_amplitude_tot = tfs_pandas.read_tfs(calibration_file_path)
+                summary_amplitude_tot = summary_amplitude_tot.append(summary_amplitude)
+                tfs_pandas.write_tfs(calibration_file_path,summary_amplitude_tot,save_index=False)
+            except:
+                tfs_pandas.write_tfs(calibration_file_path,summary_amplitude,save_index=False)
 
 
 def _configure_plots():
@@ -119,16 +125,6 @@ def _get_beam_from_model(nominal_model):
     else:
         raise ValueError("Wrong sequence in model.")
 
-def _get_tfs_file(output_path, plane, beam):
-
-    name_file = OUTPUT_FILE_PREFIX_CALIBRATION_FILE + "_" + str(plane.lower()) + ".out"
-    file_path = os.path.join(output_path, name_file)
-    tfs_file_writer_calibration = tfs_writer.TfsFileWriter.open(file_path)
-    tfs_file_writer_calibration.add_string_descriptor("PLANE", plane)
-    tfs_file_writer_calibration.add_column_names(COLUMN_NAMES)
-    tfs_file_writer_calibration.add_column_datatypes(["%s"] + ["%le"] * (len(COLUMN_NAMES) - 1))
-    return tfs_file_writer_calibration
-
 
 def func_phase(x, A, B):
     return A + ((x - B) ** 2) / A
@@ -143,103 +139,76 @@ def print_files(names_range, positions_range, amplitude_ratio_fit, error_amplitu
 def _compute_calibration_for_ip_and_plane(
     ip, plane, file_phase, file_amplitude, nominal_model, beam, output_path
 ):
-    IR_positions_common = []
-    beta_range = []
-    beta_range_amp = []
-    beta_range_err = []
-    beta_range_amp_err = []
-    names_range_IP = []
-    position_fit = []
-    BPM_names = []
     # define if its beam 1 or beam 2
-    for bpm_prefix in BPM_PREFIXES:
-        bpm_prefix = bpm_prefix + str(ip) + ".B" + str(beam)
-        BPM_names.append(bpm_prefix)
-        position_fit.append(nominal_model.S[nominal_model.NAME.index(bpm_prefix)])
-    IR_minimum = getattr(nominal_model, "S")[nominal_model.NAME.index(BPM_names[0])]
-    IR_maximum = nominal_model.S[nominal_model.NAME.index(BPM_names[len(BPM_names) - 1])]
+    if ip ==1 and beam == 1:
+        bpm_names = "BPMR.5L{ip}.B{beam},BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
+    elif ip ==1 and beam == 2:
+        bpm_names = "BPM.5L{ip}.B{beam},BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
+    elif ip ==5 and beam ==1: 
+        bpm_names = "BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam},BPM.5R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
+    elif ip ==5 and beam ==2:
+        bpm_names = "BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam},BPMR.5R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
+    bpm_names_filter = file_phase.set_index("NAME").reindex(bpm_names).dropna().index
+    IR_positions_common = nominal_model.set_index("NAME").loc[bpm_names_filter,"S"].dropna()
+    IR_positions_phase = file_phase.set_index("NAME").loc[bpm_names_filter,"S"].dropna()
+    IR_minimum = nominal_model.set_index("NAME").loc[bpm_names_filter[0],"S"]
+    IR_maximum = nominal_model.set_index("NAME").loc[bpm_names_filter[-1],"S"]
     IP_position = (IR_maximum - IR_minimum) / 2
-
-    # just in case a BPM is missing in one file but not in the other ( BPM from ampl but not from phase )
-    commonbpms = utils.bpm.intersect([file_amplitude, file_phase])
-
-    for i in range(0, len(commonbpms)):
-        common_names_amplitude_phase = str.upper(commonbpms[i][1])
-
-        if nominal_model.S[nominal_model.NAME.index(common_names_amplitude_phase)] >= IR_minimum and nominal_model.S[nominal_model.NAME.index(common_names_amplitude_phase)] <= IR_maximum:
-            IR_positions_common.append(nominal_model.S[nominal_model.NAME.index(common_names_amplitude_phase)])
-            beta_range.append(getattr(file_phase, "BET" + plane)[i])
-            beta_range_err.append(((getattr(file_phase, "STDBET" + plane)[i] ** 2) + (getattr(file_phase, "ERRBET" + plane)[i] ** 2)) ** 0.5)
-            beta_range_amp.append(getattr(file_amplitude, "BET" + plane)[i])
-            beta_range_amp_err.append(getattr(file_amplitude, "BET" + plane + "STD")[i])
-            names_range_IP.append(file_phase.NAME[i])
-
+    beta = "BET" + plane
+    beta_phase_error = "ERRBET" + str(plane.upper())
+    beta_amplitude_error = "BET" + str(plane.upper()) + "STD"
+    beta_range = file_phase.set_index("NAME").loc[bpm_names_filter, beta].dropna()
+    beta_range_err = file_phase.set_index("NAME").loc[bpm_names_filter, beta_phase_error].dropna()
+    beta_range_amp = file_amplitude.set_index("NAME").loc[bpm_names_filter, beta].dropna()
+    beta_range_amp_err = file_amplitude.set_index("NAME").loc[bpm_names_filter, beta_amplitude_error].dropna()
     initial_values = [INITIAL_BETA_STAR_ESTIMATION, IP_position]
-    beta_phasefit_curve, beta_phasefit_curve_err = curve_fit(func_phase, IR_positions_common, beta_range, p0=initial_values, sigma=beta_range_err, maxfev=1000000)
-    beta_phasefit = []
-    beta_phasefit_max = []
-    beta_phasefit_min = []
-    beta_phasefit_err = []
-    amplitude_ratio_phasefit = []
-    amplitude_ratio_measured = []
-    error_amplitude_ratio_phasefit = []
-    error_amplitude_ratio_measured = []
-    beta_ratio = []
-    error_beta_ratio = []
-    for i in range(len(IR_positions_common)):
-        beta_phasefit.append(func_phase(IR_positions_common[i], beta_phasefit_curve[0], beta_phasefit_curve[1]))
-        beta_phasefit_max.append(func_phase(IR_positions_common[i], beta_phasefit_curve[0] + beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] + beta_phasefit_curve_err[1, 1] ** 0.5))
-        beta_phasefit_min.append(func_phase(IR_positions_common[i], beta_phasefit_curve[0] - beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] - beta_phasefit_curve_err[1, 1] ** 0.5))
-        beta_phasefit_err.append((beta_phasefit_max[i] - beta_phasefit_min[i]) / 2)
-        amplitude_ratio_phasefit.append((beta_phasefit[i] / beta_range_amp[i]) ** 0.5)
-        amplitude_ratio_measured.append((beta_range[i] / beta_range_amp[i]) ** 0.5)
-        error_amplitude_ratio_phasefit.append(((beta_phasefit_err[i]) ** 2 * 1 / (beta_range_amp[i] * beta_phasefit[i] * 4) + beta_phasefit_err[i] ** 2 * beta_phasefit[i] / (beta_range_amp[i] ** 3 * 4)) ** 0.5)
-        error_amplitude_ratio_measured.append(((beta_range_err[i]) ** 2 * 1 / (beta_range_amp[i] * beta_range[i] * 4) + beta_range_amp_err[i]**2 * beta_range[i] / (beta_range_amp[i] ** 3 * 4)) ** 0.5)
-        beta_ratio.append(beta_phasefit[i] / beta_range_amp[i])
-        error_beta_ratio.append(((beta_range_amp_err[i] * beta_phasefit[i] / beta_range_amp[i] ** 2) ** 2 + (beta_phasefit_err[i] / beta_range_amp[i]) ** 2) ** 0.5)
-   
-    _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, beta_phasefit_curve_err, position_fit, IR_positions_common, beta_range, beta_range_err, beta_range_amp, beta_range_amp_err)
-    return(names_range_IP, IR_positions_common, amplitude_ratio_phasefit, error_amplitude_ratio_phasefit, amplitude_ratio_measured, error_amplitude_ratio_measured, beta_ratio, error_beta_ratio)
+    beta_phasefit_curve, beta_phasefit_curve_err = curve_fit(func_phase, IR_positions_phase, beta_range, p0=initial_values, sigma=beta_range_err, maxfev=1000000)
+    beta_phasefit = func_phase(IR_positions_common, beta_phasefit_curve[0], beta_phasefit_curve[1])
+    beta_phasefit_max = func_phase(IR_positions_common, beta_phasefit_curve[0] + beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] + beta_phasefit_curve_err[1, 1] ** 0.5)
+    beta_phasefit_min = func_phase(IR_positions_common, beta_phasefit_curve[0] - beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] - beta_phasefit_curve_err[1, 1] ** 0.5)
+    beta_phasefit_err = (beta_phasefit_max - beta_phasefit_min) / 2
+    amplitude_ratio_phasefit = pd.DataFrame((beta_phasefit / beta_range_amp) ** 0.5)
+    amplitude_ratio_measured = ((beta_range / beta_range_amp) ** 0.5)
+    error_amplitude_ratio_phasefit = (((beta_phasefit_err) ** 2 * 1 / (beta_range_amp * beta_phasefit * 4) + beta_phasefit_err ** 2 * beta_phasefit / (beta_range_amp ** 3 * 4)) ** 0.5)
+    error_amplitude_ratio_measured = (((beta_range_err) ** 2 * 1 / (beta_range_amp * beta_range * 4) + beta_range_amp_err**2 * beta_range / (beta_range_amp ** 3 * 4)) ** 0.5)
+    beta_ratio = beta_phasefit / beta_range_amp
+    error_beta_ratio = ((beta_range_amp_err * beta_phasefit / beta_range_amp ** 2) ** 2 + (beta_phasefit_err / beta_range_amp) ** 2) ** 0.5
+    summary_calibration_factors_amplitude = pd.concat([IR_positions_common,amplitude_ratio_measured.dropna(), error_amplitude_ratio_measured.dropna(),amplitude_ratio_phasefit.dropna(),error_amplitude_ratio_phasefit.dropna()], axis=1) 
+    summary_calibration_factors_amplitude.columns = LABELS
+    summary_calibration_factors_amplitude = summary_calibration_factors_amplitude.reset_index()
+    summary_calibration_factors_beta = pd.concat([beta_ratio,error_beta_ratio], axis=1)
+    summary_calibration_factors_beta.columns = LABELS_BETA
+    summary_calibration_factors_beta = summary_calibration_factors_beta.reset_index()
+    _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, beta_phasefit_curve_err, IR_positions_common, IR_positions_common, beta_range, beta_range_err, beta_range_amp, beta_range_amp_err)
+    return(summary_calibration_factors_amplitude,summary_calibration_factors_beta)
 
 
 def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, beta_phasefit_curve_err, position_fit, IR_positions_common, beta_range, beta_range_err, beta_range_amp, beta_range_amp_err):
-    # beta from fit for ALL BPMS in the IR
     name_file_pdf = OUTPUT_FILE_PREFIX_PLOT + str(ip) + "_" + "B" + str(beam) + "_" + str(plane) + ".pdf"
     file_path_pdf = os.path.join(output_path, name_file_pdf)
-    beta_phasefit_allpositions = []
-    beta_phasefit_max_allpositions = []
-    beta_phasefit_min_allpositions = []
-    beta_phasefit_err_allpositions = []
-    beta_mdl = []
-    j = 0
+    gs = matplotlib.gridspec.GridSpec(1, 1, height_ratios=[1])
+    ax = plt.subplot(gs[0])
     if plane == "X":
         label_amp = r'$\beta$ from amplitude (x) '
-        label_phase = r'$\beta$ from phase (x) '
-        label_phase_fit = r'$\beta$ fit (x) '
+        label_phase = r'$\beta^{\phi}$'
+        label_phase_fit = r'$\beta$ fit'
+        ax.set_ylabel(r'$\beta_{x}$ [m]', fontsize=19)
     elif plane == "Y":
-        label_amp = r'$\beta$ from amplitude (y) '
-        label_phase = r'$\beta$ from phase (y) '
-        label_phase_fit = r'$\beta$ fit (y) '
-    for i in position_fit:
-        beta_phasefit_allpositions.append(func_phase(i, beta_phasefit_curve[0], beta_phasefit_curve[1]))
-        beta_phasefit_max_allpositions.append(func_phase(i, beta_phasefit_curve[0] + beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] + beta_phasefit_curve_err[1, 1] ** 0.5))
-        beta_phasefit_min_allpositions.append(func_phase(i, beta_phasefit_curve[0] - beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] - beta_phasefit_curve_err[1, 1] ** 0.5))
-        beta_phasefit_err_allpositions.append((beta_phasefit_max_allpositions[j] - beta_phasefit_min_allpositions[j]) / 2)
-        j = j + 1
+        label_amp = r'$\beta$ from amplitude'
+        label_phase = r'$\beta^{\phi}$'
+        label_phase_fit = r'$\beta$ fit'
+        ax.set_ylabel(r'$\beta_{y}$ [m]', fontsize=19)
+    beta_phasefit_allpositions = func_phase(position_fit, beta_phasefit_curve[0], beta_phasefit_curve[1])
+    beta_phasefit_max_allpositions = func_phase(position_fit, beta_phasefit_curve[0] + beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] + beta_phasefit_curve_err[1, 1] ** 0.5)
+    beta_phasefit_min_allpositions = func_phase(position_fit, beta_phasefit_curve[0] - beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] - beta_phasefit_curve_err[1, 1] ** 0.5)
+    beta_phasefit_err_allpositions = (beta_phasefit_max_allpositions - beta_phasefit_min_allpositions) / 2
     xfine = np.linspace(position_fit[0], position_fit[len(position_fit) - 1], 2000)
-    for i in xfine:
-        beta_mdl.append(func_phase(i, beta_phasefit_curve[0], beta_phasefit_curve[1]))
-    gs = matplotlib.gridspec.GridSpec(1, 1, height_ratios=[1])
-    ax2 = plt.subplot(gs[0])
+    beta_mdl = (func_phase(xfine, beta_phasefit_curve[0], beta_phasefit_curve[1]))
     plt.grid(False)
-
-    ax2.set_ylabel(r'$\beta [m]$', fontsize=19)
-    ax2.set_xlabel('position [m]')
-    ax2.errorbar(IR_positions_common, beta_range, yerr=beta_range_err, fmt='o', color=SkyBlue1, markersize=4, markeredgecolor=SkyBlue3, label= label_phase)
-    ax2.errorbar(IR_positions_common, beta_range_amp, yerr=beta_range_amp_err, fmt='o', color=ScarletRed1, markersize=3, markeredgecolor=ScarletRed3, label= label_amp)
-    ax2.errorbar(position_fit, beta_phasefit_allpositions, yerr=beta_phasefit_err_allpositions, fmt='o', color=Orange1, markersize=4, markeredgecolor=Orange3, label=label_phase_fit )
-    ax2.errorbar(xfine, beta_mdl, fmt='r', color=Orange1, markersize=4, markeredgecolor=Orange3)
-    ax2.legend(numpoints=1, ncol=1, loc=LEGEND_POSITION, fontsize=14)
+    ax.set_xlabel('position [m]')
+    ax.errorbar(IR_positions_common, beta_range, yerr=beta_range_err, fmt='o', color=SkyBlue1, markersize=6, markeredgecolor=SkyBlue3, label= label_phase)
+    ax.errorbar(xfine,beta_mdl, fmt='r', color=ScarletRed3, markersize=4, markeredgecolor=ScarletRed3,label=label_phase_fit)
+    ax.legend(numpoints=1, ncol=1, loc="best", fontsize=14)
     matplotlib.pyplot.savefig(file_path_pdf, bbox_inches='tight')
 
 
@@ -249,7 +218,7 @@ def _get_twiss_for_one_of(directory, *file_names):
         if os.path.isfile(file_path):
             file_name_amplitude = "getampbeta" + file_name[7:]
             file_path_amplitude = os.path.join(directory, file_name_amplitude)
-            return (metaclass.twiss(file_path), metaclass.twiss(file_path_amplitude))
+            return (tfs_pandas.read_tfs(file_path), tfs_pandas.read_tfs(file_path_amplitude))
     raise IOError("None of the files exist:\n\t" + "\n\t".join(file_names))
 
 

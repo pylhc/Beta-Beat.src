@@ -21,13 +21,15 @@ import copy
 import numpy as np
 from numpy import sin, cos, tan
 from collections import OrderedDict
-
+import pandas as pd
 import utils.bpm
 import phase
 from constants import PI, TWOPI, kEPSILON
-import constants    # needed for constants.USE_ERROR_OF_MEAN, if USE_ERROR_OF_MEAN added to the line above
-                    # its changes are not visible here (skowron) 
-
+from tfs_files import tfs_pandas
+import numpy as np
+import matplotlib.pyplot as plt
+import constants    # needed for constants.USE_ERROR_OF_MEAN, if USE_ERROR_OF_MEAN added to the line|  from tfs_files import tfs_pandas                                                                    
+                      # its changes are not visible here (skowron)  
 DEBUG = sys.flags.debug # True with python option -d! ("python -d GetLLM.py...") (vimaier)
 
 #===================================================================================================
@@ -133,9 +135,9 @@ def GetACPhase_AC2BPMAC(MADTwiss,Qd,Q,plane,oa, acdipole):
 def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
 
     #-- Select common BPMs
-    bpm=utils.bpm.model_intersect(utils.bpm.intersect(Files), MADTwiss)
-    bpm=[(b[0],str.upper(b[1])) for b in bpm]
-
+    bpm = utils.bpm.model_intersect(utils.bpm.intersect(Files), MADTwiss)
+    bpm = [(b[0], str.upper(b[1])) for b in bpm]
+    #bpm = intersect_bpms_list_with_bad_known_bpms(bpm)
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     if op == "1":
         if bd== 1: s_lastbpm=MADTwiss.S[MADTwiss.indx['BPMSW.1L2.B1']]
@@ -188,7 +190,6 @@ def get_free_phase_total_eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,op):
         psi=Psi-Psi[0]
         psi[k_bpmac:]=psi[k_bpmac:]+2*np.pi*Q
         for k in range(len(bpm)): psiall[k][i]=psi[k]/(2*np.pi)  #-- phase range back to [0,1)
-
     #-- Output
     result={}
     for k in range(len(bpm)):
@@ -223,7 +224,6 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
     #-- Select common BPMs
     bpm = utils.bpm.model_intersect(utils.bpm.intersect(Files), MADTwiss)
     bpm = [(b[0], str.upper(b[1])) for b in bpm]
-
     #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
     
     if op == "1":
@@ -306,6 +306,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
         alpha = psid + PI * Qd
         alpha[k_bpmac:] = alpha[k_bpmac:] + TWOPI * (Q - Qd) + kEPSILON
         
+        print "PSI phase"
         Psi = np.arctan((1 - r) / (1 + r) * np.tan(Psid)) % PI  # Ryoichi
         Psi_a = np.arctan((1 + r * np.sin(alpha - gamma) / np.sin(alpha)) / (1 + r * np.cos(alpha - gamma)/np.cos(alpha)))
         for k in range(len(bpm)):
@@ -324,8 +325,7 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
                 
         for fbpm, fi, sbpm, si, _list in psi_important:
             _list.append((psi[si] - psi[fi])/TWOPI)
-                    
-                
+        
             
     #-- Output
    
@@ -361,41 +361,46 @@ def get_free_phase_eq(MADTwiss, Files, Qd, Q, psid_ac2bpmac, plane, bd, op, Qmdl
         
     return result, muave, bpm
 
-
-def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, bd, op):#,calibration,calibration_error):
-    #-- Select common BPMs
+def get_bpm_names(MADTwiss_ac,Files,plane,accel):
     all_bpms = utils.bpm.model_intersect(
         utils.bpm.intersect(Files),
         MADTwiss_ac,
     )
     all_bpms = [(b[0], str.upper(b[1])) for b in all_bpms]
-    
-    bpms = intersect_bpms_list_with_bad_known_bpms(all_bpms)
-    
-    print ("skowron: Please fix me !!!! ")
-    print ("skowron: op is sometimes the machine name and sometimes lhcphase1 flag  ")
-    print "op"
-    print op 
-    if op == "1": 
-        print "Calling intersect_bpm_list_with_arc_bpms(bpms)"
-        good_bpms_for_kick = intersect_bpm_list_with_arc_bpms(bpms)
+    all_bpms_names = [str.upper(b[1]) for b in all_bpms]
+    return all_bpms,all_bpms_names
+
+
+def get_bpm_names_kick(MADTwiss_ac,Files,plane,accel):
+    all_bpms = utils.bpm.model_intersect(
+        utils.bpm.intersect(Files),
+        MADTwiss_ac,
+    )
+    all_bpms = [(b[0], str.upper(b[1])) for b in all_bpms]
+    all_bpms_names = [str.upper(b[1]) for b in all_bpms]
+    # select BPMs needed to compute action
+    if accel == "LHCB1" or accel == "LHCB2":
+        good_bpms_for_kick_all,ir_bpms = intersect_bpm_list_with_arc_bpms(all_bpms)
+        good_bpms_for_kick = [str.upper(b[1]) for b in good_bpms_for_kick_all]
+    elif accel == "PSB":
+        good_bpms_for_kick_all = intersect_bpm_list_psb(all_bpms)
+        good_bpms_for_kick = [str.upper(b[1]) for b in good_bpms_for_kick_all]
     else:
-        print "Calling intersect_bpm_list_inj(bpms,op)"
-        good_bpms_for_kick = intersect_bpm_list_inj(bpms,op)
-        
+        good_bpms_for_kick = all_bpms_names
+    return good_bpms_for_kick
 
-    #-- Last BPM on the same turn to fix the phase shift by Q for exp data of LHC
-    if op == "1" and bd ==  1:
+
+def get_bpm_close_to_ac_dipole(MADTwiss_ac,bd,op,psid_ac2bpmac,all_bpms):
+    if bd ==  1 and op == 1:
         s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L2.B1']]
-    if op == "1" and bd == -1:
+    elif bd == -1 and op == 1 :
         s_lastbpm = MADTwiss_ac.S[MADTwiss_ac.indx['BPMSW.1L8.B2']]
-
+    else:
+        s_lastbpm = MADTwiss_ac.S[-1]
     #-- Determine the BPM closest to the AC dipole and its position
     bpm_ac1 = psid_ac2bpmac.keys()[0]
     bpm_ac2 = psid_ac2bpmac.keys()[1]
-    
-
-    bpm_names = list(zip(*all_bpms)[1])
+    bpm_names = list(zip(*all_bpms))
     if bpm_ac1 in bpm_names:
         k_bpmac = bpm_names.index(bpm_ac1)
         bpmac = bpm_ac1
@@ -404,137 +409,70 @@ def get_free_beta_from_amp_eq(MADTwiss_ac, Files, Qd, Q, psid_ac2bpmac, plane, b
         bpmac = bpm_ac2
     else:
         print >> sys.stderr, 'WARN: BPMs next to AC dipoles missing. Was looking for: bpm_ac1="{0}" and bpm_ac2="{1}"'.format(bpm_ac1, bpm_ac2)
-        return {}, 0.0, []
+        #return {}, 0.0, []
+        return 0.0,{},[]
+    return bpmac,k_bpmac,s_lastbpm
 
-    #-- Model beta and phase advance
-    if plane == 'H':
-        betmdl = np.array(
-            [MADTwiss_ac.BETX[MADTwiss_ac.indx[b[1]]] for b in all_bpms]
-        )
-    if plane == 'V':
-        betmdl = np.array(
-            [MADTwiss_ac.BETY[MADTwiss_ac.indx[b[1]]] for b in all_bpms]
-        )
 
-    #-- Global parameters of the driven motion
-    r = sin(np.pi * (Qd - Q)) / sin(np.pi * (Qd + Q))
-
-    # TODO: Use std to compute errorbars.
-    sqrt2j, sqrt2j_std = get_kick_from_bpm_list_w_ACdipole(
-        MADTwiss_ac, good_bpms_for_kick, Files, plane
-    )
-
-    #-- Loop for files
-    betall = np.zeros((len(all_bpms), len(Files)))
-    betall_err = np.zeros((len(all_bpms), len(Files)))
-    for i in range(len(Files)):
-        if plane == 'H':
-            amp = np.array(
-                [2 * Files[i].AMPX[Files[i].indx[b[1]]] for b in all_bpms]
-            )
-            try:
-                amp_err = np.array(
-                    [Files[i].ERRAMPX[Files[i].indx[b[1]]] for b in all_bpms]
-                )
-                print "CALIBRATION"
-                print Files[i].CALIBRATION
-                calibration = np.array(
-                    [Files[i].CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
-                )
-                calibration_error = np.array(
-                    [Files[i].ERROR_CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
-                )
-            except AttributeError:
-                amp_err = np.zeros(len(amp))
-                calibration = np.ones(len(amp))
-                calibration_error = np.zeros(len(amp))
-            psid = bd * 2 * np.pi * np.array(
-                [Files[i].MUX[Files[i].indx[b[1]]] for b in all_bpms]
-            )  # bd flips B2 phase to B1 direction
-        if plane == 'V':
-            amp = np.array(
-                [2 * Files[i].AMPY[Files[i].indx[b[1]]] for b in all_bpms]
-            )
-            psid = bd * 2 * np.pi * np.array(
-                [Files[i].MUY[Files[i].indx[b[1]]] for b in all_bpms]
-            )  # bd flips B2 phase to B1 direction
-            try:
-                amp_err = np.array(
-                    [Files[i].ERRAMPY[Files[i].indx[b[1]]] for b in all_bpms]
-                )
-                calibration = np.array(
-                    [Files[i].CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
-                )
-                calibration_error = np.array(
-                    [Files[i].ERROR_CALIBRATION[Files[i].indx[b[1]]] for b in all_bpms]
-                )
-            except AttributeError:
-                amp_err = np.zeros(len(amp))
-                calibration = np.ones(len(amp))
-                calibration_error = np.zeros(len(amp))
-        
-# This loop is just to fix the phase jump at the beginning of the ring.
-        for k in range(len(all_bpms)):
-            try:
-                if all_bpms[k][0] > s_lastbpm:
-                    psid[k] += 2 * np.pi * Qd
-            except:
-                pass
-
-        psid = psid - (psid[k_bpmac] - psid_ac2bpmac[bpmac])
-        Psid = psid + np.pi * Qd
-        Psid[k_bpmac:] = Psid[k_bpmac:] - 2 * np.pi * Qd
-        bet = ((amp / sqrt2j[i]) ** 2 *
-               (1 + r ** 2 + 2 * r * np.cos(2 * Psid)) / (1 - r ** 2))
-        if DEBUG:
-            print "BETA ERROR CALIBRATION"
-            print amp_err
-            
-        #print bet_err
-        #bet_err = (2 * calibration * bet * calibration_error)**2 
-        bet_err = ((amp_err / sqrt2j[i]) ** 2 *
-               (1 + r ** 2 + 2 * r * np.cos(2 * Psid)) / (1 - r ** 2))
-        if DEBUG:
-            print "BETA ERROR"
-            print bet_err
-            print bet_err
-            
-        for bpm_index in range(len(all_bpms)):
-            betall[bpm_index][i] = bet[bpm_index]
-            # betall_err[bpm_index][i] = bet_err[bpm_index]
-            betall_err[bpm_index][i] = 2 / calibration[bpm_index] * bet[bpm_index] * calibration_error[bpm_index]
-    #-- Output
-    result = {}
-    bb = []
+def get_beta_amplitude(amplitude,action,action_error,calibration,calibration_error):
     
-    for k in range(len(all_bpms)):
-        betave = np.mean(betall[k])
-        bet_errave = np.mean(betall_err[k])
-        betstd = np.std(betall[k])
-        
-        if constants.USE_ERROR_OF_MEAN and len(betall[k]) > 0:
-            betstd = betstd/math.sqrt(len(betall[k]))
-        bet_err_total = (bet_errave**2+betstd**2)**0.5
-        bb.append((betave - betmdl[k]) / betmdl[k])
-        result[all_bpms[k][1]] = [betave, bet_err_total, all_bpms[k][0]]
-    bb = math.sqrt(np.mean(np.array(bb) ** 2))
+    action_matrix = np.matrix(action)
+    action_matrix_error = np.matrix(action_error)
+    action_matrix_transpose = np.transpose(action_matrix)
+    action_matrix_error_transpose = np.transpose(action_matrix_error)
+    amplitude_normalized = np.array(amplitude)**2*np.array(1/action_matrix_transpose)
+    beta = np.array(amplitude_normalized)
+    beta_error = np.array(beta)*np.array(action_matrix_error_transpose)*(np.array(1/action_matrix_transpose))
+    beta_error_calibration = np.array(beta) * np.array(calibration_error) * np.array(1/calibration)
+    beta_average = beta.mean(0)
+    beta_std = beta.std(0)
+    beta_error_average = (beta_error).mean(0)
+    beta_error_calibration_average = beta_error_calibration.mean(0)
+    beta_error_total = (beta_error_average **2 + beta_error_calibration_average **2 + (beta_std/len(beta)**0.5)**2)**0.5
+    results = [beta_average,beta_error_total]
+    return results
 
-    return result, bb, all_bpms
+
+def fix_phase_jump(psid_all,s_lastbpm,all_bpms,psid_ac2bpmac,bpmac,k_bpmac,Qd):
+    Psid_tot = []
+    i = 0 
+    for psid in psid_all.transpose():
+        for k in range(len(all_bpms)):
+               try:
+                   if all_bpms[k][0] > s_lastbpm:
+                        psid[k] += 2 * np.pi * np.average(Qd)
+               except:
+                   pass
+        psid = psid - (psid[k_bpmac] - psid_ac2bpmac[bpmac])
+        Psid = psid + np.pi * np.average(Qd)
+        Psid [k_bpmac:] = (Psid[k_bpmac:] - 2 * np.pi * np.average(Qd))
+        Psid_tot.append(Psid)
+        i = i+1
+    return np.matrix(np.array(Psid_tot)).transpose()
 
 
 def intersect_bpm_list_with_arc_bpms(bpms_list):
     bpm_arcs = []
+    bpm_irs = []
     # Selecting ARC BPMs
     for b in bpms_list:
         if (((b[1][4]) == '1' and (b[1][5]) >= '4') or
                 (b[1][4]) == '2' or
                 (b[1][4]) == '3'):
             bpm_arcs.append(b)
-    return bpm_arcs
+        else:
+            bpm_irs.append(b)
+    return bpm_arcs,bpm_irs
 
-def intersect_bpm_list_inj(bpms_list, accel):
+
+def intersect_bpm_list_psb(bpm_list, accel):
+    all_bpms_filter = []
+    for i in range(len(bpm_list)):
+             bpm_end_list = ["4L3","6L3","11L3","12L3","14L3"]
+             if bpm_list[i][1][-3:] not in bpm_end_list:
+                  all_bpms_filter.append(bpm_list[i])
     ''' For non LHC it is called instead of intersect_bpm_list_with_arc_bpms '''
-    return bpms_list
+    return all_bpms_filter
 
 
 BAD_BPM_LIST = ['BPM.15R8.B1', 'BPM.16R3.B1', 'BPM.31L5.B1', 'BPM.23L6.B1',
@@ -545,53 +483,101 @@ def intersect_bpms_list_with_bad_known_bpms(bpms_list):
     bpm_arcs_clean = []
     for b in bpms_list:
         if b[1] not in BAD_BPM_LIST:
-            bpm_arcs_clean.append(b)
+             bpm_arcs_clean.append(b)
+    import sys
     return bpm_arcs_clean
 
 
-def get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, bpm_list, measurements, plane):
+def get_kick_from_bpm_list_w_ACdipole_phase(amp, beta_phase,beta_phase_error):
     '''
-    @author: F Carlier
+    @author: F Carlier, A Garcia-Tabares
     Function calculates kick from measurements with AC dipole using the amplitude of the main line. The main line
     amplitude is obtained from Drive/SUSSIX and is normalized with the model beta-function.
 
-    Input:
-        bpm_list:     Can be any list of bpms. Preferably only arc bpms for kick calculations, but other bad bpms may be
-                      included as well.
-        measurements: List of measurements when analyzing multiple measurements at once
-        plane:        Either H or V
-    Output:
-        actions_sqrt:       is a list containing the actions of each measurement. Notice this is the square root of the
-                            action, so sqrt(2JX) or sqrt(2JY) depending on the plane
-        actions_sqrt_err:   is the list containing the errors for sqrt(2Jx/y) for each measurement.
     '''
-    if plane == 'H':
-        betmdl = np.array(
-            [MADTwiss_ac.BETX[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list]
-        )
-    if plane == 'V':
-        betmdl = np.array(
-            [MADTwiss_ac.BETY[MADTwiss_ac.indx[bpm[1]]] for bpm in bpm_list]
-        )
+    beta_phase_filter = np.array(beta_phase)[(np.array(beta_phase) > -1)]
+    actions = (((amp).transpose() * (1/(beta_phase.transpose()**0.5))[:, np.newaxis]).mean(0))**2
+    actions_error_spread = ((amp).transpose() * (1/(beta_phase.transpose()**0.5))[:, np.newaxis]).std(0)
+    actions_error_std = (actions_error_spread/len(amp[0])**0.5)
+    actions_error_phase = ((((amp**2).transpose() * 1/(beta_phase.transpose()**2)[:, np.newaxis] * beta_phase_error.transpose()[:, np.newaxis])**2).sum(0))**0.5/len(amp[0])  
+    return actions,actions_error_spread,actions_error_std,actions_error_phase
 
-    actions_sqrt = []
-    actions_sqrt_err = []
 
-    for meas in measurements:
-        if plane == 'H':
-            amp = np.array(
-                [2 * meas.AMPX[meas.indx[bpm[1]]] for bpm in bpm_list]
-            )
-        if plane == 'V':
-            amp = np.array(
-                [2 * meas.AMPY[meas.indx[bpm[1]]] for bpm in bpm_list]
-            )
-        actions_sqrt.append(np.average(amp / np.sqrt(betmdl)))
-        actions_sqrt_err.append(np.std(amp / np.sqrt(betmdl)))
+def get_kick_from_bpm_list_w_ACdipole_model(amp, beta_model):
+    actions =  (((amp).transpose() * (1/(beta_model.transpose()**0.5))[:, np.newaxis]).mean(0))**2
+    actions_error_spread = (((amp).transpose() * (1/(beta_model.transpose()**0.5))[:, np.newaxis]).std(0))**2
+    actions_error_std = (actions_error_spread/len(amp[0])**0.5)
+    return actions,actions_error_spread,actions_error_std
+   
 
-    return actions_sqrt, actions_sqrt_err
 
-#factor_top_diff=math.sqrt(abs(np.sin(np.pi*(tunedrivenx-tunefreey))*np.sin(np.pi*(tunefreex-tunedriveny)))
+def get_beta_beating_rms(beta_phase,beta_phase_error,beta_model):
+    beta_beating = np.array((beta_phase-beta_model)/beta_model)
+    beta_beating_error = np.array(beta_phase_error/beta_model)
+    beta_beating_average = np.mean(beta_beating)
+    beta_beating_rms = np.sqrt(np.average(np.array(beta_beating)**2))
+    beta_beating_std = np.std(beta_beating)
+    beta_beating_average_error = np.sqrt(np.sum(np.array(beta_phase_error/beta_model)**2))/len(beta_beating)
+    return beta_beating_average,beta_beating_average_error,beta_beating_rms,beta_beating
+
+
+
+def get_tunes_for_beta(files,plane):
+    tune = []
+    tune = []
+    tuneRMS = []
+    tuneRMS = []
+    nat_tune = []
+    nat_tune = []
+    nat_tuneRMS = []
+    nat_tuneRMS = []
+    dpp = []
+    for j in range(len(files)):
+        tw_x = files[j]
+        tw_y = files[j]
+        dpp.append(getattr(tw_x, "DPP", 0.0))
+        if plane == "H":
+           tune.append(getattr(tw_x, "Q1", 0.0))
+           tuneRMS.append(getattr(tw_x, "Q1RMS", 0.0))
+           nat_tune.append(getattr(tw_x, "NATQ1", 0.0))
+           nat_tuneRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
+        elif plane == "V":
+           tune.append(getattr(tw_y, "Q2", 0.0))
+           tuneRMS.append(getattr(tw_y, "Q2RMS", 0.0))
+           nat_tune.append(getattr(tw_y, "NATQ2", 0.0))
+           nat_tuneRMS.append(getattr(tw_y, "NATQ2RMS", 0.0))
+
+    tune_values_list = [tune, tuneRMS, nat_tune, nat_tuneRMS]
+    return [tune_values_list, dpp]
+
+
+def get_tunes(files):    
+    tunex = []
+    tuney = []
+    tunexRMS = []
+    tuneyRMS = []
+    nat_tunex = []
+    nat_tuney = []
+    nat_tunexRMS = []
+    nat_tuneyRMS = []
+    dpp = []
+    for j in range(len(files[0])):
+        tw_x = files[0][j]
+        tw_y = files[1][j]
+        dpp.append(getattr(tw_x, "DPP", 0.0))
+        tunex.append(getattr(tw_x, "Q1", 0.0))
+        tuney.append(getattr(tw_y, "Q2", 0.0))
+        tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
+        tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
+        nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
+        nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
+        nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
+        nat_tuneyRMS.append(getattr(tw_y, "NATQ2RMS", 0.0))
+
+    tune_values_list = [tunex, tunexRMS, tuney, tuneyRMS, nat_tunex, nat_tunexRMS, nat_tuney, nat_tuneyRMS]
+    return [tune_values_list, dpp]
+
+
 def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2bpmac,bd,acdipole,oa):
 
     #-- Details of this algorithms is in http://www.agsrhichome.bnl.gov/AP/ap_notes/ap_note_410.pdf
@@ -720,7 +706,7 @@ def GetFreeCoupling_Eq(MADTwiss,FilesX,FilesY,Qh,Qv,Qx,Qy,psih_ac2bpmac,psiv_ac2
             #-- Construct phases psih, psiv, Psih, Psiv w.r.t. the AC dipole
             psih=psih-(psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]) 
             psiv=psiv-(psiv[k_bpmac_v]-psiv_ac2bpmac[bpmac_v]) 
-            #print('the phase to the device', k_bpmac_h, psih[k_bpmac_h], bpmac_h, (psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]))
+            print('the phase to the device', k_bpmac_h, psih[k_bpmac_h], bpmac_h, (psih[k_bpmac_h]-psih_ac2bpmac[bpmac_h]))
             Psih=psih-np.pi*Qh
             Psih[:k_bpmac_h]=Psih[:k_bpmac_h]+2*np.pi*Qh
             Psiv=psiv-np.pi*Qv
@@ -969,58 +955,6 @@ def GetFreeIP2_Eq(MADTwiss,Files,Qd,Q,psid_ac2bpmac,plane,bd,oa,op):
             result['IP'+ip]=[betave,betstd,betmdl,alfave,alfstd,alfmdl,betsave,betsstd,betsmdl,dsave,dsstd,dsmdl,rt2Jave,rt2Jstd]
 
     return result
-
-def getkickac(MADTwiss_ac,files,psih_ac2bpmac,psiv_ac2bpmac,bd,op):
-
-    invarianceJx = []
-    invarianceJy = []
-
-    tunex = []
-    tuney = []
-    tunexRMS = []
-    tuneyRMS = []
-
-    nat_tunex = []
-    nat_tuney = []
-    nat_tunexRMS = []
-    nat_tuneyRMS = []
-
-    dpp = []
-
-    all_bpms_x = utils.bpm.model_intersect(utils.bpm.intersect(files[0]), MADTwiss_ac)
-    all_bpms_y = utils.bpm.model_intersect(utils.bpm.intersect(files[1]), MADTwiss_ac)
-    all_bpms_x = [(b[0], str.upper(b[1])) for b in all_bpms_x]
-    all_bpms_y = [(b[0], str.upper(b[1])) for b in all_bpms_y]
-    if op == "1":
-        good_bpms_for_kick_x = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_x) )
-        good_bpms_for_kick_y = intersect_bpm_list_with_arc_bpms( intersect_bpms_list_with_bad_known_bpms(all_bpms_y) )
-    else:
-        good_bpms_for_kick_x = intersect_bpm_list_inj( intersect_bpms_list_with_bad_known_bpms(all_bpms_x),op )
-        good_bpms_for_kick_y = intersect_bpm_list_inj( intersect_bpms_list_with_bad_known_bpms(all_bpms_y),op )
-    Jx2sq, Jx2sq_std = get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_x, files[0], 'H')
-    Jy2sq, Jy2sq_std = get_kick_from_bpm_list_w_ACdipole(MADTwiss_ac, good_bpms_for_kick_y, files[1], 'V')
-
-    for j in range(len(files[0])):
-
-        tw_x = files[0][j]
-        tw_y = files[1][j]
-        invarianceJx.append([Jx2sq[j], Jx2sq_std[j]])
-        invarianceJy.append([Jy2sq[j], Jy2sq_std[j]])
-        
-        dpp.append(getattr(tw_x, "DPP", 0.0))
-
-        tunex.append(getattr(tw_x, "Q1", 0.0))
-        tuney.append(getattr(tw_y, "Q2", 0.0))
-        tunexRMS.append(getattr(tw_x, "Q1RMS", 0.0))
-        tuneyRMS.append(getattr(tw_y, "Q2RMS", 0.0))
-
-        nat_tunex.append(getattr(tw_x, "NATQ1", 0.0))
-        nat_tuney.append(getattr(tw_y, "NATQ2", 0.0))
-        nat_tunexRMS.append(getattr(tw_x, "NATQ1RMS", 0.0))
-        nat_tuneyRMS.append(getattr(tw_y, "NATQ2RMS", 0.0))
-
-    tune_values_list = [tunex, tunexRMS, tuney, tuneyRMS, nat_tunex, nat_tunexRMS, nat_tuney, nat_tuneyRMS]
-    return [invarianceJx, invarianceJy, tune_values_list, dpp]
 
 ######### end ac-dipole stuff
 

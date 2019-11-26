@@ -4,6 +4,7 @@ new_path = abspath(join(dirname(abspath(__file__)), pardir))
 if new_path not in sys.path:
     sys.path.append(new_path)
 import GetLLM
+from tfs_files import tfs_pandas
 r'''
 .. module: GetLLM.GetLLM
 
@@ -313,9 +314,8 @@ def main(outputpath,
     getllm_d.accel = accel
     getllm_d.nprocesses = nprocesses
     getllm_d.onlycoupling = onlycoupling
-    
+
     algorithms.constants.USE_ERROR_OF_MEAN = bool(use_error_of_mean)
-    
     dinj = DepInjector()
     dinj.initial("getllm_d", getllm_d)\
         .initial("bbthreshold", bbthreshold)\
@@ -392,6 +392,7 @@ def main(outputpath,
     if getllm_d.onlycoupling is 0:
         # -------- START Total Phase
         dinj.trigger(funct=algorithms.phase.calculate_total_phase,
+                     provides=("phase_tot",),
                      requires=("getllm_d", "twiss_d", "tune_d", "phase_d",
                                "mad_twiss", "mad_ac", "files_dict"))
 
@@ -403,10 +404,12 @@ def main(outputpath,
                                "mad_elem_centre", "mad_best_knowledge",
                                "mad_ac_best_knowledge", "files_dict"))
 
+
         dinj.trigger(funct=algorithms.beta.calculate_beta_from_amplitude,
                      provides=("beta_d", ),
                      requires=("getllm_d", "twiss_d", "tune_d", "phase_d",
                                "beta_d", "mad_twiss", "mad_ac", "files_dict"))
+
 
         # -------- START IP
         dinj.trigger(funct=algorithms.interaction_point.betastar_from_phase,
@@ -800,7 +803,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
             if use_average:
                 twiss_file_x.MUX = twiss_file_x.AVG_MUX
             if calibration_twiss is not None:
-                twiss_file_x.AMPX, twiss_file_x.ERRAMPX, twiss_file_x.CALIBRATION, twiss_file_x.ERROR_CALIBRATION = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
+                twiss_file_x.AMPX, twiss_file_x.ERRAMPX, twiss_file_x.CALIBRATION, twiss_file_x.ERROR_CALIBRATION, twiss_file_x.NATURAL_TUNE, twiss_file_x.NATURAL_TUNE_RMS, twiss_file_x.TUNE, twiss_file_x.TUNE_RMS = _get_calibrated_amplitudes(twiss_file_x, calibration_twiss, "X")
             try:
                 dppi = getattr(twiss_file_x, "DPP", 0.0)
             except AttributeError:
@@ -878,7 +881,7 @@ def _analyse_src_files(getllm_d, twiss_d, files_to_analyse, nonlinear, turn_by_t
             if use_average:
                 twiss_file_y.MUY = twiss_file_y.AVG_MUY
             if calibration_twiss is not None:
-                twiss_file_y.AMPY, twiss_file_y.ERRAMPY, twiss_file_y.CALIBRATION, twiss_file_y.ERROR_CALIBRATION = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
+                twiss_file_y.AMPY, twiss_file_y.ERRAMPY, twiss_file_y.CALIBRATION, twiss_file_y.ERROR_CALIBRATION, twiss_file_y.NATURAL_TUNE, twiss_file_y.NATURAL_TUNE_RMS, twiss_file_y.TUNE, twiss_file_y.TUNE_RMS = _get_calibrated_amplitudes(twiss_file_y, calibration_twiss, "Y")
             try:
                 dppi = getattr(twiss_file_y, "DPP", 0.0)
             except AttributeError:
@@ -1115,84 +1118,85 @@ def _calculate_kick(kick_times, getllm_d, twiss_d, phase_d, beta_d, mad_twiss, m
     meansqrt_2jy = {}
     bpmrejx = {}
     bpmrejy = {}
-
-    try:
-        [meansqrt_2jx, meansqrt_2jy, _, _, tunes, dpp, bpmrejx, bpmrejy] = algorithms.helper.getkick(files, mad_twiss, beta_d, bbthreshold, errthreshold)
-    except IndexError:  # occurs if either no x or no y files exist
-        return files_dict, [], []
-
-    #mean_2j = mean{2J} and meansqrt_2j=mean{sqrt(2J)}
-
+    
+    [tunes, dpp] = algorithms.compensate_ac_effect.get_tunes(files)
+    action_data_ac_dipole_phase_x,action_data_ac_dipole_model_x = algorithms.get_action.get_action(mad_twiss,beta_d.x_phase, twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, "H",getllm_d.beam_direction,getllm_d.accel)
+    action_data_ac_dipole_phase_y,action_data_ac_dipole_model_y = algorithms.get_action.get_action(mad_twiss,beta_d.y_phase, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y, "V",getllm_d.beam_direction,getllm_d.accel)
     tfs_file_model = files_dict['getkick.out']
     tfs_file_model.add_comment("Calculates the kick from the model beta function")
     column_names_list = ["TIME", "DPP", "QX", "QXRMS", "QY", "QYRMS", "NATQX", "NATQXRMS", "NATQY", "NATQYRMS", "sqrt2JX", "sqrt2JXSTD", "sqrt2JY", "sqrt2JYSTD", "2JX", "2JXSTD", "2JY", "2JYSTD"]
     column_types_list = ["%le", "%le", "%le", "%le", "%le", "%le",     "%le",      "%le",    "%le",      "%le", "%le",      "%le",        "%le",       "%le",    "%le",   "%le",  "%le",    "%le"]
     tfs_file_model.add_column_names(column_names_list)
-    tfs_file_model.add_column_datatypes(column_types_list)
-
-    for i in range(0, len(dpp)):
-        list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['model'][i][0], meansqrt_2jx['model'][i][1], meansqrt_2jy['model'][i][0], meansqrt_2jy['model'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+    tfs_file_model.add_column_datatypes(column_types_list)    
+    for i in range(0, len(action_data_ac_dipole_model_x[0])):
+        list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], action_data_ac_dipole_model_x[0][i]**0.5, 0.5*action_data_ac_dipole_model_x[1][i]/action_data_ac_dipole_model_x[0][i]**0.5, action_data_ac_dipole_model_y[0][i]**0.5, 0.5*action_data_ac_dipole_model_y[0][i]/action_data_ac_dipole_model_y[0][i]**0.5, action_data_ac_dipole_model_x[0][i], action_data_ac_dipole_model_x[1][i], action_data_ac_dipole_model_y[0][i], action_data_ac_dipole_model_y[1][i]]
         tfs_file_model.add_table_row(list_row_entries)
-        actions_x, actions_y = meansqrt_2jx['phase'], meansqrt_2jy['phase']
+    actions_x, actions_y = action_data_ac_dipole_phase_x,action_data_ac_dipole_phase_y
 
     tfs_file_phase = files_dict['getkickphase.out']
     tfs_file_phase.add_float_descriptor("Threshold_for_abs(beta_d-beta_m)/beta_m", bbthreshold)
     tfs_file_phase.add_float_descriptor("Threshold_for_uncert(beta_d)/beta_d", errthreshold)
-    tfs_file_phase.add_float_descriptor("X_BPMs_Rejected", bpmrejx['phase'][len(dpp) - 1])
-    tfs_file_phase.add_float_descriptor("Y_BPMs_Rejected", bpmrejy['phase'][len(dpp) - 1])
     tfs_file_phase.add_column_names(column_names_list)
     tfs_file_phase.add_column_datatypes(column_types_list)
     for i in range(0, len(dpp)):
-        list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], meansqrt_2jx['phase'][i][0], meansqrt_2jx['phase'][i][1], meansqrt_2jy['phase'][i][0], meansqrt_2jy['phase'][i][1], (meansqrt_2jx['model'][i][0]**2), (2*meansqrt_2jx['model'][i][0]*meansqrt_2jx['model'][i][1]), (meansqrt_2jy['model'][i][0]**2), (2*meansqrt_2jy['model'][i][0]*meansqrt_2jy['model'][i][1])]
+        list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], action_data_ac_dipole_phase_x[0][i]**0.5, 0.5*action_data_ac_dipole_phase_x[1][i]/action_data_ac_dipole_phase_x[0][i]**0.5, action_data_ac_dipole_phase_y[0][i]**0.5, 0.5*action_data_ac_dipole_phase_y[0][i]/action_data_ac_dipole_phase_y[0][i]**0.5, action_data_ac_dipole_phase_x[0][i], action_data_ac_dipole_phase_x[1][i], action_data_ac_dipole_phase_y[0][i], action_data_ac_dipole_phase_y[1][i]]
         tfs_file_phase.add_table_row(list_row_entries)
 
     if getllm_d.with_ac_calc:
+        action_data_ac_dipole_phase_x,action_data_ac_dipole_model_x = algorithms.get_action.get_action(mad_ac,beta_d.x_phase_f, twiss_d.zero_dpp_x + twiss_d.non_zero_dpp_x, "H",getllm_d.beam_direction,getllm_d.accel)
+        action_data_ac_dipole_phase_y,action_data_ac_dipole_model_y = algorithms.get_action.get_action(mad_ac,beta_d.y_phase_f, twiss_d.zero_dpp_y + twiss_d.non_zero_dpp_y, "V",getllm_d.beam_direction,getllm_d.accel)
         tfs_file = files_dict['getkickac.out']
         tfs_file.add_float_descriptor("RescalingFactor_for_X", beta_d.x_ratio_f)
         tfs_file.add_float_descriptor("RescalingFactor_for_Y", beta_d.y_ratio_f)
-        tfs_file.add_column_names(column_names_list + ["sqrt2JXRES", "sqrt2JXSTDRES", "sqrt2JYRES", "sqrt2JYSTDRES", "2JXRES", "2JXSTDRES", "2JYRES", "2JYSTDRES"])
+        tfs_file.add_column_names(column_names_list + ["sqrt2JXMOD", "sqrt2JXSTDMOD", "sqrt2JYMOD", "sqrt2JYSTDMOD", "2JXMOD", "2JXSTDMOD", "2JYMOD", "2JYSTDMOD"])
         tfs_file.add_column_datatypes(column_types_list + ["%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        [inv_jx, inv_jy, tunes, dpp] = algorithms.compensate_ac_effect.getkickac(mad_ac, files, phase_d.acphasex_ac2bpmac, phase_d.acphasey_ac2bpmac, getllm_d.beam_direction, getllm_d.lhc_phase)
+        [tunes, dpp] = algorithms.compensate_ac_effect.get_tunes(files)
         for i in range(0, len(dpp)):
             #TODO: in table will be the ratio without f(beta_d.x_ratio) used but rescaling factor is f version(beta_d.x_ratio_f). Check it (vimaier)
-            list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], inv_jx[i][0], inv_jx[i][1], inv_jy[i][0], inv_jy[i][1], (inv_jx[i][0] ** 2), (2 * inv_jx[i][0] * inv_jx[i][1]), (inv_jy[i][0] ** 2), (2 * inv_jy[i][0] * inv_jy[i][1]), (inv_jx[i][0] / math.sqrt(beta_d.x_ratio)), (inv_jx[i][1] / math.sqrt(beta_d.x_ratio)), (inv_jy[i][0] / math.sqrt(beta_d.y_ratio)), (inv_jy[i][1] / math.sqrt(beta_d.y_ratio)), (inv_jx[i][0] ** 2 / beta_d.x_ratio), (2 * inv_jx[i][0] * inv_jx[i][1] / beta_d.x_ratio), (inv_jy[i][0] ** 2 / beta_d.y_ratio), (2 * inv_jy[i][0] * inv_jy[i][1] / beta_d.y_ratio)]
+            list_row_entries = [kick_times[i], dpp[i], tunes[0][i], tunes[1][i], tunes[2][i], tunes[3][i], tunes[4][i], tunes[5][i], tunes[6][i], tunes[7][i], action_data_ac_dipole_phase_x[0][i]**0.5, 0.5*action_data_ac_dipole_phase_x[1][i]/action_data_ac_dipole_phase_x[0][i]**0.5, action_data_ac_dipole_phase_y[0][i]**0.5, 0.5*action_data_ac_dipole_phase_y[0][i]/action_data_ac_dipole_phase_y[0][i]**0.5, action_data_ac_dipole_phase_x[0][i], action_data_ac_dipole_phase_x[1][i], action_data_ac_dipole_model_y[0][i], action_data_ac_dipole_model_y[1][i], action_data_ac_dipole_model_x[0][i]**0.5, 0.5*action_data_ac_dipole_model_x[1][i]/action_data_ac_dipole_model_x[0][i]**0.5, action_data_ac_dipole_model_y[0][i]**0.5, 0.5*action_data_ac_dipole_model_y[0][i]/action_data_ac_dipole_model_y[0][i]**0.5, action_data_ac_dipole_model_x[0][i], action_data_ac_dipole_model_x[1][i], action_data_ac_dipole_model_y[0][i], action_data_ac_dipole_model_y[1][i]]
             tfs_file.add_table_row(list_row_entries)
-            actions_x, actions_y = inv_jx, inv_jy
+            actions_x, actions_y = action_data_ac_dipole_phase_x,action_data_ac_dipole_phase_y
 
     return files_dict, actions_x, actions_y
 # END _calculate_kick -------------------------------------------------------------------------------
 
 
 def _get_calibrated_amplitudes(drive_file, calibration_twiss, plane):
-   calibration_file = calibration_twiss[plane]
-   cal_amplitudes = []
-   err_cal_amplitudes = []
-   calibration_value = []
-   calibration_error = []
-   if plane == "X":
-      tune = "Q1"
-      tune_rms = "Q1RMS"
-   elif plane == "Y":
-      tune = "Q2"
-      tune_rms = "Q2RMS"
-   tune_value = getattr(drive_file,tune)
-   tune_value_rms = getattr(drive_file,tune_rms)
-   for bpm_name in drive_file.NAME:
-       drive_index = drive_file.indx[bpm_name]
-       cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
-       err_cal_amplitude = 0.
-       if bpm_name in calibration_file.NAME:
-           cal_index = calibration_file.indx[bpm_name]
-           cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
-           err_cal_amplitude = cal_amplitude * calibration_file.ERROR_CALIBRATION[cal_index]
-           calibration_value.append(calibration_file.CALIBRATION[cal_index])
-           calibration_error.append(calibration_file.ERROR_CALIBRATION[cal_index])
-       else:
-           calibration_value.append(1.)
-           calibration_error.append(0.)
-       cal_amplitudes.append(cal_amplitude)
-       err_cal_amplitudes.append(err_cal_amplitude)
-   return array(cal_amplitudes), array(err_cal_amplitudes),array(calibration_value),array(calibration_error)
+    calibration_file = calibration_twiss[plane]
+    cal_amplitudes = []
+    err_cal_amplitudes = []
+    calibration_value = []
+    calibration_error = []
+    if plane == "X":
+       tune = "Q1"
+       tune_rms = "Q1RMS"
+       natural_tune = "NATQ1"
+       natural_tune_rms = "NATQ1RMS"
+    elif plane == "Y":
+       tune = "Q2"
+       tune_rms = "Q2RMS"
+       natural_tune = "NATQ2"
+       natural_tune_rms = "NATQ2RMS"
+    tune_value = getattr(drive_file,tune)
+    tune_value_rms = getattr(drive_file,tune_rms)
+    natural_tune_value = getattr(drive_file,natural_tune_rms)
+    natural_tune_value_rms = getattr(drive_file,natural_tune_rms)
+    for bpm_name in drive_file.NAME:
+        drive_index = drive_file.indx[bpm_name]
+        cal_amplitude = getattr(drive_file, "AMP" + plane)[drive_index]
+        err_cal_amplitude = 0.
+        if bpm_name in calibration_file.NAME:
+            cal_index = calibration_file.indx[bpm_name]
+            cal_amplitude = cal_amplitude * calibration_file.CALIBRATION[cal_index]
+            err_cal_amplitude = cal_amplitude * calibration_file.ERROR_CALIBRATION[cal_index]
+            calibration_value.append(calibration_file.CALIBRATION[cal_index])
+            calibration_error.append(calibration_file.ERROR_CALIBRATION[cal_index])
+        else:
+            calibration_value.append(1.)
+            calibration_error.append(0.)
+        cal_amplitudes.append(cal_amplitude)
+        err_cal_amplitudes.append(err_cal_amplitude)
+    return array(cal_amplitudes), array(err_cal_amplitudes),array(calibration_value),array(calibration_error),array(natural_tune_value),array(natural_tune_value_rms),array(tune_value),array(tune_value_rms)
 # END _get_calibrated_amplitudes --------------------------------------------------------------------
 
 
@@ -1337,9 +1341,9 @@ class _TuneData(object):
                 pass
 
 def _disable_these_loggers():
-        # Disable 
-        logging_tools.getLogger('tfs_files.tfs_file_writer').setLevel(logging_tools.ERROR)
-    
+    # Disable
+    logging_tools.getLogger('tfs_files.tfs_file_writer').setLevel(logging_tools.ERROR)
+
 #===================================================================================================
 # main invocation
 #===================================================================================================
@@ -1373,12 +1377,11 @@ def _start():
          nprocesses=options.nprocesses,
          onlycoupling=options.onlycoupling,
          use_error_of_mean=options.use_error_of_mean)
-
      
      
 if __name__ == "__main__":
-    
-    # This is to enable debug to GetLLM.log file only if sys.flags.debug is True 
+
+    # This is to enable debug to GetLLM.log file only if sys.flags.debug is True
     with logging_tools.DebugMode(active=sys.flags.debug, log_file="GetLLM.log",add_date_to_fname=False) as dm:
         if dm.active:
             #disable DEBUG level on the console (== INFO and above to console)
@@ -1386,5 +1389,5 @@ if __name__ == "__main__":
         LOGGER.debug("The command: %s ", sys.argv)
 
         _disable_these_loggers()
-                
+
         _start()
