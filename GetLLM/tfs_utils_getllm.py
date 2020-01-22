@@ -11,9 +11,11 @@ This module contains the class GetllmTfsFile which handles the output files of G
 import os
 import sys
 import datetime
+from utils import logging_tools
 
 import tfs_files.tfs_file_writer
 
+LOGGER = logging_tools.get_logger(__name__)
 
 class GetllmTfsFile(tfs_files.tfs_file_writer.TfsFileWriter):
     '''
@@ -55,6 +57,12 @@ class GetllmTfsFile(tfs_files.tfs_file_writer.TfsFileWriter):
 
 
     def write_to_file(self, formatted=True):
+        # Not point to write empty files
+        if self.get_tfs_table().is_empty():
+            file_name = self.get_file_name()
+            LOGGER.info('File {} is empty, not writting it'.format(file_name))
+            return
+
         self.add_string_descriptor("FILES", ",".join(self.__getllm_srcfiles))
         tfs_files.tfs_file_writer.TfsFileWriter.write_to_file(self, formatted=formatted)
 

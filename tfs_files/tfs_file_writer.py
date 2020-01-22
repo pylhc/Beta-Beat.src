@@ -119,6 +119,9 @@ class TfsFileWriter(object):
     def get_file_name(self):
         return self.__file_name
 
+    def get_tfs_table(self):
+        return self.__tfs_table
+
     def add_string_descriptor(self, name, str_value):
         """ Adds the string "@ <name> %s <data>" to the tfs header. """
         tfs_descriptor = _TfsDescriptor(name, str_value, _TfsDataType.get_new_string_instance())
