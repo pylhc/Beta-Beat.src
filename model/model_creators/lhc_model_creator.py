@@ -15,16 +15,23 @@ LOGGER = logging.getLogger(__name__)
 
 
 class LhcModelCreator(model_creator.ModelCreator):
-    ERR_DEF_PATH = os.path.join(AFS_ROOT, "cern.ch", "work", "o", "omc",
-                                "Error_definition_files")
+    ERR_DEF_PATH = os.path.join(AFS_ROOT, "cern.ch", "eng", "sl", "lintrack",
+                                "omc3", "omc3", "model", "accelerators",
+                                "lhc", "systematic_errors")
     ERR_DEF_FILES = {
-        "0.45": "0450GeV", "1.0": "1000GeV",
-        "1.5": "1500GeV", "2.0": "2000GeV",
-        "2.5": "2500GeV", "3.0": "3000GeV",
-        "3.5": "3500GeV", "4.0": "4000GeV",
-        "4.5": "4500GeV", "5.0": "5000GeV",
-        "5.5": "5500GeV", "6.0": "6000GeV",
-        "6.5": "6500GeV",
+        "0.45": "0450GeV.tfs",
+        "1.0": "1000GeV.tfs",
+        "1.5": "1500GeV.tfs",
+        "2.0": "2000GeV.tfs",
+        "2.5": "2500GeV.tfs",
+        "3.0": "3000GeV.tfs",
+        "3.5": "3500GeV.tfs",
+        "4.0": "4000GeV.tfs",
+        "4.5": "4500GeV.tfs",
+        "5.0": "5000GeV.tfs",
+        "5.5": "5500GeV.tfs",
+        "6.0": "6000GeV.tfs",
+        "6.5": "6500GeV.tfs",
     }
 
     @classmethod
