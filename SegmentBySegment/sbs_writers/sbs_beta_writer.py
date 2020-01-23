@@ -488,6 +488,12 @@ def intersect(list_of_files):
 
 
 def weighted_average_for_SbS_elements(value1, sigma1, value2, sigma2):
+    if sigma1 == 0 or sigma2 == 0:
+        msg = ('weighted average set to 0 because at least one sigma ({}, {})'
+               ' is 0')
+        LOGGER.debug(msg.format(sigma1, sigma2))
+        return 0, 0
+
     weighted_average =  (1/sigma1**2 * value1 + 1/sigma2**2 * value2) / (1/sigma1**2 + 1/sigma2**2)  # @IgnorePep8
     uncertainty_of_average = np.sqrt(1 / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
     weighted_rms = np.sqrt(2 * (1/sigma1**2 * (value1 - weighted_average)**2 + 1/sigma2**2 * (value2 - weighted_average)**2) / (1/sigma1**2 + 1/sigma2**2))  # @IgnorePep8
