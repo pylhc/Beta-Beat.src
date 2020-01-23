@@ -17,3 +17,4 @@ pytz>=2018.4
 PyYAML>=3.12
 ipython>=5.5.0
 attrs>=19.2.0
+cmmnbuild-dep-manager<2.3
