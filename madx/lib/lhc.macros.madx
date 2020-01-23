@@ -504,9 +504,9 @@ load_error_table_number(energy, beam_number, error_num): macro = {
 * @param beam_number: The beam to use either 1 or 2.
 */
 load_average_error_table(energy, beam_number): macro = {
-    readmytable, file = "/afs/cern.ch/work/o/omc/error_tables/Beambeam_number/MB_Bbeam_number_energyTeV.errors", table=errtab;
+    readmytable, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beambeam_number/MB_Bbeam_number_energyTeV.errors", table=errtab;
     seterr, table=errtab;
-    call, file = "/afs/cern.ch/work/o/omc/error_tables/Beambeam_number/MB_corr_setting_Bbeam_number_energyTeV.mad";
+    call, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beambeam_number/MB_corr_setting_Bbeam_number_energyTeV.mad";
 }
 
 
