@@ -180,7 +180,7 @@ def run_tests(opts=None):
     """
     alltests = (
             list(TEST_CASES_HOLE_IN_ONE) +
-            list(TEST_CASES_GETLLM) +
+            #list(TEST_CASES_GETLLM) +
             list(TEST_CASES_MODEL_CREATION) +
             list(TEST_CASES_RESPONSE_CREATION) +
             list(TEST_CASES_GLOBAL_CORRECTION)
