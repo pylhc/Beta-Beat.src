@@ -180,7 +180,11 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                         imp_phase = phase_d.ph_x[key]
                         list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
                         important_x.add_table_row(list_row_entries)
-        important_x.write_to_file()
+        if not important_x.get_tfs_table().is_empty():
+            important_x.write_to_file()
+        else:
+            file_name = important_x.get_file_name()
+            LOGGER.info('File {} is empty, not writting it'.format(file_name))
         #-- ac to free phase
         if getllm_d.with_ac_calc:
             #-- from eq
@@ -217,7 +221,12 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                                     imp_phase = phase_d.x_f[key]
                                     list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
                                     important_x.add_table_row(list_row_entries)
-                important_x.write_to_file()
+
+                if not important_x.get_tfs_table().is_empty():
+                    important_x.write_to_file()
+                else:
+                    file_name = important_x.get_file_name()
+                    LOGGER.info('File {} is empty, not writting it'.format(file_name))
             except Exception:
                 traceback.print_exc()
 
@@ -282,7 +291,11 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                         imp_phase = phase_d.ph_y[key]
                         list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
                         important_x.add_table_row(list_row_entries)
-        important_x.write_to_file()
+        if not important_x.get_tfs_table().is_empty():
+            important_x.write_to_file()
+        else:
+            file_name = important_x.get_file_name()
+            LOGGER.info('File {} is empty, not writting it'.format(file_name))
 
         #-- ac to free phase
         if getllm_d.with_ac_calc:
@@ -323,7 +336,11 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                                 imp_phase = phase_d.y_f[key]
                                 list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
                                 important_x.add_table_row(list_row_entries)
-                important_x.write_to_file()
+                if not important_x.get_tfs_table().is_empty():
+                    important_x.write_to_file()
+                else:
+                    file_name = important_x.get_file_name()
+                    LOGGER.info('File {} is empty, not writting it'.format(file_name))
 
 
             except Exception:
