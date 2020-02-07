@@ -7,7 +7,7 @@ import math
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.spatial import Delaunay
+from scipy import spatial
 
 new_path = abspath(join(dirname(abspath(__file__)), pardir, pardir))
 if new_path not in sys.path:
@@ -17,10 +17,13 @@ from kmod.gui2beta.read_Timber_output import merge_data
 from kmod.gui2beta import Magnet_definitions, KModUtilities
 from Python_Classes4MAD import metaclass
 from kmod.gui2beta.make_fit_plots import plot_fitting
-from tfs_files import tfs_file_writer
+from tfs_files import tfs_file_writer, tfs_pandas
 from utils import outliers
+import pandas as pd
 
 CURRENT_PATH = os.path.abspath(os.path.dirname(__file__))
+
+LSA_COLUMNS = ['NAME', 'BETX', 'ERRBETX', 'BETY', 'ERRBETY']
 
 # TODO: Short term: Think about the accelerator class here for positions and Ks
 # TODO: Immediately: Use a logger for logging
@@ -193,7 +196,7 @@ def in_hull(p, hull):
     will be computed
     """
     if not isinstance(hull, Delaunay):
-        hull = Delaunay(hull)
+        hull = spatial.Delaunay(hull)
 
     return hull.find_simplex(p) >= 0
 
@@ -609,6 +612,8 @@ def _main():
         os.makedirs(path)
     if options.log == True:
         logdata = open(path + '/data.log', 'w')
+    else:
+        logdata=None
 
     merge_data(working_directory, magnet1, returncircuitname(magnet1, beam), magnet2, returncircuitname(magnet2, beam),
                beam, options.ip, options.tunemeasuncertainty)
@@ -616,7 +621,30 @@ def _main():
     run_analysis_simplex(path, beam, magnet1, magnet2, hor_bstar, vert_bstar, waist, working_directory, instruments, ek,
                          misalign, cminus, twiss, options.log, logdata, auto_clean)
 
-    logdata.close()
+    results_lsa_df = pd.DataFrame(columns=LSA_COLUMNS)
+    if options.ip is not None:
+        beta_star = tfs_pandas.read_tfs(path+"/beta_star.out")
+        betastarx, errbetastarx =  beta_star.loc[0, ['BETASTAR', 'BETASTAR_ERR']]
+        betastary, errbetastary =  beta_star.loc[1, ['BETASTAR', 'BETASTAR_ERR']]
+        results_lsa_df = results_lsa_df.append({'NAME': options.ip, 
+                                                'BETX': betastarx,
+                                                'ERRBETX':errbetastarx,
+                                                'BETY':betastary,
+                                                'ERRBETY':errbetastary}, ignore_index=True)
+    try:
+        data_x = tfs_pandas.read_tfs(path+"/getkmodbetax.out")
+        data_y = tfs_pandas.read_tfs(path+"/getkmodbetay.out")
+        instruments_df = data_x.merge(data_y, how='inner', on='NAME')
+        instruments_df = instruments_df[['NAME', 'BETX', 'BETXSTD', 'BETY', 'BETYSTD']]
+        instruments_df = instruments_df.rename(columns={'BETXSTD': 'ERRBETX', 'BETYSTD': 'ERRBETY'})
+        results_lsa_df = results_lsa_df.append(instruments_df, ignore_index=True)
+    except:
+        pass
+
+    if not results_lsa_df.empty:
+        tfs_pandas.write_tfs(path+'/lsa_results.out', results_lsa_df)        
+    if options.log == True:
+        logdata.close()
 
 
 def get_beta_filename(plane):
