@@ -56,7 +56,7 @@ def parse_args():
                         action='store', type=str, dest='beam', choices=['b1', 'b2', 'B1', 'B2'], required=True)
     parser.add_argument('--instruments',
                         help='define instruments (use keywords from twiss) at which beta should be calculated , separated by comma, e.g. MONITOR,RBEND,INSTRUMENT,TKICKER',
-                        action='store', type=str, dest='instruments', default='MONITOR,SBEND,TKICKER,INSTRUMENT')
+                        action='store', type=str, dest='instruments', default='MONITOR,SBEND,RBEND,TKICKER,INSTRUMENT')
     parser.add_argument('--log',
                         help='flag for creating a log file',
                         action='store_true', dest='log')
@@ -393,7 +393,7 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
         if name == 'BPM':
             xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, get_beta_filename("x")))
         else:
-            xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_X.out' % name))
+            xdata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_x.out' % name))
         xdata.set_column_width(20)
         xdata.add_column_names(['NAME', 'S', 'COUNT', 'BETX', 'BETXSTD', 'BETXMDL', 'MUXMDL', 'BETXRES', 'BETXSTDRES'])
         xdata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
@@ -401,7 +401,7 @@ def calc_beta_instr(path, magnet1, magnet2, beam, instr, log, logfile, twiss):
         if name == 'BPM':
             ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, get_beta_filename("y")))
         else:
-            ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_Y.out' % name))
+            ydata = tfs_file_writer.TfsFileWriter.open(os.path.join(path, 'Beta_%s_y.out' % name))
         ydata.set_column_width(20)
         ydata.add_column_names(['NAME', 'S', 'COUNT', 'BETY', 'BETYSTD', 'BETYMDL', 'MUYMDL', 'BETYRES', 'BETYSTDRES'])
         ydata.add_column_datatypes(['%s', '%le', '%le', '%le', '%le', '%le', '%le', '%le', '%le'])
@@ -631,15 +631,20 @@ def _main():
                                                 'ERRBETX':errbetastarx,
                                                 'BETY':betastary,
                                                 'ERRBETY':errbetastary}, ignore_index=True)
-    try:
-        data_x = tfs_pandas.read_tfs(path+"/getkmodbetax.out")
-        data_y = tfs_pandas.read_tfs(path+"/getkmodbetay.out")
-        instruments_df = data_x.merge(data_y, how='inner', on='NAME')
-        instruments_df = instruments_df[['NAME', 'BETX', 'BETXSTD', 'BETY', 'BETYSTD']]
-        instruments_df = instruments_df.rename(columns={'BETXSTD': 'ERRBETX', 'BETYSTD': 'ERRBETY'})
-        results_lsa_df = results_lsa_df.append(instruments_df, ignore_index=True)
-    except:
-        pass
+
+    for filename in ["/getkmodbeta{:s}.out",
+                     "/Beta_SBEND_{:s}.out",
+                     "/Beta_RBEND_{:s}.out",
+                     "/Beta_TKICKER_{:s}.out",
+                     "/Beta_INSTRUMENT_{:s}.out"]:
+        try:
+            data = {plane: tfs_pandas.read_tfs(path+filename.format(plane)) for plane in ['x', 'y']}
+            instruments_df = data['x'].merge(data['y'], how='inner', on='NAME')
+            instruments_df = instruments_df[['NAME', 'BETX', 'BETXSTD', 'BETY', 'BETYSTD']]
+            instruments_df = instruments_df.rename(columns={'BETXSTD': 'ERRBETX', 'BETYSTD': 'ERRBETY'})
+            results_lsa_df = results_lsa_df.append(instruments_df, ignore_index=True)
+        except:
+            pass
 
     if not results_lsa_df.empty:
         tfs_pandas.write_tfs(path+'/lsa_results.out', results_lsa_df)        
