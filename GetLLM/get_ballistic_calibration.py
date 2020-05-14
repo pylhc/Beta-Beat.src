@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 import sys
 import os
 from os.path import abspath, join, dirname, pardir
@@ -14,7 +16,9 @@ import utils
 import pandas as pd
 #from Python_Classes4MAD import metaclass
 from scipy.optimize import curve_fit
+from scipy.stats import chisquare
 from optparse import OptionParser
+from scipy.interpolate import interp1d
 
 
 Butter1 = '#FCE94F'
@@ -52,7 +56,7 @@ OUTPUT_FILE_PREFIX_CALIBRATION_FILE = "calibration"
 #COLUMN_NAMES = ["NAME", "S", "CAL_AMP", "CAL_AMP_STD", "CALIBRATION", "ERROR_CALIBRATION", "CAL_BETA", "CAL_BETA_STD"]
 LABELS = ["S","CALIBRATION","ERROR_CALIBRATION","CALIBRATION_PHASE_FIT","ERROR_CALIBRATION_PHASE_FIT"]
 LABELS_BETA = ["CALIBRATION_BETA","ERROR_CALIBRATION_BETA"]
-IPS = [1, 5]
+IPS = [1, 4, 5]
 PLANES = ["X", "Y"]
 
 INITIAL_BETA_STAR_ESTIMATION = 200
@@ -139,28 +143,112 @@ def print_files(names_range, positions_range, amplitude_ratio_fit, error_amplitu
 def _compute_calibration_for_ip_and_plane(
     ip, plane, file_phase, file_amplitude, nominal_model, beam, output_path
 ):
-    # define if its beam 1 or beam 2
-    if ip ==1 and beam == 1:
-        bpm_names = "BPMR.5L{ip}.B{beam},BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
-    elif ip ==1 and beam == 2:
-        bpm_names = "BPM.5L{ip}.B{beam},BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
-    elif ip ==5 and beam ==1: 
-        bpm_names = "BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam},BPM.5R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
-    elif ip ==5 and beam ==2:
-        bpm_names = "BPMYA.4L{ip}.B{beam},BPMWB.4L{ip}.B{beam},BPMSY.4L{ip}.B{beam},BPMS.2L{ip}.B{beam},BPMSW.1L{ip}.B{beam},BPMSW.1R{ip}.B{beam},BPMS.2R{ip}.B{beam},BPMSY.4R{ip}.B{beam},BPMWB.4R{ip}.B{beam},BPMYA.4R{ip}.B{beam},BPMR.5R{ip}.B{beam}".format(ip=ip, beam=beam).split(",")
-    bpm_names_filter = file_phase.set_index("NAME").reindex(bpm_names).dropna().index
-    IR_positions_common = nominal_model.set_index("NAME").loc[bpm_names_filter,"S"].dropna()
-    IR_positions_phase = file_phase.set_index("NAME").loc[bpm_names_filter,"S"].dropna()
-    IR_minimum = nominal_model.set_index("NAME").loc[bpm_names_filter[0],"S"]
-    IR_maximum = nominal_model.set_index("NAME").loc[bpm_names_filter[-1],"S"]
+
+    # Define BPMs to be used for a combination of IP and Beam
+    bpms = {1: {1: ['BPMR.5L1.B1',
+                    'BPMYA.4L1.B1',
+                    'BPMWB.4L1.B1',
+                    'BPMSY.4L1.B1',
+                    'BPMS.2L1.B1',
+                    'BPMSW.1L1.B1',
+                    'BPMSW.1R1.B1',
+                    'BPMS.2R1.B1',
+                    'BPMSY.4R1.B1',
+                    'BPMWB.4R1.B1',
+                    'BPMYA.4R1.B1'],
+                2: ['BPM.5L1.B2', 
+                    'BPMYA.4L1.B2', 
+                    'BPMWB.4L1.B2', 
+                    'BPMSY.4L1.B2', 
+                    'BPMS.2L1.B2', 
+                    'BPMSW.1L1.B2', 
+                    'BPMSW.1R1.B2', 
+                    'BPMS.2R1.B2', 
+                    'BPMSY.4R1.B2', 
+                    'BPMWB.4R1.B2', 
+                    'BPMYA.4R1.B2']
+                },
+            4: {1: [
+                    #'BPMYA.5L4.B1',
+                    'BPMWI.A5L4.B1',
+                    'BPMWA.B5L4.B1',
+                    'BPMWA.A5L4.B1',
+                    'BPMWA.A5R4.B1',
+                    'BPMWA.B5R4.B1',
+                    #'BPMYB.5R4.B1',
+                    #'BPMYA.6R4.B1',
+                    ],
+                2: [ 
+                    #'BPMYB.5L4.B2',
+                    'BPMWA.B5L4.B2',
+                    'BPMWA.A5L4.B2',
+                    'BPMWA.A5R4.B2',
+                    'BPMWA.B5R4.B2',
+                    'BPMWI.A5R4.B2',
+                    #'BPMYA.5R4.B2',
+                    #'BPMYB.6R4.B2'
+                    ]
+                },
+            5: {1: ['BPMYA.4L5.B1', 
+                    'BPMWB.4L5.B1', 
+                    'BPMSY.4L5.B1', 
+                    'BPMS.2L5.B1', 
+                    'BPMSW.1L5.B1', 
+                    'BPMSW.1R5.B1', 
+                    'BPMS.2R5.B1', 
+                    'BPMSY.4R5.B1', 
+                    'BPMWB.4R5.B1', 
+                    'BPMYA.4R5.B1', 
+                    'BPM.5R5.B1'],
+                2: ['BPMYA.4L5.B2', 
+                    'BPMWB.4L5.B2', 
+                    'BPMSY.4L5.B2', 
+                    'BPMS.2L5.B2', 
+                    'BPMSW.1L5.B2', 
+                    'BPMSW.1R5.B2', 
+                    'BPMS.2R5.B2', 
+                    'BPMSY.4R5.B2', 
+                    'BPMWB.4R5.B2', 
+                    'BPMYA.4R5.B2', 
+                    'BPMR.5R5.B2']
+                }
+            }
+
+    print('Current data: IP{} and Beam{} / Plane {}'.format(ip, beam, plane))
+    
+    # Get the BPM for a combination of IP and Beam
+    if ip in bpms.keys() and beam in bpms[ip].keys():
+        bpm_names = bpms[ip][beam]
+    else:
+        raise Exception("No BPMs defined for IP or beam combination: {ip}, "
+                        "{beam}")
+
+    # Filter the list of BPMs we got in our dataframe
+    bpm_names_filter = file_phase.set_index("NAME").reindex(bpm_names)\
+                                 .dropna().index
+
+    IR_positions_common = nominal_model.set_index("NAME")\
+                                       .loc[bpm_names_filter, "S"].dropna()
+    IR_positions_phase = file_phase.set_index("NAME")\
+                                       .loc[bpm_names_filter, "S"].dropna()
+
+    # Get the maximum and minimum positions of the elements in the IR
+    IR_minimum = nominal_model.set_index("NAME").loc[bpm_names_filter[0], "S"]
+    IR_maximum = nominal_model.set_index("NAME").loc[bpm_names_filter[-1], "S"]
     IP_position = (IR_maximum - IR_minimum) / 2
+
+    print(nominal_model)
+    print(nominal_model.columns)
+
     beta = "BET" + plane
+
     beta_phase_error = "ERRBET" + str(plane.upper())
     beta_amplitude_error = "BET" + str(plane.upper()) + "STD"
     beta_range = file_phase.set_index("NAME").loc[bpm_names_filter, beta].dropna()
     beta_range_err = file_phase.set_index("NAME").loc[bpm_names_filter, beta_phase_error].dropna()
     beta_range_amp = file_amplitude.set_index("NAME").loc[bpm_names_filter, beta].dropna()
     beta_range_amp_err = file_amplitude.set_index("NAME").loc[bpm_names_filter, beta_amplitude_error].dropna()
+
     initial_values = [INITIAL_BETA_STAR_ESTIMATION, IP_position]
     beta_phasefit_curve, beta_phasefit_curve_err = curve_fit(func_phase, IR_positions_phase, beta_range, p0=initial_values, sigma=beta_range_err, maxfev=1000000)
     beta_phasefit = func_phase(IR_positions_common, beta_phasefit_curve[0], beta_phasefit_curve[1])
@@ -179,37 +267,65 @@ def _compute_calibration_for_ip_and_plane(
     summary_calibration_factors_beta = pd.concat([beta_ratio,error_beta_ratio], axis=1)
     summary_calibration_factors_beta.columns = LABELS_BETA
     summary_calibration_factors_beta = summary_calibration_factors_beta.reset_index()
-    _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, beta_phasefit_curve_err, IR_positions_common, IR_positions_common, beta_range, beta_range_err, beta_range_amp, beta_range_amp_err)
-    return(summary_calibration_factors_amplitude,summary_calibration_factors_beta)
 
 
-def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, beta_phasefit_curve_err, position_fit, IR_positions_common, beta_range, beta_range_err, beta_range_amp, beta_range_amp_err):
-    name_file_pdf = OUTPUT_FILE_PREFIX_PLOT + str(ip) + "_" + "B" + str(beam) + "_" + str(plane) + ".pdf"
+    _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, beta_phasefit_curve_err, IR_positions_common, IR_positions_common, beta_range, beta_range_err, beta_range_amp, beta_range_amp_err, nominal_model)
+
+    return (summary_calibration_factors_amplitude, summary_calibration_factors_beta)
+
+
+def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, beta_phasefit_curve_err, position_fit, IR_positions_common, beta_range, beta_range_err, beta_range_amp, beta_range_amp_err, nominal_model):
+    name_file_pdf = OUTPUT_FILE_PREFIX_PLOT + str(ip) + "_" + "B" + str(beam) + "_" + str(plane) + ".png"
     file_path_pdf = os.path.join(output_path, name_file_pdf)
     gs = matplotlib.gridspec.GridSpec(1, 1, height_ratios=[1])
     ax = plt.subplot(gs[0])
-    if plane == "X":
-        label_amp = r'$\beta$ from amplitude (x) '
-        label_phase = r'$\beta^{\phi}$'
-        label_phase_fit = r'$\beta$ fit'
-        ax.set_ylabel(r'$\beta_{x}$ [m]', fontsize=19)
-    elif plane == "Y":
-        label_amp = r'$\beta$ from amplitude'
-        label_phase = r'$\beta^{\phi}$'
-        label_phase_fit = r'$\beta$ fit'
-        ax.set_ylabel(r'$\beta_{y}$ [m]', fontsize=19)
+
+    # Add labels to the plot
+    label_phase = r'$\beta^{\phi}$'
+    label_phase_fit = r'$\beta^{fit}$'
+    ax.set_ylabel(r'$\beta_{{{plane}}}$ [m]'.format(plane=plane), fontsize=19)
+
     beta_phasefit_allpositions = func_phase(position_fit, beta_phasefit_curve[0], beta_phasefit_curve[1])
     beta_phasefit_max_allpositions = func_phase(position_fit, beta_phasefit_curve[0] + beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] + beta_phasefit_curve_err[1, 1] ** 0.5)
     beta_phasefit_min_allpositions = func_phase(position_fit, beta_phasefit_curve[0] - beta_phasefit_curve_err[0, 0] ** 0.5, beta_phasefit_curve[1] - beta_phasefit_curve_err[1, 1] ** 0.5)
     beta_phasefit_err_allpositions = (beta_phasefit_max_allpositions - beta_phasefit_min_allpositions) / 2
     xfine = np.linspace(position_fit[0], position_fit[len(position_fit) - 1], 2000)
-    beta_mdl = (func_phase(xfine, beta_phasefit_curve[0], beta_phasefit_curve[1]))
+    beta_fit = (func_phase(xfine, beta_phasefit_curve[0], beta_phasefit_curve[1]))
     plt.grid(False)
     ax.set_xlabel('position [m]')
+    
     ax.errorbar(IR_positions_common, beta_range, yerr=beta_range_err, fmt='o', color=SkyBlue1, markersize=6, markeredgecolor=SkyBlue3, label= label_phase)
-    ax.errorbar(xfine,beta_mdl, fmt='r', color=ScarletRed3, markersize=4, markeredgecolor=ScarletRed3,label=label_phase_fit)
+
+
+    # ------------------
+    # Filter the nominal model and display it
+    filter_s_min = nominal_model['S'] >= position_fit[0]
+    filter_s_max  = nominal_model['S'] <= position_fit[-1]
+    nominal_filtered = (nominal_model[filter_s_min])[filter_s_max]
+
+    # Get the X and Y axes
+    beta = "BET" + plane
+    x_nominal = nominal_filtered.set_index('S').index
+    beta_nominal_model = nominal_filtered.set_index(beta).index
+
+    # Interpolate the model because we only have β values at the BPMs
+    func = interp1d(x_nominal, beta_nominal_model, kind='cubic')
+    beta_model_interp = func(xfine)
+    
+    # And plot
+    plt.plot(xfine, beta_model_interp, label=r'$\beta^{mdl}$')
+    print('Length of data points: {}'.format(len(beta_nominal_model)))
+    # ------------------
+
+    # ------------------
+    # Compute the χ²
+    chi = chisquare(f_obs=beta_fit, f_exp=beta_model_interp)
+    ax.set_title(u'IP{} B{} / χ²: {}'.format(ip, beam, chi[0] / len(xfine)))
+
+    # ------------------
+    ax.errorbar(xfine,beta_fit, fmt='r', color=ScarletRed3, markersize=4, markeredgecolor=ScarletRed3,label=label_phase_fit)
     ax.legend(numpoints=1, ncol=1, loc="best", fontsize=14)
-    matplotlib.pyplot.savefig(file_path_pdf, bbox_inches='tight')
+    matplotlib.pyplot.savefig(file_path_pdf, bbox_inches='tight', dpi=150)
 
 
 def _get_twiss_for_one_of(directory, *file_names):

@@ -5,7 +5,7 @@ scipy>=1.0.0
 GitPython>=2.1.8
 pytest>=3.2.1
 hypothesis>=3.23.0
-htcondor>=8.7.9
+htcondor
 matplotlib>=1.5.3
 scikit-learn>=0.19.1
 six>=1.11.0
