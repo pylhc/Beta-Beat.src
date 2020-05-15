@@ -34,6 +34,7 @@ Usage2::
 """
 
 import os
+import sys
 from utils import iotools
 from utils import logging_tools
 import numpy
@@ -112,7 +113,12 @@ class TfsFileWriter(object):
         self.__outputpath = outputpath
 
     def set_column_width(self, column_width):
-        if not isinstance(column_width, (int, long)) or column_width < TfsFileWriter.MIN_COLUMN_WIDTH:
+        if sys.version_info[0] == 2: # python2 has two different types of ints
+            types = (int, long)
+        else:
+            types = (int,)
+
+        if not isinstance(column_width, types) or column_width < TfsFileWriter.MIN_COLUMN_WIDTH:
             column_width = TfsFileWriter.DEFAULT_COLUMN_WIDTH
         self.__column_width = column_width
 

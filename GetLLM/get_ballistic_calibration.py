@@ -11,10 +11,8 @@ import matplotlib
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-#import tfs_files.tfs_file_writer as tfs_writer
 import utils
 import pandas as pd
-#from Python_Classes4MAD import metaclass
 from scipy.optimize import curve_fit
 from scipy.stats import chisquare
 from optparse import OptionParser
