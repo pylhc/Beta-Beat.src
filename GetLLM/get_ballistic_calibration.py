@@ -78,7 +78,7 @@ def _parse_args():
     return options.input_path, options.input_path_model, options.output_path
 
 
-def main(input_path, input_path_model, output_path) :
+def main(input_path, input_path_model, output_path):
     utils.iotools.create_dirs(output_path)
     (beta_from_phase_x, beta_from_amp_x) = _get_twiss_for_one_of(input_path, "getbetax_free.out", "getbetax.out")
     (beta_from_phase_y, beta_from_amp_y) = _get_twiss_for_one_of(input_path, "getbetay_free.out", "getbetay.out")
@@ -167,24 +167,24 @@ def _compute_calibration_for_ip_and_plane(
                     'BPMYA.4R1.B2']
                 },
             4: {1: [
-                    #'BPMYA.5L4.B1',
+                    'BPMYA.5L4.B1', #
                     'BPMWI.A5L4.B1',
                     'BPMWA.B5L4.B1',
                     'BPMWA.A5L4.B1',
                     'BPMWA.A5R4.B1',
                     'BPMWA.B5R4.B1',
-                    #'BPMYB.5R4.B1',
-                    #'BPMYA.6R4.B1',
+                    'BPMYB.5R4.B1', #
+                    'BPMYA.6R4.B1', #
                     ],
                 2: [ 
-                    #'BPMYB.5L4.B2',
+                    'BPMYB.5L4.B2', #
                     'BPMWA.B5L4.B2',
                     'BPMWA.A5L4.B2',
                     'BPMWA.A5R4.B2',
                     'BPMWA.B5R4.B2',
                     'BPMWI.A5R4.B2',
-                    #'BPMYA.5R4.B2',
-                    #'BPMYB.6R4.B2'
+                    'BPMYA.5R4.B2', #
+                    'BPMYB.6R4.B2' #
                     ]
                 },
             5: {1: ['BPMYA.4L5.B1', 
@@ -280,6 +280,7 @@ def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, bet
 
     # Add labels to the plot
     label_phase = r'$\beta^{\phi}$'
+    label_amp = r'$\beta^{A}$'
     label_phase_fit = r'$\beta^{fit}$'
     ax.set_ylabel(r'$\beta_{{{plane}}}$ [m]'.format(plane=plane), fontsize=19)
 
@@ -290,10 +291,13 @@ def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, bet
     xfine = np.linspace(position_fit[0], position_fit[len(position_fit) - 1], 2000)
     beta_fit = (func_phase(xfine, beta_phasefit_curve[0], beta_phasefit_curve[1]))
     plt.grid(False)
-    ax.set_xlabel('position [m]')
+    ax.set_xlabel('s [m]')
     
+    # measured B phase
     ax.errorbar(IR_positions_common, beta_range, yerr=beta_range_err, fmt='o', color=SkyBlue1, markersize=6, markeredgecolor=SkyBlue3, label= label_phase)
 
+    # measured B amp
+    ax.errorbar(IR_positions_common, beta_range_amp, yerr=beta_range_amp_err, fmt='o', color=Chocolate1, markersize=6, markeredgecolor=SkyBlue3, label= label_amp)
 
     # ------------------
     # Filter the nominal model and display it
@@ -321,7 +325,7 @@ def _plot_calibration_fit(output_path, beam, plane, ip, beta_phasefit_curve, bet
     ax.set_title(u'IP{} B{} / χ²: {}'.format(ip, beam, chi[0] / len(xfine)))
 
     # ------------------
-    ax.errorbar(xfine,beta_fit, fmt='r', color=ScarletRed3, markersize=4, markeredgecolor=ScarletRed3,label=label_phase_fit)
+    ax.errorbar(xfine, beta_fit, fmt='r', color=ScarletRed3, markersize=4, markeredgecolor=ScarletRed3,label=label_phase_fit)
     ax.legend(numpoints=1, ncol=1, loc="best", fontsize=14)
     matplotlib.pyplot.savefig(file_path_pdf, bbox_inches='tight', dpi=150)
 
