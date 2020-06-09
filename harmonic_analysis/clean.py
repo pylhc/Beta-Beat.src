@@ -160,7 +160,7 @@ def svd_clean(bpm_data, clean_input):
         USV[0],
         clean_input.single_svd_bpm_threshold
     )
-    mask = np.max(USV[0].abs(), axis=1) > clean_input.single_svd_bpm_threshold
+    mask = np.max(USV[0].abs(), axis=1) <= clean_input.single_svd_bpm_threshold
     # Reconstruct the SVD-cleaned data
     USV = clean_U, USV[1], USV[2]
     A = USV[0].dot(np.dot(np.diag(USV[1]), USV[2]))
