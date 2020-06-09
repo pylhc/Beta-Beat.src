@@ -135,8 +135,8 @@ def detect_bpms_with_exact_zeros(bpm_data):
 def svd_decomposition(clean_input, bpm_data):
     # Parameters for matrix normalisation
     sqrt_number_of_turns = np.sqrt(bpm_data.shape[1])
-    bpm_data_mean = bpm_data.values.mean()
-    normalized_data = (bpm_data - bpm_data_mean) / sqrt_number_of_turns
+    bpm_data_mean = np.mean(bpm_data.values, axis=1)
+    normalized_data = (bpm_data - bpm_data_mean[:, None]) / sqrt_number_of_turns
     svd_functs = {
         "NUM": _get_singular_value_decomposition,
         "SPA": _get_singular_value_decomposition_sparse,
@@ -160,11 +160,11 @@ def svd_clean(bpm_data, clean_input):
         USV[0],
         clean_input.single_svd_bpm_threshold
     )
-
+    mask = np.max(USV[0].abs(), axis=1) > clean_input.single_svd_bpm_threshold
     # Reconstruct the SVD-cleaned data
     USV = clean_U, USV[1], USV[2]
     A = USV[0].dot(np.dot(np.diag(USV[1]), USV[2]))
-    A = A * sqrt_number_of_turns + bpm_data_mean
+    A = A * sqrt_number_of_turns + bpm_data_mean[mask, None]
 
     # BPM resolution computation
     bpm_res = (A - bpm_data.loc[clean_U.index]).std(axis=1)
