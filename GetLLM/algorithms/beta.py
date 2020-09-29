@@ -359,10 +359,15 @@ def get_tunes_for_beta(files,plane):
     nat_tuneRMS = []
     nat_tuneRMS = []
     dpp = []
+
+    if plane not in ('H', 'V'):
+        raise Exception('Plane needs to be H or V')
+
     for j in range(len(files)):
         tw_x = files[j]
         tw_y = files[j]
         dpp.append(getattr(tw_x, "DPP", 0.0))
+
         if plane == "H":
            tune.append(getattr(tw_x, "Q1", 0.0))
            tuneRMS.append(getattr(tw_x, "Q1RMS", 0.0))
@@ -401,130 +406,180 @@ def calculate_beta_from_amplitude(getllm_d, twiss_d, tune_d, phase_d, beta_d, ma
     action_data = ActionData()
     action_data_ac_dipole = ActionData_ac_dipole()
     print 'Calculating beta from amplitude'
-    #---- H plane
-    if twiss_d.has_zero_dpp_x():
-        all_bpms,all_bpms_names = get_bpm_names(mad_ac,twiss_d.zero_dpp_x)
-        [amp,calibration,calibration_error,psid] = get_amplitude_and_phase.get_amplitude_calibration_and_phase(twiss_d.zero_dpp_x, 'H', getllm_d.beam_direction,all_bpms_names)
-        [action_phase,action_model] = get_action.get_action(mad_ac,beta_d.x_phase,twiss_d.zero_dpp_x,'H',getllm_d.beam_direction,getllm_d.accel)
-        [beta_d.x_amp, beta_d.x_amp_model, rmsbbx] = beta_from_amplitude_cal.get_beta_from_amp_eq(psid,amp,action_phase[0],action_phase[1],action_model[0],action_model[1],calibration,calibration_error,getllm_d.accel)
-        tfs_file = files_dict['getampbetax.out']
-        beta_d.x_ratio = np.average(beta_d.x_amp_model[0])/np.average(beta_d.x_amp[0])
+
+    TFS_COLUMNS = ["NAME",
+                   "S",
+                   "COUNT",
+                   "BET{}",
+                   "BET{}STD",
+                   "BET{}MDL",
+                   "MU{}MDL",
+                   "BET{}PHASE",
+                   "BET{}STDPHASE"]
+
+    # Loop through both planes and check if they need to be analyzed
+    for plane in [('V', 'y', 'Y'), ('H', 'x', 'X')]:
+        if not twiss_d.has_zero_dpp_x():
+            continue
+        if not twiss_d.has_zero_dpp_y():
+            continue
+    
+        print("Processing plane " + plane[2])
+
+        all_bpms,all_bpms_names = get_bpm_names(mad_ac, getattr(twiss_d, 'zero_dpp_' + plane[1]))
+
+        [amp, calibration, calibration_error, psid] = get_amplitude_and_phase.get_amplitude_calibration_and_phase(
+                getattr(twiss_d, 'zero_dpp_' + plane[1]), 
+                plane[0], 
+                getllm_d.beam_direction, 
+                all_bpms_names)
+
+        [action_phase, action_model] = get_action.get_action(
+                mad_ac,
+                getattr(beta_d, plane[1] + '_phase'), 
+                getattr(twiss_d, 'zero_dpp_' + plane[1]), 
+                plane[0],
+                getllm_d.beam_direction,
+                getllm_d.accel)
+        
+        [amp_, amp_model_, rmsbb] = beta_from_amplitude_cal.get_beta_from_amp_eq(
+            psid, 
+            amp, 
+            action_phase[0], 
+            action_phase[1], 
+            action_model[0], 
+            action_model[1], 
+            calibration, 
+            calibration_error, 
+            getllm_d.accel
+        )
+
+        setattr(beta_d, plane[1] + '_amp', amp_)
+        setattr(beta_d, plane[1] + '_amp_model', amp_model_)
+
+        ratio = np.average(getattr(beta_d, plane[1] + '_amp_model')[0]) / np.average(getattr(beta_d, plane[1] + '_amp')[0])
+
+        tfs_file = files_dict['getampbeta' + plane[1] + '.out']
+        setattr(beta_d, plane[1] + '_ratio', ratio)
         tfs_file.add_float_descriptor("Q1", tune_d.q1)
         tfs_file.add_float_descriptor("Q2", tune_d.q2)
-        tfs_file.add_float_descriptor("RMSbetabeat", rmsbbx)
-        tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio)
-        #if getllm_d.accel == "LHCB1" or getllm_d.accel == "LHCB2":
-        #   tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXMODEL", "BETXSTDMODEL"])
-        #    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        #else:
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXPHASE", "BETXSTDPHASE"])
+        tfs_file.add_float_descriptor("RMSbetabeat", rmsbb)
+        tfs_file.add_float_descriptor("RescalingFactor", getattr(beta_d, plane[1] + '_ratio'))
+
+        tfs_file.add_column_names([c.format(plane[2]) for c in TFS_COLUMNS])
         tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
+
         for i in range(0, len(all_bpms)):
             bn1 = str.upper(all_bpms[i][1])
             bns1 = all_bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), beta_d.x_amp[0][i], beta_d.x_amp[1][i], mad_twiss.BETX[mad_ac.indx[bn1]], mad_twiss.MUX[mad_ac.indx[bn1]], beta_d.x_amp_model[0][i], beta_d.x_amp_model[1][i]]
+            list_row_entries = ['"' + bn1 + '"', bns1, 
+                                len(getattr(twiss_d, 'zero_dpp_' + plane[1])), 
+                                getattr(beta_d, plane[1] + '_amp')[0][i], 
+                                getattr(beta_d, plane[1] + '_amp')[1][i], 
+                                getattr(mad_twiss, 'BET' + plane[2])[mad_ac.indx[bn1]],
+                                getattr(mad_twiss, 'MU' + plane[2])[mad_ac.indx[bn1]],
+                                getattr(beta_d, plane[1] + '_amp_model')[0][i],
+                                getattr(beta_d, plane[1] + '_amp_model')[1][i]
+                                ]
             tfs_file.add_table_row(list_row_entries)
 
         #-- ac to free amp beta
         if getllm_d.with_ac_calc:
             #-- from eq
-            [tune_values_list] = get_tunes_for_beta(twiss_d.zero_dpp_x,'H')
+            [tune_values_list] = get_tunes_for_beta(getattr(twiss_d, 'zero_dpp_' + plane[1]), plane[0])
+
             try:
-                [betaxf, betaxf_model,rmsbbx] = beta_free_from_amplitude_cal.get_beta_from_amp_eq(mad_ac,psid,amp,action_phase[0],action_phase[1],action_model[0],action_model[1],calibration,calibration_error,phase_d.acphasex_ac2bpmac,tune_values_list,getllm_d.beam_direction,getllm_d.lhc_phase,all_bpms_names,"H")
-                beta_d.x_ratio_f = np.average(betaxf_model[0])/np.average(betaxf[0])
-                tfs_file = files_dict['getampbetax_free.out']
+                [betaf, betaf_model, rmsbb] = beta_free_from_amplitude_cal.get_beta_from_amp_eq(
+                    mad_ac, 
+                    psid, 
+                    amp, 
+                    action_phase[0], 
+                    action_phase[1], 
+                    action_model[0], 
+                    action_model[1], 
+                    calibration, 
+                    calibration_error, 
+                    getattr(phase_d, 'acphase' + plane[1] + '_ac2bpmac'),
+                    tune_values_list, 
+                    getllm_d.beam_direction, 
+                    getllm_d.lhc_phase, 
+                    all_bpms_names, 
+                    plane[0],
+                )
+
+                ratio_f = np.average(betaf_model[0]) / np.average(betaf[0])
+                setattr(beta_d, plane[1] + '_ratio_f', ratio_f)
+                tfs_file = files_dict['getampbeta' + plane[1] + '_free.out']
                 tfs_file.add_float_descriptor("Q1", tune_d.q1f)
                 tfs_file.add_float_descriptor("Q2", tune_d.q2f)
                 tfs_file.add_float_descriptor("RMSbetabeat", 0)
-                tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio_f)
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXPHASE", "BETXSTDPHASE"])
+                tfs_file.add_float_descriptor("RescalingFactor", getattr(beta_d, plane[1] + '_ratio_f'))
+
+                tfs_file.add_column_names([c.format(plane[2]) for c in TFS_COLUMNS])
                 tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
                 for i in range(0, len(all_bpms)):
                     bn1 = str.upper(all_bpms[i][1])
                     bns1 = all_bpms[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf[0][i], betaxf[1][i], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]], betaxf_model[0][i], betaxf_model[1][i]]
+                    list_row_entries = ['"' + bn1 + '"', 
+                                        bns1, 
+                                        len(getattr(twiss_d, 'zero_dpp_' + plane[1])), 
+                                        betaf[0][i], 
+                                        betaf[1][i], 
+                                        getattr(mad_twiss, 'BET' + plane[2])[mad_twiss.indx[bn1]],
+                                        getattr(mad_twiss, 'MU' + plane[2])[mad_twiss.indx[bn1]],
+                                        betaf_model[0][i], 
+                                        betaf_model[1][i]
+                                        ]
                     tfs_file.add_table_row(list_row_entries)
 
             except:
                 traceback.print_exc()
+
             #-- from the model
             # Since invJxf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            [betaxf2, rmsbbxf2, bpmsf2] = _get_free_amp_beta(beta_d.x_amp, rmsbbx, all_bpms, action_data_ac_dipole.x_phase, mad_ac, mad_twiss, 'H')[:3]
-            betaxf2_rescale = _get_free_amp_beta(beta_d.x_amp_model, rmsbbx, all_bpms, action_data_ac_dipole.x_phase, mad_ac, mad_twiss, 'H')[0]
-            tfs_file = files_dict['getampbetax_free2.out']
+            [betaf2, rmsbbf2, bpmsf2] = _get_free_amp_beta(
+                getattr(beta_d, plane[1] + '_amp'),
+                rmsbb, 
+                all_bpms,
+                getattr(action_data_ac_dipole, plane[1] + '_phase'), 
+                mad_ac, 
+                mad_twiss, 
+                plane[0])[:3]
+
+            betaf2_rescale = _get_free_amp_beta(
+                getattr(beta_d, plane[1] + '_amp_model'),
+                rmsbb, 
+                all_bpms, 
+                getattr(action_data_ac_dipole, plane[1] + '_phase'),
+                mad_ac, 
+                mad_twiss,
+                plane[0])[0]
+
+            tfs_file = files_dict['getampbeta' + plane[1] + '_free2.out']
             tfs_file.add_float_descriptor("Q1", tune_d.q1f)
             tfs_file.add_float_descriptor("Q2", tune_d.q2f)
-            tfs_file.add_float_descriptor("RMSbetabeat", rmsbbxf2)
-            tfs_file.add_float_descriptor("RescalingFactor", beta_d.x_ratio)
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETX", "BETXSTD", "BETXMDL", "MUXMDL", "BETXPHASE", "BETXSTDPHASE"])
+            tfs_file.add_float_descriptor("RMSbetabeat", rmsbbf2)
+            tfs_file.add_float_descriptor("RescalingFactor", getattr(beta_d, plane[1] + '_ratio'))
+            tfs_file.add_column_names([c.format(plane[2]) for c in TFS_COLUMNS])
             tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0,len(bpmsf2)):
+
+            for i in range(0, len(bpmsf2)):
                 bn1 = str.upper(bpmsf2[i][1])
                 bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_x), betaxf2[i][0], betaxf2[i][1], mad_twiss.BETX[mad_twiss.indx[bn1]], mad_twiss.MUX[mad_twiss.indx[bn1]], betaxf2_rescale[i][0], betaxf2_rescale[i][1]]
-                tfs_file.add_table_row(list_row_entries)  # V plane
+                list_row_entries = ['"' + bn1 + '"', 
+                                    bns1, 
+                                    len(getattr(twiss_d, 'zero_dpp_' + plane[1])), 
+                                    betaf2[i][0],
+                                    betaf2[i][1],
+                                    getattr(mad_twiss, 'BET' + plane[2])[mad_twiss.indx[bn1]], 
+                                    getattr(mad_twiss, 'MU' + plane[2])[mad_twiss.indx[bn1]],
+                                    betaf2_rescale[i][0], 
+                                    betaf2_rescale[i][1]
+                                    ]
+                tfs_file.add_table_row(list_row_entries)  
 
-    if twiss_d.has_zero_dpp_y():
-        all_bpms,all_bpms_names = get_bpm_names(mad_ac,twiss_d.zero_dpp_y)
-        [amp,calibration,calibration_error,psid] = get_amplitude_and_phase.get_amplitude_calibration_and_phase(twiss_d.zero_dpp_y, 'V', getllm_d.beam_direction,all_bpms_names)
-        [action_phase,action_model] = get_action.get_action(mad_ac,beta_d.y_phase,twiss_d.zero_dpp_y,'V',getllm_d.beam_direction,getllm_d.accel)
-        [beta_d.y_amp, beta_d.y_amp_model, rmsbby] = beta_from_amplitude_cal.get_beta_from_amp_eq(psid,amp,action_phase[0],action_phase[1],action_model[0],action_model[1],calibration,calibration_error,getllm_d.accel)
-        tfs_file = files_dict['getampbetay.out']
-        beta_d.y_ratio = np.average(beta_d.y_amp_model[0])/np.average(beta_d.y_amp[0])
-        tfs_file.add_float_descriptor("Q1", tune_d.q1)
-        tfs_file.add_float_descriptor("Q2", tune_d.q2)
-        tfs_file.add_float_descriptor("RMSbetabeat", beta_d.y_ratio)
-        tfs_file.add_float_descriptor("RescalingFactor", beta_d.y_ratio)
-        #if getllm_d.accel == "LHCB1" or getllm_d.accel == "LHCB1":
-        #    tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYWMODEL", "BETYSTDWMODEL"])
-        #    tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        #else:
-        tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYPHASE", "BETYSTDPHASE"])
-        tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-        for i in range(0, len(all_bpms)):
-            bn1 = str.upper(all_bpms[i][1])
-            bns1 = all_bpms[i][0]
-            list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), beta_d.y_amp_model[0][i], beta_d.y_amp_model[1][i], mad_twiss.BETY[mad_ac.indx[bn1]], mad_twiss.MUY[mad_ac.indx[bn1]], beta_d.y_amp[0][i], beta_d.y_amp[1][i]]
-            tfs_file.add_table_row(list_row_entries)
-
-        #-- ac to free amp beta
-        if getllm_d.with_ac_calc:
-            #-- from eq
-            [tune_values_list] = get_tunes_for_beta(twiss_d.zero_dpp_y,'V')
-            try:
-                [betayf, betayf_model,rmsbby] = beta_free_from_amplitude_cal.get_beta_from_amp_eq(mad_ac,psid,amp,action_phase[0],action_phase[1],action_model[0],action_model[1],calibration,calibration_error,phase_d.acphasex_ac2bpmac,tune_values_list,getllm_d.beam_direction,getllm_d.lhc_phase,all_bpms_names,"V")
-                beta_d.y_ratio_f = np.average(betayf_model[0])/np.average(betayf[0])
-                tfs_file = files_dict['getampbetay_free.out']
-                tfs_file.add_float_descriptor("Q1", tune_d.q1f)
-                tfs_file.add_float_descriptor("Q2", tune_d.q2f)
-                tfs_file.add_float_descriptor("RMSbetabeat", 0)
-                tfs_file.add_float_descriptor("RescalingFactor", rmsbby)
-                tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETYPHASE", "BETYSTDPHASE"])
-                tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-                for i in range(0, len(all_bpms)):
-                    bn1 = str.upper(all_bpms[i][1])
-                    bns1 = all_bpms[i][0]
-                    list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf_model[0][i], betayf_model[1][i], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]], betayf[0][i], betayf[1][i]]
-                    tfs_file.add_table_row(list_row_entries)
-            except:
-                #-- from the model
-                traceback.print_exc()
-            # Since invJyf2(return_value[3]) is not used, slice the return value([:3]) (vimaier)
-            [betayf2, rmsbbyf2, bpmsf2] = _get_free_amp_beta(beta_d.y_amp, rmsbby, all_bpms, action_data_ac_dipole.y_phase, mad_ac, mad_twiss, 'V')[:3]
-            betayf2_rescale = _get_free_amp_beta(beta_d.y_amp_model, rmsbby, all_bpms, action_data_ac_dipole.y_phase, mad_ac, mad_twiss, 'V')[0]
-            tfs_file = files_dict['getampbetay_free2.out']
-            tfs_file.add_float_descriptor("Q1", tune_d.q1f)
-            tfs_file.add_float_descriptor("Q2", tune_d.q2f)
-            tfs_file.add_float_descriptor("RMSbetabeat", rmsbbyf2)
-            tfs_file.add_float_descriptor("RescalingFactor", beta_d.y_ratio)
-            tfs_file.add_column_names(["NAME", "S", "COUNT", "BETY", "BETYSTD", "BETYMDL", "MUYMDL", "BETPHASE", "BETYSTDPHASE"])
-            tfs_file.add_column_datatypes(["%s", "%le", "%le", "%le", "%le", "%le", "%le", "%le", "%le"])
-            for i in range(0, len(betayf2[0])):
-                bn1 = str.upper(bpmsf2[i][1])
-                bns1 = bpmsf2[i][0]
-                list_row_entries = ['"' + bn1 + '"', bns1, len(twiss_d.zero_dpp_y), betayf2[i][0], betayf2[i][1], mad_twiss.BETY[mad_twiss.indx[bn1]], mad_twiss.MUY[mad_twiss.indx[bn1]], betayf2_rescale[i][0], betayf2_rescale[i][1]]
-                tfs_file.add_table_row(list_row_entries)
     return beta_d
+
 # END calculate_beta_from_amplitude ----------------------------------------------------------------
 
 
