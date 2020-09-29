@@ -46,7 +46,7 @@ def get_beta_beating_rms(beta_phase,beta_phase_error,beta_model):
 def get_beta_from_amp_eq(Psid,amp,action_phase,action_phase_error,action_model,action_model_error,calibration,calibration_error,accel):
     beta_result_phase_average,beta_result_model_average = get_beta_values(Psid,amp,action_phase,action_phase_error,action_model,action_model_error,calibration,calibration_error)
     beta_beating_average,beta_beating_average_error,beta_beating_rms,beta_beating = get_beta_beating_rms(beta_result_phase_average[0],beta_result_phase_average[1],beta_result_model_average[0])
-    return beta_result_phase_average,beta_result_model_average,beta_beating_average
+    return beta_result_phase_average, beta_result_model_average, beta_beating_average
 
 
 def get_beta_values(Psid,amp,action_phase,action_phase_error,action_model,action_model_error,calibration,calibration_error):
