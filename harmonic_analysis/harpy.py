@@ -105,6 +105,14 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
     tunes = (pandas_dfs["X"]["TUNEX"].mean(),
              pandas_dfs["Y"]["TUNEY"].mean(),
              tunez)
+    nattunes = (pandas_dfs["X"]["NATTUNEX"].mean(),
+                pandas_dfs["Y"]["NATTUNEY"].mean())
+
+    # Log as an error in tune == nattune
+    if tunes[0] == nattunes[0]:
+        LOGGER.error('Tune and nattune for plane X are equal: {}'.format(tunes[0]))
+    if tunes[1] == nattunes[1]:
+        LOGGER.error('Tune and nattune for plane Y are equal: {}'.format(tunes[1]))
 
     n_turns = bpm_matrix_x.shape[1]
     for plane in ("X", "Y"):
@@ -116,6 +124,7 @@ def harpy(harpy_input, bpm_matrix_x, usv_x, bpm_matrix_y, usv_y):
                                               resonances_freqs,
                                               pandas_dfs[plane],
                                               n_turns)
+
         yield pandas_dfs[plane], spectr[plane], bad_bpms_summaries[plane]
 
 

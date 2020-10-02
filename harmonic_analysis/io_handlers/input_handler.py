@@ -3,7 +3,10 @@ import os
 from os.path import abspath, dirname
 import argparse
 from optics_measurements.optics_input import _get_optics_parser, OpticsInput
+import logging
 from model import manager
+
+LOGGER = logging.getLogger(__name__)
 
 
 def parse_args(args=None):
@@ -288,6 +291,13 @@ class HarpyInput(object):
 
     @staticmethod
     def init_from_options(options):
+        def check_tune_overlap(tune, nattune, plane, tolerance):
+            if abs(tune - nattune) < 2 * tolerance:
+                msg = ("Windows for tune and natural tune in plane {} overlap "
+                       "for tolerance {}. This could lead to both tunes being "
+                       "found at the same frequency").format(plane, tolerance)
+                LOGGER.warning(msg)
+
         self = HarpyInput()
         self.tunex = options.tunex
         self.tuney = options.tuney
@@ -301,6 +311,11 @@ class HarpyInput(object):
         self.no_tune_clean = options.no_tune_clean
         self.tune_clean_limit = options.tune_clean_limit
         self.is_free_kick = options.is_free_kick
+
+        # Check there's no overlap for the tune and nattune
+        check_tune_overlap(self.tunex, self.nattunex, 'x', self.tolerance)
+        check_tune_overlap(self.tuney, self.nattuney, 'y', self.tolerance)
+
         return self
 
 
