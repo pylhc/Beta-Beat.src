@@ -8,6 +8,7 @@ if new_path not in sys.path:
     sys.path.append(new_path)
 from tfs_files import tfs_pandas
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
@@ -167,24 +168,24 @@ def _compute_calibration_for_ip_and_plane(
                     'BPMYA.4R1.B2']
                 },
             4: {1: [
-                    'BPMYA.5L4.B1', #
+                    'BPMYA.5L4.B1',
                     'BPMWI.A5L4.B1',
                     'BPMWA.B5L4.B1',
                     'BPMWA.A5L4.B1',
                     'BPMWA.A5R4.B1',
                     'BPMWA.B5R4.B1',
-                    'BPMYB.5R4.B1', #
-                    'BPMYA.6R4.B1', #
+                    'BPMYB.5R4.B1',
+                    'BPMYA.6R4.B1',
                     ],
                 2: [ 
-                    'BPMYB.5L4.B2', #
+                    'BPMYB.5L4.B2',
                     'BPMWA.B5L4.B2',
                     'BPMWA.A5L4.B2',
                     'BPMWA.A5R4.B2',
                     'BPMWA.B5R4.B2',
                     'BPMWI.A5R4.B2',
-                    'BPMYA.5R4.B2', #
-                    'BPMYB.6R4.B2' #
+                    'BPMYA.5R4.B2',
+                    'BPMYB.6R4.B2'
                     ]
                 },
             5: {1: ['BPMYA.4L5.B1', 
