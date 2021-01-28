@@ -545,7 +545,7 @@ class twiss:
             g22 = numpy.sqrt(BETY[j])
             Gb = numpy.reshape(numpy.array([g11, g12, g21, g22]), (2, 2))
             C = matrixmultiply(Ga, matrixmultiply(C, inverse(Gb)))
-            gamma = 1 - determinant(C)
+            gamma = numpy.sqrt(1 - determinant(C))
             self.gamma.append(gamma)
             C = numpy.ravel(C)
             self.C.append(C)
