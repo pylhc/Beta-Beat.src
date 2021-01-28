@@ -1,0 +1,446 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>tune_analysis.kickac_modifiers &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>tune_analysis.kickac_modifiers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tune_analysis.kickac_modifiers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module tune_analysis.kickac_modifiers</span>
+<span class="sd">--------------------------------------</span>
+
+<span class="sd">Functions to add data to or extract data from kick_ac files.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">tune_analysis</span> <span class="kn">import</span> <span class="n">constants</span> <span class="k">as</span> <span class="n">const</span><span class="p">,</span> <span class="n">bbq_tools</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Column Names</span>
+<span class="n">COL_ACTION</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_action_col</span>
+<span class="n">COL_ACTION_ERR</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_action_err_col</span>
+
+<span class="n">COL_MAV</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_mav_col</span>
+<span class="n">COL_MAV_STD</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_mav_std_col</span>
+<span class="n">COL_IN_MAV</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_used_in_mav_col</span>
+
+<span class="n">COL_NATQ</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_natq_col</span>
+<span class="n">COL_NATQ_STD</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_natq_err_col</span>
+<span class="n">COL_NATQ_CORR</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_natq_corr_col</span>
+<span class="n">COL_NATQ_TOTSTD</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_total_natq_std_col</span>
+
+<span class="n">COL_TIME</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_time_col</span>
+<span class="n">COL_BBQ</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_bbq_col</span>
+
+<span class="n">HEADER_CORR_OFFSET</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_odr_header_offset_corr</span>
+<span class="n">HEADER_CORR_SLOPE</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_odr_header_slope_corr</span>
+<span class="n">HEADER_CORR_SLOPE_STD</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_odr_header_slope_std_corr</span>
+
+<span class="n">HEADER_OFFSET</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_odr_header_offset</span>
+<span class="n">HEADER_SLOPE</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_odr_header_slope</span>
+<span class="n">HEADER_SLOPE_STD</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_odr_header_slope_std</span>
+
+<span class="n">PLANES</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_planes</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_get_odr_headers</span><span class="p">(</span><span class="n">corrected</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return Headers needed for ODR. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">corrected</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">HEADER_CORR_SLOPE</span><span class="p">,</span> <span class="n">HEADER_CORR_SLOPE_STD</span><span class="p">,</span> <span class="n">HEADER_CORR_OFFSET</span>
+    <span class="k">return</span> <span class="n">HEADER_SLOPE</span><span class="p">,</span> <span class="n">HEADER_SLOPE_STD</span><span class="p">,</span> <span class="n">HEADER_OFFSET</span>
+
+
+<span class="k">def</span> <span class="nf">_get_ampdet_columns</span><span class="p">(</span><span class="n">corrected</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Get columns needed for amplitude detuning &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">corrected</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">COL_NATQ_CORR</span><span class="p">,</span> <span class="n">COL_NATQ_TOTSTD</span>
+    <span class="k">return</span> <span class="n">COL_NATQ</span><span class="p">,</span> <span class="n">COL_NATQ_STD</span>
+
+
+<span class="k">def</span> <span class="nf">_um_to_m</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Convert from 1/um to 1/m and return result as rounded integer. &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">f</span><span class="o">*</span><span class="mf">1e6</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_get_slope_label</span><span class="p">(</span><span class="n">slope</span><span class="p">,</span> <span class="n">std</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns a well formatted slope label. &quot;&quot;&quot;</span>
+    <span class="n">str_slope</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:&gt; 7d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_um_to_m</span><span class="p">(</span><span class="n">slope</span><span class="p">))</span>
+    <span class="n">str_std</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:&gt;6d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_um_to_m</span><span class="p">(</span><span class="n">std</span><span class="p">))</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> $\pm$ </span><span class="si">{}</span><span class="s1"> m$^{{-1}}$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">str_slope</span><span class="p">,</span> <span class="n">str_std</span><span class="p">)</span>
+
+
+<span class="c1"># Data Addition ################################################################</span>
+
+
+<div class="viewcode-block" id="add_bbq_data"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.kickac_modifiers.add_bbq_data">[docs]</a><span class="k">def</span> <span class="nf">add_bbq_data</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">bbq_series</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Add bbq values from series to kickac dataframe into column.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kickac_df: kickac dataframe</span>
+<span class="sd">                  (needs to contain column &quot;TIME_COL&quot; or has time as index)</span>
+<span class="sd">        bbq_series: series of bbq data with time as index</span>
+<span class="sd">        column: column name to add the data into</span>
+
+<span class="sd">    Returns: modified kickac dataframe</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">time_indx</span> <span class="o">=</span> <span class="n">kickac_df</span><span class="o">.</span><span class="n">index</span>
+    <span class="k">if</span> <span class="n">COL_TIME</span> <span class="ow">in</span> <span class="n">kickac_df</span><span class="p">:</span>
+        <span class="n">time_indx</span> <span class="o">=</span> <span class="n">kickac_df</span><span class="p">[</span><span class="n">COL_TIME</span><span class="p">]</span>
+
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">time_indx</span><span class="p">:</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bbq_series</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">bbq_series</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">)])</span>
+    <span class="n">kickac_df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+    <span class="k">return</span> <span class="n">kickac_df</span></div>
+
+
+<div class="viewcode-block" id="add_moving_average"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.kickac_modifiers.add_moving_average">[docs]</a><span class="k">def</span> <span class="nf">add_moving_average</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">bbq_df</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds the moving average of the bbq data to kickac_df and bbq_df. &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating moving average.&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">PLANES</span><span class="p">:</span>
+        <span class="n">tune</span> <span class="o">=</span> <span class="s2">&quot;tune_</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="n">bbq_mav</span><span class="p">,</span> <span class="n">bbq_std</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">bbq_tools</span><span class="o">.</span><span class="n">get_moving_average</span><span class="p">(</span><span class="n">bbq_df</span><span class="p">[</span><span class="n">COL_BBQ</span><span class="p">(</span><span class="n">plane</span><span class="p">)],</span>
+                                                              <span class="n">length</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;window_length&quot;</span><span class="p">],</span>
+                                                              <span class="n">min_val</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_min&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tune</span><span class="p">)],</span>
+                                                              <span class="n">max_val</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_max&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tune</span><span class="p">)],</span>
+                                                              <span class="n">fine_length</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;fine_window&quot;</span><span class="p">],</span>
+                                                              <span class="n">fine_cut</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;fine_cut&quot;</span><span class="p">],</span>
+                                                              <span class="p">)</span>
+        <span class="n">bbq_df</span><span class="p">[</span><span class="n">COL_MAV</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span> <span class="o">=</span> <span class="n">bbq_mav</span>
+        <span class="n">bbq_df</span><span class="p">[</span><span class="n">COL_MAV_STD</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span> <span class="o">=</span> <span class="n">bbq_std</span>
+        <span class="n">bbq_df</span><span class="p">[</span><span class="n">COL_IN_MAV</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span> <span class="o">=</span> <span class="o">~</span><span class="n">mask</span>
+        <span class="n">kickac_df</span> <span class="o">=</span> <span class="n">add_bbq_data</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">bbq_mav</span><span class="p">,</span> <span class="n">COL_MAV</span><span class="p">(</span><span class="n">plane</span><span class="p">))</span>
+        <span class="n">kickac_df</span> <span class="o">=</span> <span class="n">add_bbq_data</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">bbq_std</span><span class="p">,</span> <span class="n">COL_MAV_STD</span><span class="p">(</span><span class="n">plane</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">kickac_df</span><span class="p">,</span> <span class="n">bbq_df</span></div>
+
+
+<div class="viewcode-block" id="add_corrected_natural_tunes"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.kickac_modifiers.add_corrected_natural_tunes">[docs]</a><span class="k">def</span> <span class="nf">add_corrected_natural_tunes</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds the corrected natural tunes to kickac</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kickac_df: Dataframe containing the data</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Modified kick_ac</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">PLANES</span><span class="p">:</span>
+        <span class="n">kickac_df</span><span class="p">[</span><span class="n">COL_NATQ_CORR</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span> <span class="o">=</span> \
+            <span class="n">kickac_df</span><span class="p">[</span><span class="n">COL_NATQ</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span> <span class="o">-</span> <span class="n">kickac_df</span><span class="p">[</span><span class="n">COL_MAV</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">kickac_df</span></div>
+
+
+<div class="viewcode-block" id="add_odr"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.kickac_modifiers.add_odr">[docs]</a><span class="k">def</span> <span class="nf">add_odr</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">odr_fit</span><span class="p">,</span> <span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">,</span> <span class="n">corrected</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds the odr fit of the (un)corrected data to the header of the kickac.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kickac_df: Dataframe containing the data</span>
+<span class="sd">        odr_fit: odr-fit data (definitions see ``detuning_tools.py``)</span>
+<span class="sd">        action_plane: Plane of the action</span>
+<span class="sd">        tune_plane: Plane of the tune</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Modified kick_ac</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">header_slope</span><span class="p">,</span> <span class="n">header_slope_std</span><span class="p">,</span> <span class="n">header_offset</span> <span class="o">=</span> <span class="n">_get_odr_headers</span><span class="p">(</span><span class="n">corrected</span><span class="p">)</span>
+
+    <span class="n">kickac_df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">header_offset</span><span class="p">(</span><span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">)]</span> <span class="o">=</span> <span class="n">odr_fit</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">kickac_df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">header_slope</span><span class="p">(</span><span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">)]</span> <span class="o">=</span> <span class="n">odr_fit</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">kickac_df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">header_slope_std</span><span class="p">(</span><span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">)]</span> <span class="o">=</span> <span class="n">odr_fit</span><span class="o">.</span><span class="n">sd_beta</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">kickac_df</span></div>
+
+
+<div class="viewcode-block" id="add_total_natq_std"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.kickac_modifiers.add_total_natq_std">[docs]</a><span class="k">def</span> <span class="nf">add_total_natq_std</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Add the total standard deviation of the natural tune to the kickac.</span>
+<span class="sd">    The total standard deviation is here defined as the standard deviation of the measurement</span>
+<span class="sd">    plus the standard deviation of the moving average.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kickac_df: Dataframe containing the data</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Modified kick_ac</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">PLANES</span><span class="p">:</span>
+        <span class="n">kickac_df</span><span class="p">[</span><span class="n">COL_NATQ_TOTSTD</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">[</span><span class="n">COL_NATQ_STD</span><span class="p">(</span><span class="n">plane</span><span class="p">)],</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">[</span><span class="n">COL_MAV_STD</span><span class="p">(</span><span class="n">plane</span><span class="p">)],</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">kickac_df</span></div>
+
+
+<span class="c1"># Data Extraction ##############################################################</span>
+
+
+<div class="viewcode-block" id="get_odr_data"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.kickac_modifiers.get_odr_data">[docs]</a><span class="k">def</span> <span class="nf">get_odr_data</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">,</span> <span class="n">corrected</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extract the data from odr.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kickac_df: Dataframe containing the data</span>
+<span class="sd">        action_plane: Plane of the action</span>
+<span class="sd">        tune_plane: Plane of the tune</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dictionary containing x,y, ylower, yupper, offset and label</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">header_slope</span><span class="p">,</span> <span class="n">header_slope_std</span><span class="p">,</span> <span class="n">header_offset</span> <span class="o">=</span> <span class="n">_get_odr_headers</span><span class="p">(</span><span class="n">corrected</span><span class="p">)</span>
+
+    <span class="n">slope</span> <span class="o">=</span> <span class="n">kickac_df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">header_slope</span><span class="p">(</span><span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">)]</span>
+    <span class="n">slope_std</span> <span class="o">=</span> <span class="n">kickac_df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">header_slope_std</span><span class="p">(</span><span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">)]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">[</span><span class="n">COL_ACTION</span><span class="p">(</span><span class="n">action_plane</span><span class="p">)])</span><span class="o">*</span><span class="mf">1.05</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">slope</span><span class="p">]</span>
+    <span class="n">y_low</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">slope</span> <span class="o">-</span> <span class="n">slope_std</span><span class="p">)]</span>
+    <span class="n">y_upp</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">slope</span> <span class="o">+</span> <span class="n">slope_std</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+        <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
+        <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">_get_slope_label</span><span class="p">(</span><span class="n">slope</span><span class="p">,</span> <span class="n">slope_std</span><span class="p">),</span>
+        <span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="n">kickac_df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">header_offset</span><span class="p">(</span><span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">)],</span>
+        <span class="s2">&quot;ylower&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_low</span><span class="p">),</span>
+        <span class="s2">&quot;yupper&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_upp</span><span class="p">),</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="get_ampdet_data"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.kickac_modifiers.get_ampdet_data">[docs]</a><span class="k">def</span> <span class="nf">get_ampdet_data</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">action_plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">,</span> <span class="n">corrected</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extract the data needed for plotting the (un)corrected amplitude detuning</span>
+<span class="sd">    from the kickac dataframe.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kickac_df: Dataframe containing the data</span>
+<span class="sd">        action_plane: Plane of the action</span>
+<span class="sd">        tune_plane: Plane of the tune</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dictionary containing x,y, x_err and y_err</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">col_natq</span><span class="p">,</span> <span class="n">col_natq_std</span> <span class="o">=</span> <span class="n">_get_ampdet_columns</span><span class="p">(</span><span class="n">corrected</span><span class="p">)</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">COL_ACTION</span><span class="p">(</span><span class="n">action_plane</span><span class="p">),</span>
+               <span class="s2">&quot;xerr&quot;</span><span class="p">:</span> <span class="n">COL_ACTION_ERR</span><span class="p">(</span><span class="n">action_plane</span><span class="p">),</span>
+               <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">col_natq</span><span class="p">(</span><span class="n">tune_plane</span><span class="p">),</span>
+               <span class="s2">&quot;yerr&quot;</span><span class="p">:</span> <span class="n">col_natq_std</span><span class="p">(</span><span class="n">tune_plane</span><span class="p">),</span>
+               <span class="p">}</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">kickac_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="n">columns</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">columns</span><span class="o">.</span><span class="n">keys</span><span class="p">()]]</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">columns</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;Amplitude Detuning data for Q</span><span class="si">{}</span><span class="s2"> and J</span><span class="si">{}</span><span class="s2"> contains NaNs&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tune_plane</span><span class="p">,</span> <span class="n">action_plane</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s1">&#39;series&#39;</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

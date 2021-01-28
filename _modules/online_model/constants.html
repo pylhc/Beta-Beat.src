@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>online_model.constants &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>online_model.constants</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for online_model.constants</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module online_model.constants</span>
+<span class="sd">---------------------------------------</span>
+<span class="sd">Functions to retrieve constants in online model extractor.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pytz</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="get_om_extractor"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_om_extractor">[docs]</a><span class="k">def</span> <span class="nf">get_om_extractor</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; AFS-path to online model extractor &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;afs&quot;</span><span class="p">,</span> <span class="s2">&quot;cern.ch&quot;</span><span class="p">,</span> <span class="s2">&quot;eng&quot;</span><span class="p">,</span> <span class="s2">&quot;lhc_online_model&quot;</span><span class="p">,</span> <span class="s2">&quot;dev&quot;</span><span class="p">,</span> <span class="s2">&quot;bin&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;lhc-model-extractor.sh&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_extractor_output_filename"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_extractor_output_filename">[docs]</a><span class="k">def</span> <span class="nf">get_extractor_output_filename</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Default output filename of extractor &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;modifiers.madx&quot;</span></div>
+
+
+<div class="viewcode-block" id="get_extractor_knobs_filename"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_extractor_knobs_filename">[docs]</a><span class="k">def</span> <span class="nf">get_extractor_knobs_filename</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Default knob filename (output of extractor) &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;knobs.madx&quot;</span></div>
+
+
+<div class="viewcode-block" id="get_extractor_log_filename"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_extractor_log_filename">[docs]</a><span class="k">def</span> <span class="nf">get_extractor_log_filename</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Default log filename (output of extractor) &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;extractor.log&quot;</span></div>
+
+
+<div class="viewcode-block" id="get_default_knob_summary_filename"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_default_knob_summary_filename">[docs]</a><span class="k">def</span> <span class="nf">get_default_knob_summary_filename</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Default knob summary filename (output of extractor) &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;knobs.madxsummary</span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_default_orbit_filename"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_default_orbit_filename">[docs]</a><span class="k">def</span> <span class="nf">get_default_orbit_filename</span><span class="p">(</span><span class="n">beam</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Default orbit filename (output of extractor &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;LHCB</span><span class="si">{:d}</span><span class="s2">.orbit1.tfs&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">beam</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_experiment_timezone"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_experiment_timezone">[docs]</a><span class="k">def</span> <span class="nf">get_experiment_timezone</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Get time zone for measurement data. &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="s2">&quot;Europe/Zurich&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_time_format"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_time_format">[docs]</a><span class="k">def</span> <span class="nf">get_time_format</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Default time format &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S.</span><span class="si">%f</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="get_ktype"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_ktype">[docs]</a><span class="k">def</span> <span class="nf">get_ktype</span><span class="p">(</span><span class="n">ktype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Maps from more understandable names to modelextractor names. &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;k&quot;</span><span class="p">:</span> <span class="s2">&quot;K&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;trim&quot;</span><span class="p">:</span> <span class="s2">&quot;KNOBVALUE&quot;</span><span class="p">,</span>
+    <span class="p">}[</span><span class="n">ktype</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_change_filename_out"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_change_filename_out">[docs]</a><span class="k">def</span> <span class="nf">get_change_filename_out</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Default changeparameters filename &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;changeparameters_fromknobs.madx&quot;</span></div>
+
+
+<div class="viewcode-block" id="get_knob_tfs_filename"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_knob_tfs_filename">[docs]</a><span class="k">def</span> <span class="nf">get_knob_tfs_filename</span><span class="p">(</span><span class="n">knob</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Default changeparameters filename &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">.tfs&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">knob</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="get_overview_filename"><a class="viewcode-back" href="../../online_model/index.html#online_model.constants.get_overview_filename">[docs]</a><span class="k">def</span> <span class="nf">get_overview_filename</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Default changeparameters filename &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;overview.tfs&quot;</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_optics_header</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s2">&quot;OPTICS&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_beamprocess_header</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s2">&quot;BEAMPROCESS&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_trim_header</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s2">&quot;TRIM&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_trimhint_header</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s2">&quot;TRIMHINT&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_time_header</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s2">&quot;UTCTIME&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_knob_header</span><span class="p">():</span>
+    <span class="k">return</span><span class="s2">&quot; KNOB&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_fill_header</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s2">&quot;FILL&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_name_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;NAME&quot;</span>
+    <span class="k">if</span> <span class="n">with_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="k">return</span>
+
+
+<span class="k">def</span> <span class="nf">get_circuit_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;CIRCUIT&quot;</span>
+    <span class="k">if</span> <span class="n">with_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="k">return</span>
+
+
+<span class="k">def</span> <span class="nf">get_value_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;VALUE&quot;</span>
+    <span class="k">if</span> <span class="n">with_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="k">return</span>
+
+
+<span class="k">def</span> <span class="nf">get_delta_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;DELTA&quot;</span>
+    <span class="k">if</span> <span class="n">with_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="k">return</span>
+
+
+<span class="k">def</span> <span class="nf">get_trim_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;TRIM&quot;</span>
+    <span class="k">if</span> <span class="n">with_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="k">return</span>
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

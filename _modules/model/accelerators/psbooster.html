@@ -1,0 +1,540 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>model.accelerators.psbooster &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>model.accelerators.psbooster</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for model.accelerators.psbooster</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">model.accelerators.accelerator</span> <span class="kn">import</span> <span class="n">Accelerator</span><span class="p">,</span><span class="n">Element</span>
+<span class="kn">from</span> <span class="nn">utils.entrypoint</span> <span class="kn">import</span> <span class="n">EntryPoint</span><span class="p">,</span> <span class="n">EntryPointParameters</span><span class="p">,</span> <span class="n">split_arguments</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_pandas</span>
+<span class="kn">from</span> <span class="nn">Python_Classes4MAD.metaclass</span> <span class="kn">import</span> <span class="n">twiss</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">CURRENT_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
+<span class="n">PSB_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CURRENT_DIR</span><span class="p">,</span> <span class="s2">&quot;psbooster&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Psbooster"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.psbooster.Psbooster">[docs]</a><span class="k">class</span> <span class="nc">Psbooster</span><span class="p">(</span><span class="n">Accelerator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Parent Class for Psbooster-Types.</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        Required</span>
+<span class="sd">        ring (int): Ring number.</span>
+<span class="sd">                            **Flags**: [&#39;--ring&#39;]</span>
+<span class="sd">                            </span>
+<span class="sd">        nat_tune_x (float): Natural tune X without integer part.</span>
+<span class="sd">                            **Flags**: [&#39;--nattunex&#39;]</span>
+<span class="sd">        nat_tune_y (float): Natural tune Y without integer part.</span>
+<span class="sd">                            **Flags**: [&#39;--nattuney&#39;]</span>
+
+<span class="sd">        Optional</span>
+<span class="sd">        acd (bool): Activate excitation with ACD.</span>
+<span class="sd">                    **Flags**: [&#39;--acd&#39;]</span>
+<span class="sd">                    **Default**: ``False``</span>
+<span class="sd">        drv_tune_x (float): Driven tune X without integer part.</span>
+<span class="sd">                            **Flags**: [&#39;--drvtunex&#39;]</span>
+<span class="sd">        drv_tune_y (float): Driven tune Y without integer part.</span>
+<span class="sd">                            **Flags**: [&#39;--drvtuney&#39;]</span>
+<span class="sd">        energy (float): Energy in Tev.</span>
+<span class="sd">                        **Flags**: [&#39;--energy&#39;]</span>
+<span class="sd">        fullresponse (bool): If present, fullresponse template willbe filled and put</span>
+<span class="sd">                             in the output directory.</span>
+<span class="sd">                             **Flags**: [&#39;--fullresponse&#39;]</span>
+<span class="sd">                             **Default**: ``False``</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;psbooster&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_class_parameters</span><span class="p">():</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPointParameters</span><span class="p">()</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--ring&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Ring to use.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ring&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">params</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_instance_parameters</span><span class="p">():</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPointParameters</span><span class="p">()</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--nattunex&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Natural tune X without integer part.&quot;</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nat_tune_x&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--nattuney&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Natural tune Y without integer part.&quot;</span><span class="p">,</span>
+            <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nat_tune_y&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--acd&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Activate excitation with ACD.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;acd&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--drvtunex&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Driven tune X without integer part.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;drv_tune_x&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--drvtuney&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Driven tune Y without integer part.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;drv_tune_y&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--energy&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Energy in Tev.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;energy&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--dpp&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Delta p/p to use.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dpp&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--optics&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to the optics file to use (modifiers file).&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;optics&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--fullresponse&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;If present, fullresponse template will&quot;</span> <span class="o">+</span>
+                  <span class="s2">&quot;be filled and put in the output directory.&quot;</span><span class="p">),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;fullresponse&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">params</span>
+
+    <span class="c1"># Entry-Point Wrappers #####################################################</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># for reasons of import-order and class creation, decoration was not possible</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instance_parameters</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># required</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_x</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">nat_tune_x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_y</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">nat_tune_y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acd</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">acd</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">acd</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_x</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">drv_tune_x</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_y</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">drv_tune_y</span>
+
+        <span class="c1"># optional with default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fullresponse</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">fullresponse</span>
+
+        <span class="c1"># optional w/o default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;energy&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dpp</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dpp&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;optics&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Psbooster.init_and_get_unknowns"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.psbooster.Psbooster.init_and_get_unknowns">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">init_and_get_unknowns</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Initializes but also returns unknowns.</span>
+
+<span class="sd">         For the desired philosophy of returning parameters all the time,</span>
+<span class="sd">         try to avoid this function, e.g. parse outside parameters first.</span>
+<span class="sd">         &quot;&quot;&quot;</span>
+        <span class="n">opt</span><span class="p">,</span> <span class="n">rest_args</span> <span class="o">=</span> <span class="n">split_arguments</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_instance_parameters</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">opt</span><span class="p">),</span> <span class="n">rest_args</span></div>
+
+<div class="viewcode-block" id="Psbooster.get_class"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.psbooster.Psbooster.get_class">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns Psbooster class.</span>
+
+<span class="sd">        Keyword Args:</span>
+<span class="sd">            Optional</span>
+<span class="sd">            ring (int): Ring to use.</span>
+<span class="sd">                        **Flags**: [&#39;--ring&#39;]</span>
+<span class="sd">                        **Choices**: [1, 2, 3, 4]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Psbooster class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_class_parameters</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_class</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Psbooster.get_class_and_unknown"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.psbooster.Psbooster.get_class_and_unknown">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_class_and_unknown</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns Psbooster subclass and unkown args .</span>
+
+<span class="sd">        For the desired philosophy of returning parameters all the time,</span>
+<span class="sd">        try to avoid this function, e.g. parse outside parameters first.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_class_parameters</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">opt</span><span class="p">,</span> <span class="n">unknown_opt</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_class</span><span class="p">(</span><span class="n">opt</span><span class="p">),</span> <span class="n">unknown_opt</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">opt</span><span class="p">):</span>
+        <span class="n">new_class</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">ring</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_class</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span>
+                <span class="n">new_class</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;Ring</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">ring</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">new_class</span><span class="p">,),</span>
+                <span class="p">{</span><span class="s2">&quot;get_ring&quot;</span><span class="p">:</span> <span class="nb">classmethod</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">cls</span><span class="p">:</span> <span class="n">opt</span><span class="o">.</span><span class="n">ring</span><span class="p">)}</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No ring info in options&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_class</span>
+
+    <span class="c1"># Public Methods ##########################################################</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_segment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">first_elem</span><span class="p">,</span> <span class="n">last_elem</span><span class="p">,</span> <span class="n">optics_file</span><span class="p">,</span> <span class="n">twiss_file</span><span class="p">):</span>
+        <span class="n">segment_cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;Segment&quot;</span><span class="p">,</span>
+                          <span class="p">(</span><span class="n">_PsboosterSegmentMixin</span><span class="p">,</span><span class="bp">cls</span><span class="p">),</span>
+                          <span class="p">{})</span>
+
+
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;twiss_file is &lt;</span><span class="si">%s</span><span class="s1">&gt;&#39;</span><span class="p">,</span><span class="n">twiss_file</span><span class="p">)</span>
+        <span class="n">tw</span> <span class="o">=</span> <span class="n">twiss</span><span class="p">(</span><span class="n">twiss_file</span><span class="p">)</span>
+        
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;twiss_file has tunes </span><span class="si">%f</span><span class="s1"> </span><span class="si">%f</span><span class="s1"> &#39;</span><span class="p">,</span><span class="n">tw</span><span class="o">.</span><span class="n">Q1</span><span class="p">,</span><span class="n">tw</span><span class="o">.</span><span class="n">Q2</span><span class="p">)</span>
+        <span class="n">ring</span> <span class="o">=</span> <span class="n">_get_ring_from_seqname</span><span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">)</span>
+
+        <span class="c1">#ring = cls.get_ring()</span>
+
+        <span class="n">segment_inst</span> <span class="o">=</span> <span class="n">segment_cls</span><span class="p">()</span>
+        
+
+        <span class="n">bpms_file</span> <span class="o">=</span> <span class="n">_get_file_for_ring</span><span class="p">(</span><span class="n">ring</span><span class="p">)</span>
+        <span class="n">bpms_file_data</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">bpms_file</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+        <span class="n">first_elem_s</span> <span class="o">=</span> <span class="n">bpms_file_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">first_elem</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+        <span class="n">last_elem_s</span> <span class="o">=</span> <span class="n">bpms_file_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">last_elem</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">Element</span><span class="p">(</span><span class="n">first_elem</span><span class="p">,</span> <span class="n">first_elem_s</span><span class="p">)</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">Element</span><span class="p">(</span><span class="n">last_elem</span><span class="p">,</span> <span class="n">last_elem_s</span><span class="p">)</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">optics_file</span> <span class="o">=</span> <span class="n">optics_file</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">fullresponse</span> <span class="o">=</span> <span class="kc">None</span>
+        
+
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">nat_tune_x</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">Q1</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">nat_tune_y</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">Q2</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">ENERGY</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">sequence</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">SEQUENCE</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">ring</span> <span class="o">=</span> <span class="n">ring</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">kind</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="c1"># &#39;&#39; means beta from phase, can be &#39;betaamp&#39;, in the future &#39;betakmod&#39;</span>
+        
+        <span class="k">return</span> <span class="n">segment_inst</span>    
+
+
+<div class="viewcode-block" id="Psbooster.verify_object"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.psbooster.Psbooster.verify_object">[docs]</a>    <span class="k">def</span> <span class="nf">verify_object</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Psbooster.get_nominal_tmpl"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.psbooster.Psbooster.get_nominal_tmpl">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_nominal_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PSB_DIR</span><span class="p">,</span> <span class="s2">&quot;nominal.madx&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_segment_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;segment.madx&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Psbooster.get_iteration_tmpl"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.psbooster.Psbooster.get_iteration_tmpl">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_iteration_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;template.iterate.madx&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_corrtest_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;correction_test.madx&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_psb_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">PSB_DIR</span>
+
+<div class="viewcode-block" id="Psbooster.get_element_types_mask"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.psbooster.Psbooster.get_element_types_mask">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_element_types_mask</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">list_of_elements</span><span class="p">,</span> <span class="n">types</span><span class="p">):</span>
+        <span class="c1"># TODO: Anaaaaaa</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Anaaaaa!&quot;</span><span class="p">)</span>
+        <span class="n">re_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;bpm&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;.*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;magnet&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;.*&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;arc_bpm&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;.*&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">unknown_elements</span> <span class="o">=</span> <span class="p">[</span><span class="n">ty</span> <span class="k">for</span> <span class="n">ty</span> <span class="ow">in</span> <span class="n">types</span> <span class="k">if</span> <span class="n">ty</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">re_dict</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unknown_elements</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unknown element(s): &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">unknown_elements</span><span class="p">)))</span>
+
+        <span class="n">series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">list_of_elements</span><span class="p">)</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">re_dict</span><span class="p">[</span><span class="n">types</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">case</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ty</span> <span class="ow">in</span> <span class="n">types</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">|</span> <span class="n">series</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">re_dict</span><span class="p">[</span><span class="n">ty</span><span class="p">],</span> <span class="n">case</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mask</span><span class="o">.</span><span class="n">values</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CURRENT_DIR</span><span class="p">,</span> <span class="s2">&quot;psbooster&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">_PsboosterSegmentMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">=</span> <span class="kc">None</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">_end</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+    <span class="c1"># Private Methods ##########################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_get_file_for_ring</span><span class="p">(</span><span class="n">ring</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PSB_DIR</span><span class="p">,</span> <span class="s2">&quot;twiss_ring&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ring</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.dat&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_get_ring_from_seqname</span><span class="p">(</span><span class="n">seq</span><span class="p">):</span>
+    <span class="n">ring</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">if</span> <span class="p">(</span><span class="n">seq</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;PSB1&quot;</span><span class="p">):</span>
+        <span class="n">ring</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">seq</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;PSB2&quot;</span><span class="p">):</span>
+        <span class="n">ring</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">seq</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;PSB3&quot;</span><span class="p">):</span>
+        <span class="n">ring</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">seq</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;PSB4&quot;</span><span class="p">):</span>
+        <span class="n">ring</span> <span class="o">=</span> <span class="mi">4</span>
+    
+    <span class="k">if</span> <span class="p">(</span><span class="n">ring</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Sequence name is none of the expected ones (PSB1,PSB2,PSB3,PSB4)&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ring</span>
+
+
+<span class="c1"># Script Mode ##################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">EnvironmentError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2"> is not supposed to run as main.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

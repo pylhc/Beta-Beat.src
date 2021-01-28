@@ -1,0 +1,786 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Correction &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="GetLLM" href="../GetLLM/index.html" />
+    <link rel="prev" title="Main Entrypoints" href="../entrypoints/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Correction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#entry-points-correction">Entry Points Correction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.correct">Module correction.correct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.correct_ChromCoup">Module correction.correct_ChromCoup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.correct_coupleDy">Module correction.correct_coupleDy</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#helpers-correction">Helpers Correction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.GenMatrix">Module correction.GenMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.GenMatrix_chromcouple">Module correction.GenMatrix_chromcouple</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.GenMatrix_coupleDy">Module correction.GenMatrix_coupleDy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.getdiff">Module correction.getdiff</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#helpers-response-creation">Helpers Response Creation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.fullresponse.response_madx">Module correction.fullresponse.response_madx</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.fullresponse.response_twiss">Module correction.fullresponse.response_twiss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-correction.fullresponse.generateFullResponse_parallel">Module correction.fullresponse.generateFullResponse_parallel</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Correction</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/correction/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="correction">
+<h1>Correction<a class="headerlink" href="#correction" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="entry-points-correction">
+<h2>Entry Points Correction<a class="headerlink" href="#entry-points-correction" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-correction.correct">
+<span id="module-correction-correct"></span><h3>Module correction.correct<a class="headerlink" href="#module-correction.correct" title="Permalink to this headline">¶</a></h3>
+<p>Created on ??</p>
+<p>Single beam correction of phase, beta and horizontal dispersion.
+TODO: get better description (vimaier)</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">correct_coupleDy</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">accel</span><span class="o">=</span><span class="n">LHCB1</span>
+                            <span class="o">--</span><span class="n">Variables</span><span class="o">=</span><span class="n">Q</span>
+                            <span class="o">--</span><span class="n">ncorr</span><span class="o">=</span><span class="mi">5</span>
+                            <span class="o">--</span><span class="n">rpath</span><span class="o">=</span><span class="n">C</span><span class="p">:</span>\<span class="n">eclipse_4_2_2_python</span>\<span class="n">workspace</span>\<span class="n">Beta</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span>
+                            <span class="o">--</span><span class="n">modelcut</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span><span class="mf">0.3</span>
+                            <span class="o">--</span><span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span>
+                            <span class="o">--</span><span class="n">MinStr</span><span class="o">=</span><span class="mf">0.00003</span>
+                            <span class="o">--</span><span class="n">path</span><span class="o">=</span><span class="n">C</span><span class="p">:</span>\<span class="n">eclipse_4_2_2_python</span>\<span class="n">workspace</span>\<span class="n">Beta</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span>\<span class="n">Correction</span>\<span class="n">test</span>\<span class="n">correct</span>\<span class="n">data</span>\<span class="nb">input</span>\<span class="n">run1</span>
+                            <span class="o">--</span><span class="n">errorcut</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span>
+                            <span class="o">--</span><span class="n">cut</span><span class="o">=</span><span class="mf">0.01</span>
+                            <span class="o">--</span><span class="n">tech</span><span class="o">=</span><span class="n">SVD</span>
+                            <span class="o">--</span><span class="n">opt</span><span class="o">=</span><span class="n">C</span><span class="p">:</span>\<span class="n">eclipse_4_2_2_python</span>\<span class="n">workspace</span>\<span class="n">Beta</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span>\<span class="n">Correction</span>\<span class="n">test</span>\<span class="n">correct</span>\<span class="n">data</span>\<span class="nb">input</span>
+</pre></div>
+</div>
+<p>Hint: JustOneBeam is not used in the script except of a print. The reason is possibly the author wanted to have the same set
+of arguments for all correction scripts due to GUI compatibility(vimaier).</p>
+<p>Options:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+<span class="o">-</span><span class="n">a</span> <span class="n">ACCEL</span><span class="p">,</span> <span class="o">--</span><span class="n">accel</span><span class="o">=</span><span class="n">ACCEL</span>
+                      <span class="n">What</span> <span class="n">accelerator</span><span class="p">:</span> <span class="n">LHCB1</span> <span class="n">LHCB2</span> <span class="n">SPS</span> <span class="n">RHIC</span>
+<span class="o">-</span><span class="n">t</span> <span class="n">TECH</span><span class="p">,</span> <span class="o">--</span><span class="n">tech</span><span class="o">=</span><span class="n">TECH</span>  <span class="n">Which</span> <span class="n">algorithm</span><span class="p">:</span> <span class="n">SVD</span> <span class="n">MICADO</span>
+<span class="o">-</span><span class="n">n</span> <span class="n">NCORR</span><span class="p">,</span> <span class="o">--</span><span class="n">ncorr</span><span class="o">=</span><span class="n">NCORR</span>
+                      <span class="n">Number</span> <span class="n">of</span> <span class="n">Correctors</span> <span class="k">for</span> <span class="n">MICADO</span>
+<span class="o">-</span><span class="n">p</span> <span class="n">PATH</span><span class="p">,</span> <span class="o">--</span><span class="n">path</span><span class="o">=</span><span class="n">PATH</span>  <span class="n">Path</span> <span class="n">to</span> <span class="n">experimental</span> <span class="n">files</span>
+<span class="o">-</span><span class="n">c</span> <span class="n">CUT</span><span class="p">,</span> <span class="o">--</span><span class="n">cut</span><span class="o">=</span><span class="n">CUT</span>     <span class="n">Singular</span> <span class="n">value</span> <span class="n">cut</span> <span class="k">for</span> <span class="n">the</span> <span class="n">generalized</span> <span class="n">inverse</span>
+<span class="o">-</span><span class="n">e</span> <span class="n">ERRORCUT</span><span class="p">,</span> <span class="o">--</span><span class="n">errorcut</span><span class="o">=</span><span class="n">ERRORCUT</span>
+                      <span class="n">Maximum</span> <span class="n">error</span> <span class="n">allowed</span> <span class="k">for</span> <span class="n">the</span> <span class="n">phase</span> <span class="ow">and</span> <span class="n">dispersion</span>
+                      <span class="n">measurements</span><span class="p">,</span> <span class="n">separated</span> <span class="n">by</span> <span class="n">commas</span><span class="p">;</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="o">-</span><span class="n">e</span> <span class="mf">0.013</span><span class="p">,</span><span class="mf">0.2</span>
+<span class="o">-</span><span class="n">m</span> <span class="n">MODELCUT</span><span class="p">,</span> <span class="o">--</span><span class="n">modelcut</span><span class="o">=</span><span class="n">MODELCUT</span>
+                      <span class="n">Maximum</span> <span class="n">difference</span> <span class="n">allowed</span> <span class="n">between</span> <span class="n">model</span> <span class="ow">and</span> <span class="n">measured</span>
+                      <span class="n">phase</span> <span class="ow">and</span> <span class="n">dispersion</span><span class="p">,</span> <span class="n">separated</span> <span class="n">by</span> <span class="n">commas</span><span class="p">;</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="o">-</span><span class="n">e</span>
+                      <span class="mf">0.02</span><span class="p">,</span><span class="mf">0.2</span>
+<span class="o">-</span><span class="n">r</span> <span class="n">RPATH</span><span class="p">,</span> <span class="o">--</span><span class="n">rpath</span><span class="o">=</span><span class="n">RPATH</span>
+                      <span class="n">Path</span> <span class="n">to</span> <span class="n">BetaBeat</span> <span class="n">repository</span> <span class="p">(</span><span class="n">default</span> <span class="ow">is</span> <span class="n">the</span> <span class="n">afs</span>
+                      <span class="n">repository</span><span class="p">)</span>
+<span class="o">-</span><span class="n">o</span> <span class="n">opt</span><span class="p">,</span> <span class="o">--</span><span class="n">optics</span><span class="o">=</span><span class="n">opt</span>  <span class="n">optics</span>
+<span class="o">-</span><span class="n">s</span> <span class="n">MinStr</span><span class="p">,</span> <span class="o">--</span><span class="n">MinStr</span><span class="o">=</span><span class="n">MinStr</span>
+                      <span class="n">Minimum</span> <span class="n">strength</span> <span class="n">of</span> <span class="n">correctors</span> <span class="ow">in</span> <span class="n">SVD</span> <span class="n">correction</span>
+                      <span class="p">(</span><span class="n">default</span> <span class="ow">is</span> <span class="mf">1e-6</span><span class="p">)</span>
+<span class="o">-</span><span class="n">v</span> <span class="n">var</span><span class="p">,</span> <span class="o">--</span><span class="n">Variables</span><span class="o">=</span><span class="n">var</span>
+                      <span class="n">variables</span> <span class="n">split</span> <span class="k">with</span> <span class="p">,</span>
+<span class="o">-</span><span class="n">j</span> <span class="n">JUSTONEBEAM</span><span class="p">,</span> <span class="o">--</span><span class="n">JustOneBeam</span><span class="o">=</span><span class="n">JUSTONEBEAM</span>
+                      <span class="mi">0</span> <span class="n">Just</span> <span class="n">quads</span> <span class="kn">from</span> <span class="nn">one</span> <span class="n">beam</span> <span class="n">are</span> <span class="n">used</span><span class="p">,</span> <span class="mi">1</span> <span class="nb">all</span> <span class="n">quads</span>
+                      <span class="p">(</span><span class="n">default</span> <span class="ow">is</span> <span class="mi">0</span><span class="p">)</span>
+<span class="o">-</span><span class="n">w</span> <span class="n">WGT</span><span class="p">,</span> <span class="o">--</span><span class="n">weight</span><span class="o">=</span><span class="n">WGT</span>  <span class="n">Weighting</span> <span class="n">factor</span> <span class="p">(</span><span class="n">phasex</span><span class="p">,</span> <span class="n">phasey</span><span class="p">,</span> <span class="n">betax</span><span class="p">,</span> <span class="n">betay</span><span class="p">,</span>
+                      <span class="n">dispersion</span><span class="p">,</span> <span class="n">tunes</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-correction.correct_ChromCoup">
+<span id="module-correction-correct-chromcoup"></span><h3>Module correction.correct_ChromCoup<a class="headerlink" href="#module-correction.correct_ChromCoup" title="Permalink to this headline">¶</a></h3>
+<p>Created on ??</p>
+<p>Single beam correction of chromatic coupling using skew sextupoles at dispersive locations.
+TODO: get better description (vimaier)</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">correct_ChromCoup</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">accel</span><span class="o">=</span><span class="n">LHCB1</span>
+                            <span class="o">--</span><span class="n">Variables</span><span class="o">=</span><span class="n">kss</span>
+                            <span class="o">--</span><span class="n">rpath</span><span class="o">=/</span><span class="n">afs</span><span class="o">/</span><span class="n">cern</span><span class="o">.</span><span class="n">ch</span><span class="o">/</span><span class="n">work</span><span class="o">/</span><span class="n">v</span><span class="o">/</span><span class="n">vimaier</span><span class="o">/</span><span class="n">public</span><span class="o">/</span><span class="n">Beta</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span>
+                            <span class="o">--</span><span class="n">modelcut</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span>
+                            <span class="o">--</span><span class="n">MinStr</span><span class="o">=</span><span class="mf">0.000001</span>
+                            <span class="o">--</span><span class="n">path</span><span class="o">=/</span><span class="n">afs</span><span class="o">/</span><span class="n">cern</span><span class="o">.</span><span class="n">ch</span><span class="o">/</span><span class="n">work</span><span class="o">/</span><span class="n">v</span><span class="o">/</span><span class="n">vimaier</span><span class="o">/</span><span class="n">public</span><span class="o">/</span><span class="n">Beta</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span><span class="o">/</span><span class="n">Correction</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">chrom_coup</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="nb">input</span><span class="o">/</span><span class="n">run2</span>
+                            <span class="o">--</span><span class="n">errorcut</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span><span class="mi">20</span>
+                            <span class="o">--</span><span class="n">Dy</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
+                            <span class="o">--</span><span class="n">cut</span><span class="o">=</span><span class="mf">0.01</span>
+                            <span class="o">--</span><span class="n">opt</span><span class="o">=/</span><span class="n">afs</span><span class="o">/</span><span class="n">cern</span><span class="o">.</span><span class="n">ch</span><span class="o">/</span><span class="n">work</span><span class="o">/</span><span class="n">v</span><span class="o">/</span><span class="n">vimaier</span><span class="o">/</span><span class="n">public</span><span class="o">/</span><span class="n">Beta</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span><span class="o">/</span><span class="n">Correction</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">chrom_coup</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="nb">input</span><span class="o">/</span><span class="n">run2</span>
+</pre></div>
+</div>
+<p>Hint: The latter parts of modelcut and errorcut and MinStr are not used in the script except of a print. The reason is
+possibly the author wanted to have the same set of arguments for all correction scripts due to GUI compatibility(vimaier).</p>
+<p>Options:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">a</span> <span class="n">ACCEL</span><span class="p">,</span> <span class="o">--</span><span class="n">accelerator</span><span class="o">=</span><span class="n">ACCEL</span>
+                      <span class="n">What</span> <span class="n">accelerator</span><span class="p">:</span> <span class="n">LHCB1</span> <span class="n">LHCB2</span>
+<span class="o">-</span><span class="n">p</span> <span class="n">PATH</span><span class="p">,</span> <span class="o">--</span><span class="n">path</span><span class="o">=</span><span class="n">PATH</span>  <span class="n">Path</span> <span class="n">to</span> <span class="n">experimental</span> <span class="n">files</span>
+<span class="o">-</span><span class="n">c</span> <span class="n">CUT</span><span class="p">,</span> <span class="o">--</span><span class="n">cut</span><span class="o">=</span><span class="n">CUT</span>     <span class="n">Singular</span> <span class="n">value</span> <span class="n">cut</span> <span class="k">for</span> <span class="n">the</span> <span class="n">generalised</span> <span class="n">inverse</span>
+<span class="o">-</span><span class="n">e</span> <span class="n">ERRORCUT</span><span class="p">,</span> <span class="o">--</span><span class="n">errorcut</span><span class="o">=</span><span class="n">ERRORCUT</span>
+                      <span class="n">Maximum</span> <span class="n">error</span> <span class="n">allowed</span> <span class="k">for</span> <span class="n">the</span> <span class="n">coupling</span> <span class="n">measurement</span> <span class="ow">and</span>
+                      <span class="n">Dy</span> <span class="n">measurement</span>
+<span class="o">-</span><span class="n">m</span> <span class="n">MODELCUT</span><span class="p">,</span> <span class="o">--</span><span class="n">modelcut</span><span class="o">=</span><span class="n">MODELCUT</span>
+                      <span class="n">Maximum</span> <span class="n">difference</span> <span class="n">allowed</span> <span class="n">between</span> <span class="n">model</span> <span class="ow">and</span> <span class="n">measured</span>
+                      <span class="n">phase</span>
+<span class="o">-</span><span class="n">r</span> <span class="n">RPATH</span><span class="p">,</span> <span class="o">--</span><span class="n">rpath</span><span class="o">=</span><span class="n">RPATH</span>
+                      <span class="n">Path</span> <span class="n">to</span> <span class="n">BetaBeat</span> <span class="n">repository</span> <span class="p">(</span><span class="n">default</span> <span class="ow">is</span> <span class="n">the</span> <span class="n">afs</span>
+                      <span class="n">repository</span><span class="p">)</span>
+<span class="o">-</span><span class="n">s</span> <span class="n">MinStr</span><span class="p">,</span> <span class="o">--</span><span class="n">MinStr</span><span class="o">=</span><span class="n">MinStr</span>
+                      <span class="n">Minimum</span> <span class="n">strength</span> <span class="n">of</span> <span class="n">correctors</span> <span class="ow">in</span> <span class="n">SVD</span> <span class="n">correction</span>
+<span class="o">-</span><span class="n">d</span> <span class="n">Dy</span><span class="p">,</span> <span class="o">--</span><span class="n">Dy</span><span class="o">=</span><span class="n">Dy</span>        <span class="n">weight</span> <span class="n">on</span> <span class="n">corrections</span> <span class="p">(</span><span class="n">f1001</span><span class="o">.</span><span class="n">re</span><span class="p">,</span> <span class="n">f1001</span><span class="o">.</span><span class="n">im</span><span class="p">,</span> <span class="n">f1010</span><span class="o">.</span><span class="n">re</span><span class="p">,</span>
+                      <span class="n">f1010</span><span class="o">.</span><span class="n">im</span><span class="p">,</span> <span class="n">Dy</span><span class="p">)</span>
+<span class="o">-</span><span class="n">o</span> <span class="n">OPT</span><span class="p">,</span> <span class="o">--</span><span class="n">opt</span><span class="o">=</span><span class="n">OPT</span>     <span class="n">To</span> <span class="n">specify</span> <span class="n">the</span> <span class="n">optics</span>
+<span class="o">-</span><span class="n">v</span> <span class="n">var</span><span class="p">,</span> <span class="o">--</span><span class="n">Variables</span><span class="o">=</span><span class="n">var</span>
+                      <span class="n">variables</span> <span class="n">split</span> <span class="k">with</span> <span class="p">,</span> <span class="o">-</span> <span class="k">if</span> <span class="n">coupling_knobs</span> <span class="ow">is</span> <span class="n">given</span><span class="p">,</span>
+                      <span class="n">the</span> <span class="n">modelcut</span> <span class="n">will</span> <span class="n">be</span> <span class="n">calculated</span> <span class="n">automatically</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-correction.correct_coupleDy">
+<span id="module-correction-correct-coupledy"></span><h3>Module correction.correct_coupleDy<a class="headerlink" href="#module-correction.correct_coupleDy" title="Permalink to this headline">¶</a></h3>
+<p>Created on ??</p>
+<p>Single beam correction of coupling resonances and vertical dispersion.
+TODO: get better description (vimaier)</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">correct_coupleDy</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">accel</span><span class="o">=</span><span class="n">LHCB1</span>
+                            <span class="o">--</span><span class="n">path</span><span class="o">=</span><span class="n">C</span><span class="p">:</span>\<span class="n">MyTemp</span>\<span class="n">correct_coupleDy_out</span>\
+                            <span class="o">--</span><span class="n">cut</span><span class="o">=</span><span class="mf">0.01</span>
+                            <span class="o">--</span><span class="n">errorcut</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span><span class="mf">0.02</span>
+                            <span class="o">--</span><span class="n">modelcut</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.01</span>
+                            <span class="o">--</span><span class="n">rpath</span><span class="o">=</span><span class="n">H</span><span class="p">:</span>\<span class="n">work</span><span class="o">/</span><span class="n">v</span><span class="o">/</span><span class="n">vimaier</span><span class="o">/</span><span class="n">public</span><span class="o">/</span><span class="n">Beta</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span><span class="o">/</span>
+                            <span class="o">--</span><span class="n">MinStr</span><span class="o">=</span><span class="mf">0.000001</span>
+                            <span class="o">--</span><span class="n">Dy</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span>
+                            <span class="o">--</span><span class="n">opt</span><span class="o">=</span><span class="n">C</span><span class="p">:</span>\<span class="n">MyTemp</span>\<span class="n">correct_coupleDy_out</span>\
+                            <span class="o">--</span><span class="n">Variables</span><span class="o">=</span><span class="n">coupling_knobs</span>
+</pre></div>
+</div>
+<p>Hint: MinStr is not used in the script except of a print. The reason is possibly the author wanted to have the same set
+of arguments for all correction scripts due to GUI compatibility(vimaier).</p>
+<p>Options:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">a</span> <span class="n">ACCEL</span><span class="p">,</span> <span class="o">--</span><span class="n">accelerator</span><span class="o">=</span><span class="n">ACCEL</span>
+                      <span class="n">What</span> <span class="n">accelerator</span><span class="p">:</span> <span class="n">LHCB1</span> <span class="n">LHCB2</span> <span class="n">SPS</span> <span class="n">RHIC</span>
+<span class="o">-</span><span class="n">p</span> <span class="n">PATH</span><span class="p">,</span> <span class="o">--</span><span class="n">path</span><span class="o">=</span><span class="n">PATH</span>  <span class="n">Path</span> <span class="n">to</span> <span class="n">experimental</span> <span class="n">files</span>
+<span class="o">-</span><span class="n">c</span> <span class="n">CUT</span><span class="p">,</span> <span class="o">--</span><span class="n">cut</span><span class="o">=</span><span class="n">CUT</span>     <span class="n">Singular</span> <span class="n">value</span> <span class="n">cut</span> <span class="k">for</span> <span class="n">the</span> <span class="n">generalised</span> <span class="n">inverse</span>
+<span class="o">-</span><span class="n">e</span> <span class="n">ERRORCUT</span><span class="p">,</span> <span class="o">--</span><span class="n">errorcut</span><span class="o">=</span><span class="n">ERRORCUT</span>
+                      <span class="n">Maximum</span> <span class="n">error</span> <span class="n">allowed</span> <span class="k">for</span> <span class="n">the</span> <span class="n">coupling</span> <span class="n">measurement</span> <span class="ow">and</span>
+                      <span class="n">Dy</span> <span class="n">measurement</span>
+<span class="o">-</span><span class="n">m</span> <span class="n">MODELCUT</span><span class="p">,</span> <span class="o">--</span><span class="n">modelcut</span><span class="o">=</span><span class="n">MODELCUT</span>
+                      <span class="n">Maximum</span> <span class="n">difference</span> <span class="n">allowed</span> <span class="n">between</span> <span class="n">model</span> <span class="ow">and</span> <span class="n">measured</span>
+                      <span class="n">phase</span>
+<span class="o">-</span><span class="n">r</span> <span class="n">RPATH</span><span class="p">,</span> <span class="o">--</span><span class="n">rpath</span><span class="o">=</span><span class="n">RPATH</span>
+                      <span class="n">Path</span> <span class="n">to</span> <span class="n">BetaBeat</span> <span class="n">repository</span> <span class="p">(</span><span class="n">default</span> <span class="ow">is</span> <span class="n">the</span> <span class="n">afs</span>
+                      <span class="n">repository</span><span class="p">)</span>
+<span class="o">-</span><span class="n">s</span> <span class="n">MinStr</span><span class="p">,</span> <span class="o">--</span><span class="n">MinStr</span><span class="o">=</span><span class="n">MinStr</span>
+                      <span class="n">Minimum</span> <span class="n">strength</span> <span class="n">of</span> <span class="n">correctors</span> <span class="ow">in</span> <span class="n">SVD</span> <span class="n">correction</span>
+<span class="o">-</span><span class="n">d</span> <span class="n">Dy</span><span class="p">,</span> <span class="o">--</span><span class="n">Dy</span><span class="o">=</span><span class="n">Dy</span>        <span class="n">weight</span> <span class="n">on</span> <span class="n">corrections</span> <span class="p">(</span><span class="n">f1001</span><span class="o">.</span><span class="n">re</span><span class="p">,</span> <span class="n">f1001</span><span class="o">.</span><span class="n">im</span><span class="p">,</span> <span class="n">f1010</span><span class="o">.</span><span class="n">re</span><span class="p">,</span>
+                      <span class="n">f1010</span><span class="o">.</span><span class="n">im</span><span class="p">,</span> <span class="n">Dy</span><span class="p">)</span>
+<span class="o">-</span><span class="n">o</span> <span class="n">OPT</span><span class="p">,</span> <span class="o">--</span><span class="n">opt</span><span class="o">=</span><span class="n">OPT</span>     <span class="n">To</span> <span class="n">specify</span> <span class="n">the</span> <span class="n">optics</span>
+<span class="o">-</span><span class="n">v</span> <span class="n">var</span><span class="p">,</span> <span class="o">--</span><span class="n">Variables</span><span class="o">=</span><span class="n">var</span>
+                      <span class="n">variables</span> <span class="n">split</span> <span class="k">with</span> <span class="p">,</span> <span class="o">-</span> <span class="k">if</span> <span class="n">coupling_knobs</span> <span class="ow">is</span> <span class="n">given</span><span class="p">,</span>
+                      <span class="n">the</span> <span class="n">modelcut</span> <span class="n">will</span> <span class="n">be</span> <span class="n">calculated</span> <span class="n">automatically</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="helpers-correction">
+<h2>Helpers Correction<a class="headerlink" href="#helpers-correction" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-correction.GenMatrix">
+<span id="module-correction-genmatrix"></span><h3>Module correction.GenMatrix<a class="headerlink" href="#module-correction.GenMatrix" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="module-correction.GenMatrix_chromcouple">
+<span id="module-correction-genmatrix-chromcouple"></span><h3>Module correction.GenMatrix_chromcouple<a class="headerlink" href="#module-correction.GenMatrix_chromcouple" title="Permalink to this headline">¶</a></h3>
+<p>Created on ??</p>
+<p>TODO: description</p>
+<dl class="function">
+<dt id="correction.GenMatrix_chromcouple.make_list">
+<code class="descclassname">correction.GenMatrix_chromcouple.</code><code class="descname">make_list</code><span class="sig-paren">(</span><em>x</em>, <em>m</em>, <em>modelcut</em>, <em>errorcut</em>, <em>CorD</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/GenMatrix_chromcouple.html#make_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.GenMatrix_chromcouple.make_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes list in coupling correction</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-correction.GenMatrix_coupleDy">
+<span id="module-correction-genmatrix-coupledy"></span><h3>Module correction.GenMatrix_coupleDy<a class="headerlink" href="#module-correction.GenMatrix_coupleDy" title="Permalink to this headline">¶</a></h3>
+<p>Created on ??</p>
+<p>TODO: description</p>
+<dl class="function">
+<dt id="correction.GenMatrix_coupleDy.make_list">
+<code class="descclassname">correction.GenMatrix_coupleDy.</code><code class="descname">make_list</code><span class="sig-paren">(</span><em>x</em>, <em>m</em>, <em>modelcut</em>, <em>errorcut</em>, <em>CorD</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/GenMatrix_coupleDy.html#make_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.GenMatrix_coupleDy.make_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes list in coupling correction</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-correction.getdiff">
+<span id="module-correction-getdiff"></span><h3>Module correction.getdiff<a class="headerlink" href="#module-correction.getdiff" title="Permalink to this headline">¶</a></h3>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">module:</th><td class="field-body">correction.getdiff</td>
+</tr>
+</tbody>
+</table>
+<p>Created on 24/02/18</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Lukas Malina</td>
+</tr>
+</tbody>
+</table>
+<p>Calculates the difference between GetLLM output and correction plugged in the model.
+Provide as first argument the path to the output files of GetLLM.</p>
+<dl class="docutils">
+<dt>model inputs:</dt>
+<dd>twiss_cor.dat and twiss_no.dat</dd>
+<dt>outputs in measurement directory:</dt>
+<dd>phasex.out and phasey.out
+bbx.out and bby.out
+dx.out, dy.out and ndx.out
+couple.out and chromatic_coupling.out</dd>
+<dt>TODOs and Notes:</dt>
+<dd><dl class="first docutils">
+<dt>OpticsMeasurement: possibly extend and use with measurement filters from global correction</dt>
+<dd>to be used in sbs, new corrections, getdiff, plot_export</dd>
+</dl>
+<p class="last">Expected values after correction to be put in, little tricky with phase column names
+No coupling in twiss_no.dat? not used</p>
+</dd>
+<dt>Some hints:</dt>
+<dd><p class="first">MEA, MODEL, EXPECT are usually the names for the differences between the values and the model.
+Apart from phase, where these differences are called DIFF and DIFF_MDL (EXPECT is still the
+same) while MEA and MODEL are the actual measurement and model values respectively.</p>
+<p class="last">Don’t look into the coupling and chromatic coupling namings.</p>
+</dd>
+</dl>
+<dl class="function">
+<dt id="correction.getdiff.getdiff">
+<code class="descclassname">correction.getdiff.</code><code class="descname">getdiff</code><span class="sig-paren">(</span><em>meas_path=None</em>, <em>beta_file_name='getbeta'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/getdiff.html#getdiff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.getdiff.getdiff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the differences between measurement, corrected and uncorrected model.</p>
+<p>After running madx and creating the model with (twiss_cor) and without (twiss_no)
+corrections, run this functions to get tfs-files with the differences between measurements
+and models.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>meas_path</strong> (<em>str</em>) -- Path to the measurement folder.</li>
+<li><strong>to contain twiss_cor.dat and twiss_no.dat.</strong> (<em>Needs</em>) -- </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="helpers-response-creation">
+<h2>Helpers Response Creation<a class="headerlink" href="#helpers-response-creation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-correction.fullresponse.response_madx">
+<span id="module-correction-fullresponse-response-madx"></span><h3>Module correction.fullresponse.response_madx<a class="headerlink" href="#module-correction.fullresponse.response_madx" title="Permalink to this headline">¶</a></h3>
+<p>Provides a function to create the responses of beta, phase, dispersion, tune and coupling
+via iterative madx calls.</p>
+<p>The variables under investigation need to be provided as a list (which can be gotten from
+accelerator class).</p>
+<p>For now, the response matrix is stored in a ‘pickled’ file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Lukas Malina, Joschua Dilly, Jaime (…) Coello de Portugal</td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="correction.fullresponse.response_madx.generate_fullresponse">
+<code class="descclassname">correction.fullresponse.response_madx.</code><code class="descname">generate_fullresponse</code><span class="sig-paren">(</span><em>accel_inst</em>, <em>variable_categories</em>, <em>delta_k=2e-05</em>, <em>num_proc=2</em>, <em>temp_dir=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_madx.html#generate_fullresponse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_madx.generate_fullresponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a dictionary containing response matrices for
+beta, phase, dispersion, tune and coupling and saves it to a file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>accel_inst</strong> -- Accelerator Instance.</li>
+<li><strong>variable_categories</strong> (<em>list</em>) -- Categories of the variables/knobs to use. (from .json)</li>
+<li><strong>delta_k</strong> (<em>float</em>) -- delta K1L to be applied to quads for sensitivity matrix</li>
+<li><strong>num_proc</strong> (<em>int</em>) -- Number of processes to use in parallel.</li>
+<li><strong>temp_dir</strong> (<em>str</em>) -- temporary directory. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, uses folder of original_jobfile.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-correction.fullresponse.response_twiss">
+<span id="module-correction-fullresponse-response-twiss"></span><h3>Module correction.fullresponse.response_twiss<a class="headerlink" href="#module-correction.fullresponse.response_twiss" title="Permalink to this headline">¶</a></h3>
+<p>Provides Class to get response matrices from Twiss parameters.</p>
+<p>The calculation is based on formulas in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id1">[1]</a>, <a class="footnote-reference" href="#tomasreviewlinearoptics2017" id="id2">[2]</a>.</p>
+<p>Only works properly for on-orbit twiss files.</p>
+<ul class="simple">
+<li>Beta Response:     Eq. A35 inserted into Eq. B45 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id3">[1]</a></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\delta \beta_{z,j} = \mp \beta_{z,j} \sum_m \delta K_{1,m} \frac{\beta_{z,m}}{2}
+\frac{cos(2\tau_{z,mj})}{sin(2\pi Q_z)}\]</div>
+<ul class="simple">
+<li>Dispersion Response: Eq. 25-27 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id4">[1]</a> + K1 (see Eq. B17)</li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}\delta D_{x,j} =&amp;+ \sqrt{\beta_{x,j}} \sum_m (\delta K_{0,m} + \delta K_{1S,m} D_{y,m}
+- \delta K_{1,m} D_{x,m}) \frac{\sqrt{\beta_{x,m}}}{2}
+\frac{cos(\tau_{x,mj})}{sin(\pi Q_x)}
+\\
+\delta D_{y,j} =&amp;- \sqrt{\beta_{y,j}} \sum_m (\delta K_{0S,m}
+- \delta K_{1S,m} D_{x,m} - \delta K_{1,m} D_{y,m}) \frac{\sqrt{\beta_{y,m}}}{2}
+\frac{cos(\tau_{y,mj})}{sin(\pi Q_y)}\end{split}\]</div>
+<ul class="simple">
+<li>Norm. Dispersion Response: similar as above but with <span class="math notranslate nohighlight">\(\frac{1}{\sqrt{\beta}}\)</span> linearized</li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}\delta \frac{D_{x,j}}{\sqrt{\beta_{x,j}}} =&amp;+ \sum_m (\delta K_{0,m} + \delta K_{1S,m} D_{y,m}
+- \delta K_{1,m} D_{x,m} ) \frac{\sqrt{\beta_{x,m}}}{2}
+\frac{cos(\tau_{x,mj})}{sin(\pi Q_x)}
+&amp;&amp;+ \frac{D_{x,j}}{\sqrt{\beta_{x,j}}} \delta K_{1,m}
+\frac{\beta_{x,m}}{4}\frac{cos(2\tau_{x,mj})}{2sin(\pi Q_x)}
+\\
+\delta \frac{D_{y,j}}{\sqrt{\beta_{y,j}}} =&amp;- \sum_m (\delta K_{0S,m} - \delta K_{1S,m} D_{x,m}
+- \delta K_{1,m} D_{y,m}) \frac{\sqrt{\beta_{y,m}}}{2}
+\frac{cos(\tau_{y,mj})}{sin(\pi Q_y)}
+&amp;&amp;- \frac{D_{y,j}}{\sqrt{\beta_{y,j}}} \delta K_{1,m}
+\frac{\beta_{y,m}}{4}\frac{cos(2\tau_{y,mj})}{2sin(\pi Q_y)}\end{split}\]</div>
+<ul class="simple">
+<li>Phase Advance Response:    Eq. 28 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id5">[1]</a></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\delta \Phi_{z,wj} = \pm \sum_m \delta K_{1,m} \frac{\beta_{z,m}}{4}
+\left\{ 2\left[ \Pi_{mj} - \Pi_{mw} + \Pi_{jw} \right] +
+\frac{sin(2\tau_{z,mj}) - sin(2\tau_{z,mw})}{sin(2\pi Q_z)} \right\}\]</div>
+<ul class="simple">
+<li>Tune Response:             Eq. 7 in <a class="footnote-reference" href="#tomasreviewlinearoptics2017" id="id6">[2]</a></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\delta Q_z = \pm \sum_m \delta K_{1,m} \frac{\beta_{z,m}}{4\pi}\]</div>
+<ul class="simple">
+<li>Coupling Response:            Eq. 10 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id7">[1]</a></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}\delta f_{\substack{\scriptscriptstyle 1001 \\ \scriptscriptstyle 1010},j} =
+\sum_m \delta J_{1,m} \, \frac{\sqrt{\beta_{x,m}\beta_{y,m}}}{4} \,
+\frac{\exp{(i(\Delta\Phi_{x,mj} \mp \Delta\Phi_{y,mj}))}}{1-\exp({2\pi i (Q_x \mp Q_y}))}\end{split}\]</div>
+<p>For people reading the code, the response matrices are first calculated like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>  <span class="n">Elements</span> <span class="n">of</span> <span class="n">interest</span> <span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="o">--&gt;</span> <span class="o">...</span> <span class="o">|</span>
+<span class="o">|</span><span class="n">Magnets</span> <span class="p">(</span><span class="n">m</span><span class="p">)</span>                        <span class="o">|</span>
+<span class="o">|</span>  <span class="o">|</span>                                <span class="o">|</span>
+<span class="o">|</span>  <span class="n">v</span>                                <span class="o">|</span>
+<span class="o">|</span>  <span class="o">.</span>                                <span class="o">|</span>
+<span class="o">|</span>  <span class="o">.</span>                                <span class="o">|</span>
+<span class="o">|</span>  <span class="o">.</span>                                <span class="o">|</span>
+<span class="o">|</span>                                   <span class="o">|</span>
+</pre></div>
+</div>
+<p>This avoids transposing all vectors individually in the beginning.
+At the end (of the calculation) the matrix is then transposed
+to fit the <span class="math notranslate nohighlight">\(M \cdot \delta K\)</span> orientation.</p>
+<p>Also <span class="math notranslate nohighlight">\(\Delta \Phi_{z,wj}\)</span> needs to be multiplied by <span class="math notranslate nohighlight">\(2\pi\)</span> to be consistent.</p>
+<p class="rubric">References</p>
+<table class="docutils footnote" frame="void" id="franchianalyticformulasrapid2017" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[1]</td><td><em>(<a class="fn-backref" href="#id1">1</a>, <a class="fn-backref" href="#id3">2</a>, <a class="fn-backref" href="#id4">3</a>, <a class="fn-backref" href="#id5">4</a>, <a class="fn-backref" href="#id7">5</a>)</em> A. Franchi et al.,
+Analytic formulas for the rapid evaluation of the orbit response matrix
+and chromatic functions from lattice parameters in circular accelerators
+<a class="reference external" href="https://arxiv.org/abs/1711.06589">https://arxiv.org/abs/1711.06589</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="tomasreviewlinearoptics2017" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id2">1</a>, <a class="fn-backref" href="#id6">2</a>)</em> R. Tomas, et al.,
+‘Review of linear optics measurement and correction for charged particle
+accelerators.’
+Physical Review Accelerators and Beams, 20(5), 54801. (2017)
+<a class="reference external" href="https://doi.org/10.1103/PhysRevAccelBeams.20.054801">https://doi.org/10.1103/PhysRevAccelBeams.20.054801</a></td></tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="correction.fullresponse.response_twiss.TwissResponse">
+<em class="property">class </em><code class="descclassname">correction.fullresponse.response_twiss.</code><code class="descname">TwissResponse</code><span class="sig-paren">(</span><em>accel_inst</em>, <em>variable_categories</em>, <em>varmap_or_path</em>, <em>at_elements='bpms'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides Response Matrices calculated from sequence, model and given variables.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>accel_inst</strong> (<em>accelerator</em>) -- Accelerator Instance (needs to contain elements model).</li>
+<li><strong>variable_categories</strong> (<em>list</em>) -- List of variable categories to get from the accelerator class.</li>
+<li><strong>varmap_or_path</strong> (<em>dict</em><em>, </em><em>string</em>) -- mapping of the variables,
+either as dict-structure of Series or path to a pickled-file.</li>
+<li><strong>at_elements</strong> (<em>str</em>) -- Get response matrix for these elements. Can be:
+‘bpms’: All BPMS (Default)
+‘bpms+’: BPMS+ used magnets (== magnets defined by variables in varfile)
+‘all’: All BPMS and Magnets given in the model (Markers are removed)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_beta">
+<code class="descname">get_beta</code><span class="sig-paren">(</span><em>mapped=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_beta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_beta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Response Matrix for Beta</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_beta_beat">
+<code class="descname">get_beta_beat</code><span class="sig-paren">(</span><em>mapped=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_beta_beat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_beta_beat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Response Matrix for Beta Beating</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_coupling">
+<code class="descname">get_coupling</code><span class="sig-paren">(</span><em>mapped=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_coupling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Response Matrix for the coupling</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_dispersion">
+<code class="descname">get_dispersion</code><span class="sig-paren">(</span><em>mapped=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Response Matrix for Dispersion</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_norm_dispersion">
+<code class="descname">get_norm_dispersion</code><span class="sig-paren">(</span><em>mapped=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_norm_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_norm_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Response Matrix for Normalized Dispersion</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_phase">
+<code class="descname">get_phase</code><span class="sig-paren">(</span><em>mapped=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_phase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_phase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Response Matrix for Total Phase</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_phase_adv">
+<code class="descname">get_phase_adv</code><span class="sig-paren">(</span><em>mapped=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_phase_adv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_phase_adv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Response Matrix for Phase Advance</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_response_for">
+<code class="descname">get_response_for</code><span class="sig-paren">(</span><em>obs=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_response_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_response_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates and returns only desired response matrices</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="correction.fullresponse.response_twiss.TwissResponse.get_tune">
+<code class="descname">get_tune</code><span class="sig-paren">(</span><em>mapped=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#TwissResponse.get_tune"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.TwissResponse.get_tune" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Response Matrix for the Tunes</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="correction.fullresponse.response_twiss.create_response">
+<code class="descclassname">correction.fullresponse.response_twiss.</code><code class="descname">create_response</code><span class="sig-paren">(</span><em>accel_inst</em>, <em>vars_categories</em>, <em>optics_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#create_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.create_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper to create response via TwissResponse</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="correction.fullresponse.response_twiss.dict_mul">
+<code class="descclassname">correction.fullresponse.response_twiss.</code><code class="descname">dict_mul</code><span class="sig-paren">(</span><em>number</em>, <em>dictionary</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#dict_mul"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.dict_mul" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multiply an int with a dict of dataframes (or anything multiplyable)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="correction.fullresponse.response_twiss.get_delta">
+<code class="descclassname">correction.fullresponse.response_twiss.</code><code class="descname">get_delta</code><span class="sig-paren">(</span><em>response</em>, <em>delta_k</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#get_delta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.get_delta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the deltas of <span class="math notranslate nohighlight">\(response_matrix \cdot delta_k\)</span>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>response</strong> -- Response dictionary</li>
+<li><strong>delta_k</strong> -- Pandas Series of variables and their delta-value</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">TFS_DataFrame with elements as indices and the calculated deltas in the columns</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="correction.fullresponse.response_twiss.response_add">
+<code class="descclassname">correction.fullresponse.response_twiss.</code><code class="descname">response_add</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/correction/fullresponse/response_twiss.html#response_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#correction.fullresponse.response_twiss.response_add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges two or more Response Matrix DataFrames</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-correction.fullresponse.generateFullResponse_parallel">
+<span id="module-correction-fullresponse-generatefullresponse-parallel"></span><h3>Module correction.fullresponse.generateFullResponse_parallel<a class="headerlink" href="#module-correction.fullresponse.generateFullResponse_parallel" title="Permalink to this headline">¶</a></h3>
+<p>Created on ??</p>
+<p>This Python script produces the responses of the beta, phase and horizontal dispersion on the quadrupole strengths or
+on other variables as horizontal orbit bumps at sextupoles.
+The fullresponse.couple does the corresponding calculation for the coupling and the vertical dispersion.</p>
+<dl class="docutils">
+<dt>The response matrices are stored it in the following ‘pickled’ files:</dt>
+<dd><ul class="first simple">
+<li>FullResponse</li>
+<li>FullResponse_couple</li>
+<li>FullResponse_chromcouple</li>
+</ul>
+<p class="last">The files are saved in option -p(output_path).</p>
+</dd>
+</dl>
+<p>These response matrices are used to calculate the corrections by the correction scripts.</p>
+<p>Parallel execution:
+<em>multiprocessing</em> from Python stdlib is used to spwan subprocesses and run MADX in parallel. Further the loading of the
+MADX outputfiles will be executed in parallel.</p>
+<dl class="docutils">
+<dt>Possible improvements:</dt>
+<dd><ul class="first last simple">
+<li>The order of the three _gen*_for_*() functions are irrelevant and they do not depend on each other. Thus the execution
+could be parallelized. Therefore the created iter.madx and twiss files need an unique prefix. E.g.: ‘beta_iter.madx’.
+All three functions would need own process pools and the handling of the input data have to be considered.
+For test_fullresponse_parallel.py the comparing of *iter.madx should then be avoided since the ‘valid’ script does not produce them.</li>
+<li>The three functions in the main function do basically the same. A good pattern to handle this is the template method:
+<a class="reference external" href="http://en.wikipedia.org/wiki/Template_method_pattern">http://en.wikipedia.org/wiki/Template_method_pattern</a></li>
+<li>Removing of the exec statements. This is very ugly and could be replaced with a function <em>get_variables_for_accel_and_fullresponse_type(accel, type)</em>.
+The function could import the corresponding module by checking function parameters in if/else statements and deliver the
+appropriate list.</li>
+</ul>
+</dd>
+</dl>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">generateFullResponse_parallel</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">accel</span><span class="o">=</span><span class="n">LHCB1</span> <span class="o">--</span><span class="n">path</span><span class="o">=/</span><span class="n">afs</span><span class="o">/</span><span class="n">cern</span><span class="o">.</span><span class="n">ch</span><span class="o">/</span><span class="n">work</span><span class="o">/</span><span class="n">v</span><span class="o">/</span><span class="n">vimaier</span><span class="o">/</span><span class="n">public</span><span class="o">/</span><span class="n">betabeatGui</span><span class="o">/</span><span class="n">temp</span><span class="o">/</span><span class="mi">2013</span><span class="o">-</span><span class="mi">10</span><span class="o">-</span><span class="mi">22</span><span class="o">/</span><span class="n">models</span><span class="o">/</span><span class="n">LHCB1</span><span class="o">/</span><span class="n">a_mod</span> <span class="o">--</span><span class="n">core</span><span class="o">=/</span><span class="n">afs</span><span class="o">/</span><span class="n">cern</span><span class="o">.</span><span class="n">ch</span><span class="o">/</span><span class="n">work</span><span class="o">/</span><span class="n">v</span><span class="o">/</span><span class="n">vimaier</span><span class="o">/</span><span class="n">public</span><span class="o">/</span><span class="n">Beta</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span><span class="o">/</span><span class="n">MODEL</span><span class="o">/</span><span class="n">LHCB1</span><span class="o">/</span><span class="n">fullresponse</span> <span class="o">--</span><span class="n">deltak</span><span class="o">=</span><span class="mf">0.00002</span>
+</pre></div>
+</div>
+<p>Options:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="n">a</span> <span class="n">ACCEL</span><span class="p">,</span> <span class="o">--</span><span class="n">accel</span><span class="o">=</span><span class="n">ACCEL</span>
+                      <span class="n">Which</span> <span class="n">accelerator</span><span class="p">:</span> <span class="n">LHCB1</span> <span class="n">LHCB2</span> <span class="n">SPS</span> <span class="n">RHIC</span> <span class="n">SOLEIL</span>
+<span class="o">-</span><span class="n">p</span> <span class="n">PATH</span><span class="p">,</span> <span class="o">--</span><span class="n">path</span><span class="o">=</span><span class="n">PATH</span>  <span class="n">path</span> <span class="n">to</span> <span class="n">save</span><span class="o">.</span> <span class="n">Have</span> <span class="n">to</span> <span class="n">contain</span> <span class="s1">&#39;job.iterate.madx&#39;</span> <span class="ow">and</span> <span class="s1">&#39;modifiers.madx&#39;</span>
+<span class="o">-</span><span class="n">c</span> <span class="n">CORE</span><span class="p">,</span> <span class="o">--</span><span class="n">core</span><span class="o">=</span><span class="n">CORE</span>  <span class="n">core</span> <span class="n">files</span>
+<span class="o">-</span><span class="n">k</span> <span class="n">K</span><span class="p">,</span> <span class="o">--</span><span class="n">deltak</span><span class="o">=</span><span class="n">K</span>      <span class="n">delta</span> <span class="n">k</span> <span class="n">to</span> <span class="n">be</span> <span class="n">applied</span> <span class="n">to</span> <span class="n">quads</span> <span class="k">for</span> <span class="n">sensitivity</span> <span class="n">matrix</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../GetLLM/index.html" class="btn btn-neutral float-right" title="GetLLM" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../entrypoints/index.html" class="btn btn-neutral float-left" title="Main Entrypoints" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

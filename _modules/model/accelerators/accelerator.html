@@ -1,0 +1,474 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>model.accelerators.accelerator &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>model.accelerators.accelerator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for model.accelerators.accelerator</h1><div class="highlight"><pre>
+<span></span><span class="k">class</span> <span class="nc">AccExcitationMode</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">FREE</span><span class="p">,</span> <span class="n">ACD</span><span class="p">,</span> <span class="n">ADT</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Accelerator"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator">[docs]</a><span class="k">class</span> <span class="nc">Accelerator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract class to serve as an interface to implement the</span>
+<span class="sd">    rest of the accelerators.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Class methods ###########################################</span>
+
+<div class="viewcode-block" id="Accelerator.get_class_parameters"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_class_parameters">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_class_parameters</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method should return the parameter list of arguments needed</span>
+<span class="sd">        to create the class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_class"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_class">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method should return the accelerator class defined</span>
+<span class="sd">        in the arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_variables"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_variables">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_variables</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">frm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the variables with elements in the given range and the given</span>
+<span class="sd">        classes. None means everything.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_correctors_variables"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_correctors_variables">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_correctors_variables</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">frm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the set of corrector variables between frm and to, with classes</span>
+<span class="sd">        in classes. None means select all.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_element_types_mask"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_element_types_mask">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_element_types_mask</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">list_of_elements</span><span class="p">,</span> <span class="n">types</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return boolean mask for elements in list_of_elements that belong</span>
+<span class="sd">        to any of the specified types.</span>
+<span class="sd">        Needs to handle: &quot;bpm&quot;, &quot;magnet&quot;, &quot;arc_bpm&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            list_of_elements: List of elements</span>
+<span class="sd">            types: Kinds of elements to look for</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Boolean array of elements of specified kinds.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+    <span class="c1"># Instance methods ########################################</span>
+
+<div class="viewcode-block" id="Accelerator.verify_object"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.verify_object">[docs]</a>    <span class="k">def</span> <span class="nf">verify_object</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Verifies that this instance of an accelerator is properly</span>
+<span class="sd">        instantiated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">__raise_definition_error</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;A function that should have been overwritten</span>
+<span class="sd">            has been called, check stack trace.&quot;&quot;&quot;</span>
+        <span class="p">)</span>
+        
+    <span class="c1"># For GetLLM #############################################################</span>
+    
+<div class="viewcode-block" id="Accelerator.get_exciter_bpm"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_exciter_bpm">[docs]</a>    <span class="k">def</span> <span class="nf">get_exciter_bpm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">distance</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the BPM next to the exciter.</span>
+<span class="sd">        The accelerator instance knows already which excitation method is used.</span>
+<span class="sd">        distance: 1=nearest bpm 2=next to nearest bpm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+        
+    <span class="k">def</span> <span class="nf">get_important_phase_advances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    
+<div class="viewcode-block" id="Accelerator.get_exciter_name"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_exciter_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_exciter_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the name of the exciter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_model_tfs"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_model_tfs">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># instance method because it has to access the instance&#39;s model</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the model tfs file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_driven_tfs"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_driven_tfs">[docs]</a>    <span class="k">def</span> <span class="nf">get_driven_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the driven model tfs file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_best_knowledge_model_tfs"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_best_knowledge_model_tfs">[docs]</a>    <span class="k">def</span> <span class="nf">get_best_knowledge_model_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the best knowledge model tfs file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_elements_tfs"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_elements_tfs">[docs]</a>    <span class="k">def</span> <span class="nf">get_elements_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the elements tfs file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+        
+<div class="viewcode-block" id="Accelerator.get_s_first_BPM"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_s_first_BPM">[docs]</a>    <span class="k">def</span> <span class="nf">get_s_first_BPM</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the position of the first BPM in turn by turn acquisition.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_k_first_BPM"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_k_first_BPM">[docs]</a>    <span class="k">def</span> <span class="nf">get_k_first_BPM</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_of_bpms</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the position of something in list_of_bpms TODO: ASK ANDREAS</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">get_errordefspath</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">set_errordefspath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="c1"># TODO: Jaime, are there virtual members for python base classes?</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span>
+
+    <span class="c1"># Templates ##############################################################</span>
+
+<div class="viewcode-block" id="Accelerator.get_nominal_tmpl"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_nominal_tmpl">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_nominal_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns template for nominal model (Model Creator)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+    <span class="c1"># LHC only so far: (put it here because mentioned in creator.py)</span>
+    <span class="c1"># @classmethod</span>
+    <span class="c1"># def get_best_knowledge_tmpl(cls):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Returns template for best knowledge model</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Accelerator.__raise_definition_error()</span>
+    <span class="c1">#</span>
+    <span class="c1"># @classmethod</span>
+    <span class="c1"># def get_coupling_tmpl(cls):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Returns template for model for coupling correction</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Accelerator.__raise_definition_error()</span>
+    <span class="c1">#</span>
+    <span class="c1"># @classmethod</span>
+    <span class="c1"># def get_segment_tmpl(cls):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Returns template for segment model</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Accelerator.__raise_definition_error()</span>
+
+<div class="viewcode-block" id="Accelerator.get_iteration_tmpl"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_iteration_tmpl">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_iteration_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns template to create fullresponse.</span>
+<span class="sd">        TODO: only in _prepare_fullresponse in creator! Needs to be replaced by get_basic_seq</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+    <span class="c1"># Jobs ###################################################################</span>
+
+<div class="viewcode-block" id="Accelerator.get_update_correction_job"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_update_correction_job">[docs]</a>    <span class="k">def</span> <span class="nf">get_update_correction_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tiwss_out_path</span><span class="p">,</span> <span class="n">corrections_file_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns job (string) to create an updated model from changeparameters input</span>
+<span class="sd">        (used in iterative correction).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_basic_seq_job"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_basic_seq_job">[docs]</a>    <span class="k">def</span> <span class="nf">get_basic_seq_job</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns job (string) to create the basic accelerator sequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Accelerator.get_multi_dpp_job"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Accelerator.get_multi_dpp_job">[docs]</a>    <span class="k">def</span> <span class="nf">get_multi_dpp_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dpp_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns job (string) for model with multiple dp/p values (in W-Analysis)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Accelerator</span><span class="o">.</span><span class="n">__raise_definition_error</span><span class="p">()</span></div></div>
+
+    <span class="c1">##########################################################################</span>
+
+
+<div class="viewcode-block" id="Variable"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Variable">[docs]</a><span class="k">class</span> <span class="nc">Variable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generic corrector variable class that holds name, position (s) and</span>
+<span class="sd">    physical elements it affectes. This variables should be logical variables</span>
+<span class="sd">    that should have and effect in the model if modified.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">elements</span><span class="p">,</span> <span class="n">classes</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elements</span> <span class="o">=</span> <span class="n">elements</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="n">classes</span></div>
+
+
+<div class="viewcode-block" id="Element"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.Element">[docs]</a><span class="k">class</span> <span class="nc">Element</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generic corrector element class that holds name and position (s)</span>
+<span class="sd">    of the corrector. This element should represent a physical element of the</span>
+<span class="sd">    accelerator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">=</span> <span class="n">s</span></div>
+
+
+<div class="viewcode-block" id="AcceleratorDefinitionError"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.AcceleratorDefinitionError">[docs]</a><span class="k">class</span> <span class="nc">AcceleratorDefinitionError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Raised when an accelerator instance is wrongly used, for</span>
+<span class="sd">    example by calling a method that should have been overwritten.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+    <span class="c1">###########################################################</span>
+
+
+<div class="viewcode-block" id="get_commonbpm"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.accelerator.get_commonbpm">[docs]</a><span class="k">def</span> <span class="nf">get_commonbpm</span><span class="p">(</span><span class="n">key1</span><span class="p">,</span> <span class="n">key2</span><span class="p">,</span> <span class="n">commonbpms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns index and bpm name of key1, if found. Otherwise of key2.</span>
+<span class="sd">    Raises KeyError if none is found.</span>
+<span class="sd">    TODO: @Andreas, does that need to be here? Also why not use pythonic ways?</span>
+<span class="sd">    TODO: @Andreas: DONT NAME SOMETHING COMMOMBPMS IF ITS A DATAFRAME ONLY HAVING AN INDEX WITH BPMS</span>
+<span class="sd">    !!!!!!!!! FFS !!!!!!!!</span>
+
+<span class="sd">    try:</span>
+<span class="sd">        return list(commonbpms.index).index(key1), key1</span>
+<span class="sd">    except ValueError:</span>
+<span class="sd">        return list(commonbpms.index).index(key2), key2</span>
+
+<span class="sd">    (try-except around the second return for raising KeyError with message)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">i2</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bpm</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">commonbpms</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">bpm</span> <span class="o">==</span> <span class="n">key1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">i</span><span class="p">,</span> <span class="n">bpm</span>
+        <span class="k">if</span> <span class="n">bpm</span> <span class="o">==</span> <span class="n">key2</span><span class="p">:</span>
+            <span class="n">i2</span> <span class="o">=</span> <span class="n">i</span>
+    <span class="k">if</span> <span class="n">i2</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Giving up looking for the closest exciter BPM&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">i2</span><span class="p">,</span> <span class="n">commonbpms</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">i2</span><span class="p">]</span></div>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

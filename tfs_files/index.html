@@ -1,0 +1,578 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>TFS Files &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tune Analysis" href="../tune_analysis/index.html" />
+    <link rel="prev" title="Segment by Segment" href="../segment_by_segment/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">TFS Files</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-tfs_files.tfs_pandas">Main TFS File Handler</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-tfs-files-tfs-pandas">Module tfs_files.tfs_pandas</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tfs_files.tfs_collection">TFS Helpers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-tfs-files-tfs-collection">Module tfs_files.tfs_collection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-tfs-files-tfs-file-writer">Module tfs_files.tfs_file_writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-tfs-files-tfs-utils">Module tfs_files.tfs_utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-tfs-files-diff-files">Module tfs_files.diff_files</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>TFS Files</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/tfs_files/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tfs-files">
+<h1>TFS Files<a class="headerlink" href="#tfs-files" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-tfs_files.tfs_pandas">
+<span id="main-tfs-file-handler"></span><h2>Main TFS File Handler<a class="headerlink" href="#module-tfs_files.tfs_pandas" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tfs-files-tfs-pandas">
+<h3>Module tfs_files.tfs_pandas<a class="headerlink" href="#module-tfs-files-tfs-pandas" title="Permalink to this headline">¶</a></h3>
+<p>Pandas wrapper to read and write TFS-files.</p>
+<dl class="class">
+<dt id="tfs_files.tfs_pandas.TfsDataFrame">
+<em class="property">class </em><code class="descclassname">tfs_files.tfs_pandas.</code><code class="descname">TfsDataFrame</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_pandas.html#TfsDataFrame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_pandas.TfsDataFrame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class to hold the information of the built Pandas DataFrame,
+together with a way of getting the headers of the TFS file.
+To get a header value do: data_frame[“header_name”] or
+data_frame.header_name.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="tfs_files.tfs_pandas.TfsFormatError">
+<em class="property">exception </em><code class="descclassname">tfs_files.tfs_pandas.</code><code class="descname">TfsFormatError</code><a class="reference internal" href="../_modules/tfs_files/tfs_pandas.html#TfsFormatError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_pandas.TfsFormatError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when wrong format is detected in the TFS file.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tfs_files.tfs_pandas.TypeToIdConverter">
+<em class="property">class </em><code class="descclassname">tfs_files.tfs_pandas.</code><code class="descname">TypeToIdConverter</code><a class="reference internal" href="../_modules/tfs_files/tfs_pandas.html#TypeToIdConverter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_pandas.TypeToIdConverter" title="Permalink to this definition">¶</a></dt>
+<dd><p>For symmetry reasons.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tfs_files.tfs_pandas.read_tfs">
+<code class="descclassname">tfs_files.tfs_pandas.</code><code class="descname">read_tfs</code><span class="sig-paren">(</span><em>tfs_path</em>, <em>index=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_pandas.html#read_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_pandas.read_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses the TFS table present in tfs_path and returns a custom Pandas
+DataFrame (TfsDataFrame).
+:param tfs_path: Input filepath
+:param index: Name of the column to set as index. If not given looks for INDEX_ID-column
+:return: TFS_DataFrame object</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tfs_files.tfs_pandas.write_tfs">
+<code class="descclassname">tfs_files.tfs_pandas.</code><code class="descname">write_tfs</code><span class="sig-paren">(</span><em>tfs_path</em>, <em>data_frame</em>, <em>headers_dict={}</em>, <em>save_index=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_pandas.html#write_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_pandas.write_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the Pandas DataFrame data_frame into tfs_path with the headers_dict
+as headers dictionary. If you want to keep the order of the headers, use
+collections.OrderedDict.
+:param tfs_path: Output filepath
+:param data_frame: Data Frame to save
+:param headers_dict: Headers of the dataframe, if empty tries to use data_frame.headers
+:param save_index: bool or string. If True, saves the index of the data_frame to a column
+identifiable by INDEX_ID (will be loaded automatically by read_tfs). If string, it saves
+the index of the data_frame to a column named like the string given. Default: False</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-tfs_files.tfs_collection">
+<span id="tfs-helpers"></span><h2>TFS Helpers<a class="headerlink" href="#module-tfs_files.tfs_collection" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tfs-files-tfs-collection">
+<h3>Module tfs_files.tfs_collection<a class="headerlink" href="#module-tfs-files-tfs-collection" title="Permalink to this headline">¶</a></h3>
+<p>Easy access to tfs-file contents via <code class="docutils literal notranslate"><span class="pre">tfs_pandas</span></code>.</p>
+<dl class="class">
+<dt id="tfs_files.tfs_collection.Tfs">
+<em class="property">class </em><code class="descclassname">tfs_files.tfs_collection.</code><code class="descname">Tfs</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_collection.html#Tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_collection.Tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class to mark attributes as Tfs attributes.</p>
+<p>Any parameter given to this class will be passed to the “get_filename()”
+and “write_to()” methods, together with the plane if “two_planes=False” is
+not present.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tfs_files.tfs_collection.TfsCollection">
+<em class="property">class </em><code class="descclassname">tfs_files.tfs_collection.</code><code class="descname">TfsCollection</code><span class="sig-paren">(</span><em>directory</em>, <em>allow_write=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_collection.html#TfsCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_collection.TfsCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract class to lazily load and write TFS files.</p>
+<p>The classes that inherit from this abstract class will be able to define
+TFS files as readable or writable and read or write them just as attribute
+access or assignments. All attributes will be read and write as Pandas
+DataFrames.</p>
+<p class="rubric">Example</p>
+<p>If “./example” is a directory that contains two TFS file “getbetax.out”
+and “getbetax.out” with BETX and BETY columns respectively:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">ExampleCollection</span><span class="p">(</span><span class="n">TfsCollection</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="c1"># All TFS attributes must be marked with the Tfs(...) class:</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">beta</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;getbeta</span><span class="si">{}</span><span class="s2">.out&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="c1"># This is a traditional attribute.</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">other_value</span> <span class="o">=</span> <span class="mi">7</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="k">def</span> <span class="nf">get_filename</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">example</span> <span class="o">=</span> <span class="n">ExampleCollection</span><span class="p">(</span><span class="s2">&quot;./example&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get the BETX column from &quot;getbetax.out&quot;:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">beta_x_column</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">beta_x</span><span class="o">.</span><span class="n">BETX</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get the BETY column from &quot;getbetay.out&quot;:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">beta_y_column</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">beta_y</span><span class="o">.</span><span class="n">BETY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The planes can also be accessed as items:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">beta_y_column</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">BETY</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># This will write an empty DataFrame to &quot;getbetay.out&quot;:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">example</span><span class="o">.</span><span class="n">allow_write</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">example</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If the file to be loaded is not defined for two planes it can be declared
+as: coupling = Tfs(“getcouple.out”, two_planes=False) and then accessed as
+f1001w_column = example.coupling.F1001W.
+No file will be loaded until the corresponding attribute is accessed and
+the loaded DataFrame will be buffered, thus the user should expect an
+IOError if the requested file is not in the provided directory (only the
+first time but is better to always take it into account!).
+When a DataFrame is assigned to one attribute it will be set as the buffer
+value. If the self.allow_write attribute is set to true, an assignment on
+one of the attributes will trigger the corresponding file write.</p>
+<dl class="method">
+<dt id="tfs_files.tfs_collection.TfsCollection.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_collection.html#TfsCollection.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_collection.TfsCollection.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clear the file buffer.</p>
+<p>Any subsequent attribute access will try to load the corresponding file
+again.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_collection.TfsCollection.get_filename">
+<code class="descname">get_filename</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_collection.html#TfsCollection.get_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_collection.TfsCollection.get_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the filename to be loaded or written.</p>
+<p>This function will get as parameters any parameter given to the
+Tfs(…) attributes. It must return the filename to be written
+according to those parameters. If “two_planes=False” is not present in
+the Tfs(…) definition, it will also be given the keyword argument
+plane=”x” or “y”.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_collection.TfsCollection.read_tfs">
+<code class="descname">read_tfs</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_collection.html#TfsCollection.read_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_collection.TfsCollection.read_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually reads the TFS file from self.directory with filename.</p>
+<p>This function can be ovewriten to use something instead of tfs_pandas
+to load the files.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> -- The name of the file to load.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A tfs_pandas instance of the requested file.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_collection.TfsCollection.write_to">
+<code class="descname">write_to</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_collection.html#TfsCollection.write_to"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_collection.TfsCollection.write_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the filename and DataFrame to be written on assignments.</p>
+<p>If this function is overwrote, it will replace get_filename(…) in
+file writes to find out the filename of the file to be written. It also
+gets the value assigned as first parameter.
+It must return a tuple (filename, data_frame).</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-tfs_files.tfs_file_writer"></span><div class="section" id="module-tfs-files-tfs-file-writer">
+<h3>Module tfs_files.tfs_file_writer<a class="headerlink" href="#module-tfs-files-tfs-file-writer" title="Permalink to this headline">¶</a></h3>
+<p>This module contains the class TfsFileWriter which is used to create easily TfsFiles.</p>
+<p>Usage1:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tfs_files.tfs_file_writer</span> <span class="k">as</span> <span class="nn">tfs_writer</span>
+<span class="o">...</span>
+<span class="n">tfs_file_writer</span> <span class="o">=</span> <span class="n">tfs_writer</span><span class="o">.</span><span class="n">TfsFileWriter</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;my_file.out&quot;</span><span class="p">)</span>
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">set_column_width</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span> <span class="c1"># Specify desired column width</span>
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">set_outputpath</span><span class="p">(</span><span class="s2">&quot;/x/y/z/&quot;</span><span class="p">)</span> <span class="c1"># Specify a directory if desired</span>
+
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">add_string_descriptor</span><span class="p">(</span><span class="s2">&quot;NAME&quot;</span><span class="p">,</span> <span class="s2">&quot;TWISS&quot;</span><span class="p">)</span>
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">add_float_descriptor</span><span class="p">(</span><span class="s2">&quot;MASS&quot;</span><span class="p">,</span> <span class="mf">0.938272013</span><span class="p">)</span>
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">add_comment</span><span class="p">(</span><span class="s2">&quot;I am a comment&quot;</span><span class="p">)</span>
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">add_column_names</span><span class="p">(</span><span class="s2">&quot;NAME S BETX ALFX BETY ALFY&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">add_column_datatypes</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> </span><span class="si">%le</span><span class="s2"> </span><span class="si">%le</span><span class="s2"> </span><span class="si">%le</span><span class="s2"> </span><span class="si">%le</span><span class="s2"> </span><span class="si">%le</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">add_table_row</span><span class="p">(</span><span class="s2">&quot;BTVSS.6L2.B1  1.125  131.58734  -1.8991  67.6178 1.6995&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">write_to_file</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Usage2:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tfs_file_writer</span> <span class="o">=</span> <span class="n">tfs_writer</span><span class="o">.</span><span class="n">TfsFileWriter</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;/x/y/z/my_file.out&quot;</span><span class="p">)</span>
+<span class="c1">#tfs_file_writer.set_outputpath(&quot;/x/y/z/&quot;) # Don&#39;t do this! Outputpath is already in file_name.</span>
+
+<span class="o">...</span> <span class="c1"># Add at least column_names, dolumn_datatypes and one table_row</span>
+<span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">write_to_file</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="class">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter">
+<em class="property">class </em><code class="descclassname">tfs_files.tfs_file_writer.</code><code class="descname">TfsFileWriter</code><span class="sig-paren">(</span><em>file_name</em>, <em>outputpath=None</em>, <em>column_width=20</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class represents a TFS file. It stores all header lines and the table and write
+all the content formatted at once by calling the write function.</p>
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.add_column_datatypes">
+<code class="descname">add_column_datatypes</code><span class="sig-paren">(</span><em>list_datatypes</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.add_column_datatypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.add_column_datatypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the list of column data types to the table header.
+If the number of columns is determined already(e.g. by adding column names) and the
+length of list_datatypes does not match the number of columns a TypeError will be raised.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>list_datatypes</strong> (<em>list</em>) -- Containing the data type(%s, %le) of the columns.
+Without prefix ‘$’</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.add_column_names">
+<code class="descname">add_column_names</code><span class="sig-paren">(</span><em>list_names</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.add_column_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.add_column_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the list of column names to the table header.
+If the number of columns is determined already(e.g. by adding column data types) and the
+length of list_names does not match the number of columns a TypeError will be raised.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>list_names</strong> (<em>list</em>) -- Containing the names of the columns. Without prefix ‘*’</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.add_comment">
+<code class="descname">add_comment</code><span class="sig-paren">(</span><em>comment</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.add_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.add_comment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the string “# &lt;comment&gt;” to the tfs header.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.add_float_descriptor">
+<code class="descname">add_float_descriptor</code><span class="sig-paren">(</span><em>name</em>, <em>float_value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.add_float_descriptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.add_float_descriptor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the string “&#64; &lt;name&gt; %le &lt;data&gt;” to the tfs header.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.add_header_line">
+<code class="descname">add_header_line</code><span class="sig-paren">(</span><em>str_value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.add_header_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.add_header_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the line to the tfs header.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.add_int_descriptor">
+<code class="descname">add_int_descriptor</code><span class="sig-paren">(</span><em>name</em>, <em>int_value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.add_int_descriptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.add_int_descriptor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the string “&#64; &lt;name&gt; %d &lt;data&gt;” to the tfs header.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.add_string_descriptor">
+<code class="descname">add_string_descriptor</code><span class="sig-paren">(</span><em>name</em>, <em>str_value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.add_string_descriptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.add_string_descriptor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the string “&#64; &lt;name&gt; %s &lt;data&gt;” to the tfs header.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.add_table_row">
+<code class="descname">add_table_row</code><span class="sig-paren">(</span><em>list_row_entries</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.add_table_row"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.add_table_row" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the entries of one row to the table data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>list_row_entries</strong> (<em>list</em>) -- Values of one row. Datatypes will not be checked. Only length
+will be checked with the length of column names.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.open">
+<em class="property">static </em><code class="descname">open</code><span class="sig-paren">(</span><em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function will create and return a TfsFileWriter object with the given filename.
+No file will be opened on the file system yet. An actual file will first be created
+after adding at least column_names, dolumn_datatypes and one table_row and the method
+call write_to_file().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.order_rows">
+<code class="descname">order_rows</code><span class="sig-paren">(</span><em>column_name</em>, <em>reverse=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.order_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.order_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Orders the rows according to one of the column names.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tfs_files.tfs_file_writer.TfsFileWriter.write_to_file">
+<code class="descname">write_to_file</code><span class="sig-paren">(</span><em>formatted=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_file_writer.html#TfsFileWriter.write_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_file_writer.TfsFileWriter.write_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the stored data to the file with the given filename.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<span class="target" id="module-tfs_files.tfs_utils"></span><div class="section" id="module-tfs-files-tfs-utils">
+<h3>Module tfs_files.tfs_utils<a class="headerlink" href="#module-tfs-files-tfs-utils" title="Permalink to this headline">¶</a></h3>
+<p>Helperfunctions to handle TFS-files easier.</p>
+<dl class="function">
+<dt id="tfs_files.tfs_utils.remove_header_comments_from_files">
+<code class="descclassname">tfs_files.tfs_utils.</code><code class="descname">remove_header_comments_from_files</code><span class="sig-paren">(</span><em>list_of_files</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_utils.html#remove_header_comments_from_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_utils.remove_header_comments_from_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check the files in list for invalid headers (no type defined) and removes them.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tfs_files.tfs_utils.remove_nan_from_files">
+<code class="descclassname">tfs_files.tfs_utils.</code><code class="descname">remove_nan_from_files</code><span class="sig-paren">(</span><em>list_of_files</em>, <em>replace=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/tfs_utils.html#remove_nan_from_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.tfs_utils.remove_nan_from_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove NAN-Entries from files in list_of_files.</p>
+<p>If replace=False a new file with .dropna in it’s name is created, otherwise the file is
+overwritten.</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-tfs_files.diff_files"></span><div class="section" id="module-tfs-files-diff-files">
+<h3>Module tfs_files.diff_files<a class="headerlink" href="#module-tfs-files-diff-files" title="Permalink to this headline">¶</a></h3>
+<p>Functions to get the difference between two tfs files or dataframes.
+This is very general, i.e. not as results oriented as <code class="docutils literal notranslate"><span class="pre">getdiff.py</span></code>.</p>
+<dl class="function">
+<dt id="tfs_files.diff_files.get_diff_two_dataframes">
+<code class="descclassname">tfs_files.diff_files.</code><code class="descname">get_diff_two_dataframes</code><span class="sig-paren">(</span><em>df1</em>, <em>df2</em>, <em>diff_columns</em>, <em>is_error=None</em>, <em>prefix=''</em>, <em>index=None</em>, <em>keep_colums=()</em>, <em>out_file=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tfs_files/diff_files.html#get_diff_two_dataframes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tfs_files.diff_files.get_diff_two_dataframes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the difference of common elements of specific columns between two dataframes.</p>
+<p>Merges on index.</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>Args:</dt>
+<dd>df1 (DataFrame or Path): First dataframe, Minuend
+df2 (DataFrame or Path): Second dataframe, Subtrahend
+diff_columns (list of stings): List of columns to get the difference of
+is_error (list of booleans): defines if the column in question is an error column
+prefix (str): Prefix for difference columns (default: “”)
+index (str): index column - most likely needed when reading/writing files
+keep_colums (list of strings): additional columns to keep in the returned dataframe
+out_file (Path): if given, writes the result into this file</dd>
+<dt>Returns:</dt>
+<dd>DataFrame containing difference columns and kept columns.</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../tune_analysis/index.html" class="btn btn-neutral float-right" title="Tune Analysis" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../segment_by_segment/index.html" class="btn btn-neutral float-left" title="Segment by Segment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

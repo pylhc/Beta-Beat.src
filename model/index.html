@@ -1,0 +1,942 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Model &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Online Model Tools" href="../online_model/index.html" />
+    <link rel="prev" title="Harmonic Analysis" href="../harmonic_analysis/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#entry-points-model">Entry Points Model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-model.manager">Module model.manager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-model.creator">Module model.creator</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#available-classes">Available Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-model.accelerators.accelerator">Module model.accelerators.accelerator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-model.accelerators.lhc">Module model.accelerators.lhc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-model.accelerators.esrf">Module model.accelerators.esrf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-model.accelerators.psbooster">Module model.accelerators.psbooster</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/model/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="model">
+<h1>Model<a class="headerlink" href="#model" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="entry-points-model">
+<h2>Entry Points Model<a class="headerlink" href="#entry-points-model" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-model.manager">
+<span id="module-model-manager"></span><h3>Module model.manager<a class="headerlink" href="#module-model.manager" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="model.manager.get_accel_class">
+<code class="descclassname">model.manager.</code><code class="descname">get_accel_class</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/manager.html#get_accel_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.manager.get_accel_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns accelerator class</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><strong>accel</strong> -- Choose the accelerator to use. Can be the class already, which is then returned.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="model.manager.get_accel_class_and_unkown">
+<code class="descclassname">model.manager.</code><code class="descname">get_accel_class_and_unkown</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/manager.html#get_accel_class_and_unkown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.manager.get_accel_class_and_unkown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns accelerator class</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><strong>accel</strong> -- Choose the accelerator to use. Can be the class already, which is then returned.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="model.manager.get_accel_class_from_args">
+<code class="descclassname">model.manager.</code><code class="descname">get_accel_class_from_args</code><span class="sig-paren">(</span><em>args=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/manager.html#get_accel_class_from_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.manager.get_accel_class_from_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>LEGACY-FUNCTION SHOULD BE REPLACED BY USING get_accel_class</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="model.manager.get_accel_instance">
+<code class="descclassname">model.manager.</code><code class="descname">get_accel_instance</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/manager.html#get_accel_instance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.manager.get_accel_instance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns accelerator instance.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-model.creator">
+<span id="module-model-creator"></span><h3>Module model.creator<a class="headerlink" href="#module-model.creator" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="available-classes">
+<h2>Available Classes<a class="headerlink" href="#available-classes" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-model.accelerators.accelerator">
+<span id="module-model-accelerators-accelerator"></span><h3>Module model.accelerators.accelerator<a class="headerlink" href="#module-model.accelerators.accelerator" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="model.accelerators.accelerator.Accelerator">
+<em class="property">class </em><code class="descclassname">model.accelerators.accelerator.</code><code class="descname">Accelerator</code><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract class to serve as an interface to implement the
+rest of the accelerators.</p>
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_basic_seq_job">
+<code class="descname">get_basic_seq_job</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_basic_seq_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_basic_seq_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns job (string) to create the basic accelerator sequence.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_best_knowledge_model_tfs">
+<code class="descname">get_best_knowledge_model_tfs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_best_knowledge_model_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_best_knowledge_model_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the best knowledge model tfs file.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.accelerator.Accelerator.get_class">
+<em class="property">classmethod </em><code class="descname">get_class</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method should return the accelerator class defined
+in the arguments.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="model.accelerators.accelerator.Accelerator.get_class_parameters">
+<em class="property">static </em><code class="descname">get_class_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_class_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_class_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method should return the parameter list of arguments needed
+to create the class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.accelerator.Accelerator.get_correctors_variables">
+<em class="property">classmethod </em><code class="descname">get_correctors_variables</code><span class="sig-paren">(</span><em>frm=None</em>, <em>to=None</em>, <em>classes=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_correctors_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_correctors_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the set of corrector variables between frm and to, with classes
+in classes. None means select all.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_driven_tfs">
+<code class="descname">get_driven_tfs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_driven_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_driven_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the driven model tfs file.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.accelerator.Accelerator.get_element_types_mask">
+<em class="property">classmethod </em><code class="descname">get_element_types_mask</code><span class="sig-paren">(</span><em>list_of_elements</em>, <em>types</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_element_types_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_element_types_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return boolean mask for elements in list_of_elements that belong
+to any of the specified types.
+Needs to handle: “bpm”, “magnet”, “arc_bpm”</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>list_of_elements</strong> -- List of elements</li>
+<li><strong>types</strong> -- Kinds of elements to look for</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Boolean array of elements of specified kinds.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_elements_tfs">
+<code class="descname">get_elements_tfs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_elements_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_elements_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the elements tfs file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_exciter_bpm">
+<code class="descname">get_exciter_bpm</code><span class="sig-paren">(</span><em>plane</em>, <em>distance</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_exciter_bpm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_exciter_bpm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the BPM next to the exciter.
+The accelerator instance knows already which excitation method is used.
+distance: 1=nearest bpm 2=next to nearest bpm</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_exciter_name">
+<code class="descname">get_exciter_name</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_exciter_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_exciter_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the name of the exciter.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.accelerator.Accelerator.get_iteration_tmpl">
+<em class="property">classmethod </em><code class="descname">get_iteration_tmpl</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_iteration_tmpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_iteration_tmpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns template to create fullresponse.
+TODO: only in _prepare_fullresponse in creator! Needs to be replaced by get_basic_seq</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_k_first_BPM">
+<code class="descname">get_k_first_BPM</code><span class="sig-paren">(</span><em>list_of_bpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_k_first_BPM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_k_first_BPM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the position of something in list_of_bpms TODO: ASK ANDREAS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_model_tfs">
+<code class="descname">get_model_tfs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_model_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_model_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the model tfs file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_multi_dpp_job">
+<code class="descname">get_multi_dpp_job</code><span class="sig-paren">(</span><em>dpp_list</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_multi_dpp_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_multi_dpp_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns job (string) for model with multiple dp/p values (in W-Analysis)</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.accelerator.Accelerator.get_nominal_tmpl">
+<em class="property">classmethod </em><code class="descname">get_nominal_tmpl</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_nominal_tmpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_nominal_tmpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns template for nominal model (Model Creator)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_s_first_BPM">
+<code class="descname">get_s_first_BPM</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_s_first_BPM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_s_first_BPM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the position of the first BPM in turn by turn acquisition.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.get_update_correction_job">
+<code class="descname">get_update_correction_job</code><span class="sig-paren">(</span><em>tiwss_out_path</em>, <em>corrections_file_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_update_correction_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_update_correction_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns job (string) to create an updated model from changeparameters input
+(used in iterative correction).</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.accelerator.Accelerator.get_variables">
+<em class="property">classmethod </em><code class="descname">get_variables</code><span class="sig-paren">(</span><em>frm=None</em>, <em>to=None</em>, <em>classes=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.get_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.get_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the variables with elements in the given range and the given
+classes. None means everything.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.accelerator.Accelerator.verify_object">
+<code class="descname">verify_object</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Accelerator.verify_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Accelerator.verify_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verifies that this instance of an accelerator is properly
+instantiated.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="model.accelerators.accelerator.AcceleratorDefinitionError">
+<em class="property">exception </em><code class="descclassname">model.accelerators.accelerator.</code><code class="descname">AcceleratorDefinitionError</code><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#AcceleratorDefinitionError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.AcceleratorDefinitionError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when an accelerator instance is wrongly used, for
+example by calling a method that should have been overwritten.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.accelerator.Element">
+<em class="property">class </em><code class="descclassname">model.accelerators.accelerator.</code><code class="descname">Element</code><span class="sig-paren">(</span><em>name</em>, <em>s</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Element"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Element" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic corrector element class that holds name and position (s)
+of the corrector. This element should represent a physical element of the
+accelerator.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.accelerator.Variable">
+<em class="property">class </em><code class="descclassname">model.accelerators.accelerator.</code><code class="descname">Variable</code><span class="sig-paren">(</span><em>name</em>, <em>elements</em>, <em>classes</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#Variable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.Variable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic corrector variable class that holds name, position (s) and
+physical elements it affectes. This variables should be logical variables
+that should have and effect in the model if modified.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="model.accelerators.accelerator.get_commonbpm">
+<code class="descclassname">model.accelerators.accelerator.</code><code class="descname">get_commonbpm</code><span class="sig-paren">(</span><em>key1</em>, <em>key2</em>, <em>commonbpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/accelerator.html#get_commonbpm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.accelerator.get_commonbpm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns index and bpm name of key1, if found. Otherwise of key2.
+Raises KeyError if none is found.
+TODO: &#64;Andreas, does that need to be here? Also why not use pythonic ways?
+TODO: &#64;Andreas: DONT NAME SOMETHING COMMOMBPMS IF ITS A DATAFRAME ONLY HAVING AN INDEX WITH BPMS
+!!!!!!!!! FFS !!!!!!!!</p>
+<dl class="docutils">
+<dt>try:</dt>
+<dd>return list(commonbpms.index).index(key1), key1</dd>
+<dt>except ValueError:</dt>
+<dd>return list(commonbpms.index).index(key2), key2</dd>
+</dl>
+<p>(try-except around the second return for raising KeyError with message)</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-model.accelerators.lhc">
+<span id="module-model-accelerators-lhc"></span><h3>Module model.accelerators.lhc<a class="headerlink" href="#module-model.accelerators.lhc" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="model.accelerators.lhc.HlLhc10">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">HlLhc10</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#HlLhc10"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.HlLhc10" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.HlLhc12">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">HlLhc12</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#HlLhc12"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.HlLhc12" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.HlLhc12NewCircuit">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">HlLhc12NewCircuit</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#HlLhc12NewCircuit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.HlLhc12NewCircuit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.HlLhc12NoQ2Trim">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">HlLhc12NoQ2Trim</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#HlLhc12NoQ2Trim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.HlLhc12NoQ2Trim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.HlLhc13">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">HlLhc13</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#HlLhc13"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.HlLhc13" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.Lhc">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">Lhc</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parent Class for Lhc-Types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>Required</strong> -- </li>
+<li><strong>nat_tune_x</strong> (<em>float</em>) -- Natural tune X without integer part.
+<strong>Flags</strong>: [‘--nattunex’]</li>
+<li><strong>nat_tune_y</strong> (<em>float</em>) -- Natural tune Y without integer part.
+<strong>Flags</strong>: [‘--nattuney’]</li>
+<li><strong>optics</strong> (<em>str</em>) -- Path to the optics file to use (modifiers file).
+<strong>Flags</strong>: [‘--optics’]</li>
+<li><strong>Optional</strong> -- </li>
+<li><strong>acd</strong> (<em>bool</em>) -- Activate excitation with ACD.
+<strong>Flags</strong>: [‘--acd’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">False</span></code></li>
+<li><strong>adt</strong> (<em>bool</em>) -- Activate excitation with ADT.
+<strong>Flags</strong>: [‘--adt’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">False</span></code></li>
+<li><strong>dpp</strong> (<em>float</em><em> or </em><em>list</em>) -- Delta p/p to use.
+<strong>Flags</strong>: [‘--dpp’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">0.0</span></code></li>
+<li><strong>drv_tune_x</strong> (<em>float</em>) -- Driven tune X without integer part.
+<strong>Flags</strong>: [‘--drvtunex’]</li>
+<li><strong>drv_tune_y</strong> (<em>float</em>) -- Driven tune Y without integer part.
+<strong>Flags</strong>: [‘--drvtuney’]</li>
+<li><strong>energy</strong> (<em>float</em>) -- Energy in Tev.
+<strong>Flags</strong>: [‘--energy’]</li>
+<li><strong>fullresponse</strong> (<em>bool</em>) -- If True, fullresponse template will be filled</li>
+<li><strong>put in the output directory.</strong> (<em>and</em>) -- <strong>Flags</strong>: [‘--fullresponse’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">False</span></code></li>
+<li><strong>xing</strong> (<em>bool</em>) -- If True, x-ing  angles will be applied to model
+<strong>Flags</strong>: [‘--xing’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">False</span></code></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_basic_seq_job">
+<code class="descname">get_basic_seq_job</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_basic_seq_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_basic_seq_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return string for madx job of correting model</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_best_knowledge_model_tfs">
+<code class="descname">get_best_knowledge_model_tfs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_best_knowledge_model_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_best_knowledge_model_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the best knowledge model tfs file.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.lhc.Lhc.get_class">
+<em class="property">classmethod </em><code class="descname">get_class</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns LHC subclass .</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first simple">
+<li><strong>Optional</strong> -- </li>
+<li><strong>beam</strong> (<em>int</em>) -- Beam to use.
+<strong>Flags</strong>: [‘--beam’]</li>
+<li><strong>lhc_mode</strong> (<em>str</em>) -- LHC mode to use.
+<strong>Flags</strong>: [‘--lhcmode’]
+<strong>Choices</strong>: [‘lhc_runII_2016_ats’, ‘hllhc12’, ‘hllhc10’, ‘lhc_runI’,
+‘lhc_runII’, ‘lhc_runII_2016’, ‘lhc_runII_2017’]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Lhc subclass.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.lhc.Lhc.get_class_and_unknown">
+<em class="property">classmethod </em><code class="descname">get_class_and_unknown</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_class_and_unknown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_class_and_unknown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns LHC subclass and unkown args .</p>
+<p>For the desired philosophy of returning parameters all the time,
+try to avoid this function, e.g. parse outside parameters first.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_driven_tfs">
+<code class="descname">get_driven_tfs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_driven_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_driven_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the driven model tfs file.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.lhc.Lhc.get_element_types_mask">
+<em class="property">classmethod </em><code class="descname">get_element_types_mask</code><span class="sig-paren">(</span><em>list_of_elements</em>, <em>types</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_element_types_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_element_types_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return boolean mask for elements in list_of_elements that belong
+to any of the specified types.
+Needs to handle: “bpm”, “magnet”, “arc_bpm”</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>list_of_elements</strong> -- List of elements</li>
+<li><strong>types</strong> -- Kinds of elements to look for</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Boolean array of elements of specified kinds.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_elements_tfs">
+<code class="descname">get_elements_tfs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_elements_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_elements_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the elements tfs file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_errordefspath">
+<code class="descname">get_errordefspath</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_errordefspath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_errordefspath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the path to the uncertainty definitions file (formerly called error definitions file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_exciter_bpm">
+<code class="descname">get_exciter_bpm</code><span class="sig-paren">(</span><em>plane</em>, <em>commonbpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_exciter_bpm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_exciter_bpm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the BPM next to the exciter.
+The accelerator instance knows already which excitation method is used.
+distance: 1=nearest bpm 2=next to nearest bpm</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_exciter_name">
+<code class="descname">get_exciter_name</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_exciter_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_exciter_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the name of the exciter.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.lhc.Lhc.get_ips">
+<em class="property">classmethod </em><code class="descname">get_ips</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_ips"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_ips" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterable with this accelerator IPs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(“ip name”, “left BPM name”, “right BPM name”)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">An iterator returning tuples with</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.lhc.Lhc.get_iteration_tmpl">
+<em class="property">classmethod </em><code class="descname">get_iteration_tmpl</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_iteration_tmpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_iteration_tmpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns template to create fullresponse.
+TODO: only in _prepare_fullresponse in creator! Needs to be replaced by get_basic_seq</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_k_first_BPM">
+<code class="descname">get_k_first_BPM</code><span class="sig-paren">(</span><em>index</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_k_first_BPM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_k_first_BPM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the position of something in list_of_bpms TODO: ASK ANDREAS</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_model_tfs">
+<code class="descname">get_model_tfs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_model_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_model_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the model tfs file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_multi_dpp_job">
+<code class="descname">get_multi_dpp_job</code><span class="sig-paren">(</span><em>dpp_list</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_multi_dpp_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_multi_dpp_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return madx job to create twisses (models) with dpps from dpp_list</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.lhc.Lhc.get_nominal_tmpl">
+<em class="property">classmethod </em><code class="descname">get_nominal_tmpl</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_nominal_tmpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_nominal_tmpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns template for nominal model (Model Creator)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_s_first_BPM">
+<code class="descname">get_s_first_BPM</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_s_first_BPM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_s_first_BPM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the position of the first BPM in turn by turn acquisition.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.get_update_correction_job">
+<code class="descname">get_update_correction_job</code><span class="sig-paren">(</span><em>tiwss_out_path</em>, <em>corrections_file_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_update_correction_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_update_correction_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return string for madx job of correcting model</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.lhc.Lhc.get_variables">
+<em class="property">classmethod </em><code class="descname">get_variables</code><span class="sig-paren">(</span><em>frm=None</em>, <em>to=None</em>, <em>classes=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.get_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.get_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the variables with elements in the given range and the given
+classes. None means everything.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.lhc.Lhc.init_and_get_unknowns">
+<em class="property">classmethod </em><code class="descname">init_and_get_unknowns</code><span class="sig-paren">(</span><em>args=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.init_and_get_unknowns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.init_and_get_unknowns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes but also returns unknowns.</p>
+<p>For the desired philosophy of returning parameters all the time,
+try to avoid this function, e.g. parse outside parameters first.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.lhc.Lhc.verify_object">
+<code class="descname">verify_object</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#Lhc.verify_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.Lhc.verify_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verifies if everything is defined which should be defined</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.LhcAts">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">LhcAts</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#LhcAts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.LhcAts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.LhcRunI">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">LhcRunI</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#LhcRunI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.LhcRunI" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.LhcRunII2015">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">LhcRunII2015</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#LhcRunII2015"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.LhcRunII2015" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.LhcRunII2016">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">LhcRunII2016</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#LhcRunII2016"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.LhcRunII2016" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.LhcRunII2016Ats">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">LhcRunII2016Ats</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#LhcRunII2016Ats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.LhcRunII2016Ats" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.LhcRunII2017">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">LhcRunII2017</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#LhcRunII2017"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.LhcRunII2017" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="model.accelerators.lhc.LhcRunII2018">
+<em class="property">class </em><code class="descclassname">model.accelerators.lhc.</code><code class="descname">LhcRunII2018</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/lhc.html#LhcRunII2018"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.lhc.LhcRunII2018" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-model.accelerators.esrf">
+<span id="module-model-accelerators-esrf"></span><h3>Module model.accelerators.esrf<a class="headerlink" href="#module-model.accelerators.esrf" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="model.accelerators.esrf.Esrf">
+<em class="property">class </em><code class="descclassname">model.accelerators.esrf.</code><code class="descname">Esrf</code><a class="reference internal" href="../_modules/model/accelerators/esrf.html#Esrf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.esrf.Esrf" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="classmethod">
+<dt id="model.accelerators.esrf.Esrf.get_class">
+<em class="property">classmethod </em><code class="descname">get_class</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/esrf.html#Esrf.get_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.esrf.Esrf.get_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method should return the accelerator class defined
+in the arguments.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.esrf.Esrf.get_element_types_mask">
+<em class="property">classmethod </em><code class="descname">get_element_types_mask</code><span class="sig-paren">(</span><em>list_of_elements</em>, <em>types</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/esrf.html#Esrf.get_element_types_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.esrf.Esrf.get_element_types_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return boolean mask for elements in list_of_elements that belong
+to any of the specified types.
+Needs to handle: “bpm”, “magnet”, “arc_bpm”, “amp_bpm”
+TODO: implement “magnet”</p>
+<dl class="docutils">
+<dt>arc_bpms are the ones with high beta, which are:</dt>
+<dd>bpms 1-5 in even cells.
+bpms 3-7 in odd cells.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>list_of_elements</strong> -- List of elements</li>
+<li><strong>types</strong> -- Kinds of elements to look for</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Boolean array of elements of specified kinds.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-model.accelerators.psbooster">
+<span id="module-model-accelerators-psbooster"></span><h3>Module model.accelerators.psbooster<a class="headerlink" href="#module-model.accelerators.psbooster" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="model.accelerators.psbooster.Psbooster">
+<em class="property">class </em><code class="descclassname">model.accelerators.psbooster.</code><code class="descname">Psbooster</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/psbooster.html#Psbooster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.psbooster.Psbooster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parent Class for Psbooster-Types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>Required</strong> -- </li>
+<li><strong>ring</strong> (<em>int</em>) -- Ring number.
+<strong>Flags</strong>: [‘--ring’]</li>
+<li><strong>nat_tune_x</strong> (<em>float</em>) -- Natural tune X without integer part.
+<strong>Flags</strong>: [‘--nattunex’]</li>
+<li><strong>nat_tune_y</strong> (<em>float</em>) -- Natural tune Y without integer part.
+<strong>Flags</strong>: [‘--nattuney’]</li>
+<li><strong>Optional</strong> -- </li>
+<li><strong>acd</strong> (<em>bool</em>) -- Activate excitation with ACD.
+<strong>Flags</strong>: [‘--acd’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">False</span></code></li>
+<li><strong>drv_tune_x</strong> (<em>float</em>) -- Driven tune X without integer part.
+<strong>Flags</strong>: [‘--drvtunex’]</li>
+<li><strong>drv_tune_y</strong> (<em>float</em>) -- Driven tune Y without integer part.
+<strong>Flags</strong>: [‘--drvtuney’]</li>
+<li><strong>energy</strong> (<em>float</em>) -- Energy in Tev.
+<strong>Flags</strong>: [‘--energy’]</li>
+<li><strong>fullresponse</strong> (<em>bool</em>) -- If present, fullresponse template willbe filled and put
+in the output directory.
+<strong>Flags</strong>: [‘--fullresponse’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">False</span></code></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="model.accelerators.psbooster.Psbooster.get_class">
+<em class="property">classmethod </em><code class="descname">get_class</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/psbooster.html#Psbooster.get_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.psbooster.Psbooster.get_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Psbooster class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first simple">
+<li><strong>Optional</strong> -- </li>
+<li><strong>ring</strong> (<em>int</em>) -- Ring to use.
+<strong>Flags</strong>: [‘--ring’]
+<strong>Choices</strong>: [1, 2, 3, 4]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Psbooster class.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.psbooster.Psbooster.get_class_and_unknown">
+<em class="property">classmethod </em><code class="descname">get_class_and_unknown</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/psbooster.html#Psbooster.get_class_and_unknown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.psbooster.Psbooster.get_class_and_unknown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Psbooster subclass and unkown args .</p>
+<p>For the desired philosophy of returning parameters all the time,
+try to avoid this function, e.g. parse outside parameters first.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.psbooster.Psbooster.get_element_types_mask">
+<em class="property">classmethod </em><code class="descname">get_element_types_mask</code><span class="sig-paren">(</span><em>list_of_elements</em>, <em>types</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/psbooster.html#Psbooster.get_element_types_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.psbooster.Psbooster.get_element_types_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return boolean mask for elements in list_of_elements that belong
+to any of the specified types.
+Needs to handle: “bpm”, “magnet”, “arc_bpm”</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>list_of_elements</strong> -- List of elements</li>
+<li><strong>types</strong> -- Kinds of elements to look for</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Boolean array of elements of specified kinds.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.psbooster.Psbooster.get_iteration_tmpl">
+<em class="property">classmethod </em><code class="descname">get_iteration_tmpl</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/psbooster.html#Psbooster.get_iteration_tmpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.psbooster.Psbooster.get_iteration_tmpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns template to create fullresponse.
+TODO: only in _prepare_fullresponse in creator! Needs to be replaced by get_basic_seq</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.psbooster.Psbooster.get_nominal_tmpl">
+<em class="property">classmethod </em><code class="descname">get_nominal_tmpl</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/psbooster.html#Psbooster.get_nominal_tmpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.psbooster.Psbooster.get_nominal_tmpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns template for nominal model (Model Creator)</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="model.accelerators.psbooster.Psbooster.init_and_get_unknowns">
+<em class="property">classmethod </em><code class="descname">init_and_get_unknowns</code><span class="sig-paren">(</span><em>args=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/psbooster.html#Psbooster.init_and_get_unknowns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.psbooster.Psbooster.init_and_get_unknowns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes but also returns unknowns.</p>
+<p>For the desired philosophy of returning parameters all the time,
+try to avoid this function, e.g. parse outside parameters first.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="model.accelerators.psbooster.Psbooster.verify_object">
+<code class="descname">verify_object</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/model/accelerators/psbooster.html#Psbooster.verify_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#model.accelerators.psbooster.Psbooster.verify_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verifies that this instance of an accelerator is properly
+instantiated.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../online_model/index.html" class="btn btn-neutral float-right" title="Online Model Tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../harmonic_analysis/index.html" class="btn btn-neutral float-left" title="Harmonic Analysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

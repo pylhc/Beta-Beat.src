@@ -1,0 +1,528 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>tfs_files.tfs_pandas &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>tfs_files.tfs_pandas</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tfs_files.tfs_pandas</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module tfs_files.tfs_pandas</span>
+<span class="sd">---------------------------------</span>
+
+<span class="sd">Pandas wrapper to read and write TFS-files.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_file_writer</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">LOGGER</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">NullHandler</span><span class="p">())</span>
+
+<span class="n">HEADER</span> <span class="o">=</span> <span class="s2">&quot;@&quot;</span>
+<span class="n">NAMES</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span>
+<span class="n">TYPES</span> <span class="o">=</span> <span class="s2">&quot;$&quot;</span>
+<span class="n">COMMENTS</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
+<span class="n">INDEX_ID</span> <span class="o">=</span> <span class="s2">&quot;INDEX&amp;&amp;&amp;&quot;</span>
+
+<span class="n">FLOAT_PARENTS</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">)</span>
+<span class="n">INT_PARENTS</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TypeToIdConverter"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_pandas.TypeToIdConverter">[docs]</a><span class="k">class</span> <span class="nc">TypeToIdConverter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; For symmetry reasons. &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">INT_PARENTS</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span>
+        <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">FLOAT_PARENTS</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%le</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span></div>
+
+
+<span class="n">TYPE_TO_ID</span> <span class="o">=</span> <span class="n">TypeToIdConverter</span><span class="p">()</span>
+
+<span class="n">ID_TO_TYPE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">str</span><span class="p">,</span>
+    <span class="s2">&quot;%bpm_s&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">str</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="si">%le</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="si">%f</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="si">%hd</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="TfsDataFrame"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_pandas.TfsDataFrame">[docs]</a><span class="k">class</span> <span class="nc">TfsDataFrame</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold the information of the built Pandas DataFrame,</span>
+<span class="sd">    together with a way of getting the headers of the TFS file.</span>
+<span class="sd">    To get a header value do: data_frame[&quot;header_name&quot;] or</span>
+<span class="sd">    data_frame.header_name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_metadata</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;headers&quot;</span><span class="p">,</span> <span class="s2">&quot;indx&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;headers&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indx</span> <span class="o">=</span> <span class="n">_Indx</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TfsDataFrame</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TfsDataFrame</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">+</span>
+                               <span class="s2">&quot; is not in the DataFrame or headers.&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TfsDataFrame</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span>
+                                     <span class="s2">&quot; is not in the DataFrame or headers.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_constructor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">TfsDataFrame</span></div>
+
+
+<span class="k">class</span> <span class="nc">_Indx</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper class to mock the metaclass twiss.indx[&quot;element_name&quot;]</span>
+<span class="sd">    behaviour.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tfs_data_frame</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tfs_data_frame</span> <span class="o">=</span> <span class="n">tfs_data_frame</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">name_series</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tfs_data_frame</span><span class="o">.</span><span class="n">NAME</span>
+        <span class="k">return</span> <span class="n">name_series</span><span class="p">[</span><span class="n">name_series</span> <span class="o">==</span> <span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="read_tfs"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_pandas.read_tfs">[docs]</a><span class="k">def</span> <span class="nf">read_tfs</span><span class="p">(</span><span class="n">tfs_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parses the TFS table present in tfs_path and returns a custom Pandas</span>
+<span class="sd">    DataFrame (TfsDataFrame).</span>
+<span class="sd">    :param tfs_path: Input filepath</span>
+<span class="sd">    :param index: Name of the column to set as index. If not given looks for INDEX_ID-column</span>
+<span class="sd">    :return: TFS_DataFrame object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reading path: &quot;</span> <span class="o">+</span> <span class="n">tfs_path</span><span class="p">)</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">column_names</span> <span class="o">=</span> <span class="n">column_types</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">rows_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">tfs_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tfs_data</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tfs_data</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">HEADER</span><span class="p">:</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">_parse_header</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="n">headers</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">NAMES</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Setting column names.&quot;</span><span class="p">)</span>
+                <span class="n">column_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">TYPES</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Setting column types.&quot;</span><span class="p">)</span>
+                <span class="n">column_types</span> <span class="o">=</span> <span class="n">_compute_types</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="k">elif</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">COMMENTS</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">column_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">TfsFormatError</span><span class="p">(</span><span class="s2">&quot;Column names have not been set.&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">column_types</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">TfsFormatError</span><span class="p">(</span><span class="s2">&quot;Column types have not been set.&quot;</span><span class="p">)</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">part</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">]</span>
+                <span class="n">rows_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+    <span class="n">data_frame</span> <span class="o">=</span> <span class="n">_create_data_frame</span><span class="p">(</span><span class="n">column_names</span><span class="p">,</span> <span class="n">column_types</span><span class="p">,</span> <span class="n">rows_list</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Use given column as index</span>
+        <span class="n">data_frame</span> <span class="o">=</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Try to find Index automatically</span>
+        <span class="n">index_column</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">INDEX_ID</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index_column</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data_frame</span> <span class="o">=</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">index_column</span><span class="p">)</span>
+            <span class="n">idx_name</span> <span class="o">=</span> <span class="n">index_column</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">INDEX_ID</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">idx_name</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">idx_name</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># to remove it completely (Pandas makes a difference)</span>
+            <span class="n">data_frame</span> <span class="o">=</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">rename_axis</span><span class="p">(</span><span class="n">idx_name</span><span class="p">)</span>
+
+    <span class="c1"># not sure if this is needed in general but some of GetLLM&#39;s functions try to access this</span>
+    <span class="n">headers</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tfs_path</span>
+
+    <span class="n">_validate</span><span class="p">(</span><span class="n">data_frame</span><span class="p">,</span> <span class="s2">&quot;from file &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tfs_path</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">data_frame</span></div>
+
+
+<div class="viewcode-block" id="write_tfs"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_pandas.write_tfs">[docs]</a><span class="k">def</span> <span class="nf">write_tfs</span><span class="p">(</span><span class="n">tfs_path</span><span class="p">,</span> <span class="n">data_frame</span><span class="p">,</span> <span class="n">headers_dict</span><span class="o">=</span><span class="p">{},</span> <span class="n">save_index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Writes the Pandas DataFrame data_frame into tfs_path with the headers_dict</span>
+<span class="sd">    as headers dictionary. If you want to keep the order of the headers, use</span>
+<span class="sd">    collections.OrderedDict.</span>
+<span class="sd">    :param tfs_path: Output filepath</span>
+<span class="sd">    :param data_frame: Data Frame to save</span>
+<span class="sd">    :param headers_dict: Headers of the dataframe, if empty tries to use data_frame.headers</span>
+<span class="sd">    :param save_index: bool or string. If True, saves the index of the data_frame to a column</span>
+<span class="sd">    identifiable by INDEX_ID (will be loaded automatically by read_tfs). If string, it saves</span>
+<span class="sd">    the index of the data_frame to a column named like the string given. Default: False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_validate</span><span class="p">(</span><span class="n">data_frame</span><span class="p">,</span> <span class="s2">&quot;to be written in &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tfs_path</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">save_index</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">save_index</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>
+            <span class="c1"># saves index into column by name given</span>
+            <span class="n">idx_name</span> <span class="o">=</span> <span class="n">save_index</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># saves index into column, which can be found by INDEX_ID</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">idx_name</span> <span class="o">=</span> <span class="n">INDEX_ID</span> <span class="o">+</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">idx_name</span> <span class="o">=</span> <span class="n">INDEX_ID</span>
+        <span class="n">data_frame</span> <span class="o">=</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># otherwise insert changes the original dataframe</span>
+        <span class="n">data_frame</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_name</span><span class="p">,</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="n">tfs_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">tfs_path</span><span class="p">)</span>
+    <span class="n">tfs_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">tfs_path</span><span class="p">)</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Attempting to write file: &quot;</span> <span class="o">+</span> <span class="n">tfs_name</span> <span class="o">+</span> <span class="s2">&quot; in &quot;</span> <span class="o">+</span> <span class="n">tfs_dir</span><span class="p">)</span>
+    <span class="n">tfs_writer</span> <span class="o">=</span> <span class="n">tfs_file_writer</span><span class="o">.</span><span class="n">TfsFileWriter</span><span class="p">(</span><span class="n">tfs_name</span><span class="p">,</span> <span class="n">outputpath</span><span class="o">=</span><span class="n">tfs_dir</span><span class="p">)</span>
+    <span class="n">column_names</span> <span class="o">=</span> <span class="n">_get_column_names</span><span class="p">(</span><span class="n">data_frame</span><span class="p">)</span>
+    <span class="n">column_types</span> <span class="o">=</span> <span class="n">_get_column_types</span><span class="p">(</span><span class="n">data_frame</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">headers_dict</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">headers_dict</span> <span class="o">=</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">headers</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">for</span> <span class="n">head_name</span> <span class="ow">in</span> <span class="n">headers_dict</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">headers_dict</span><span class="p">[</span><span class="n">head_name</span><span class="p">],</span> <span class="n">INT_PARENTS</span><span class="p">):</span>
+            <span class="n">tfs_writer</span><span class="o">.</span><span class="n">add_int_descriptor</span><span class="p">(</span><span class="n">head_name</span><span class="p">,</span> <span class="n">headers_dict</span><span class="p">[</span><span class="n">head_name</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">headers_dict</span><span class="p">[</span><span class="n">head_name</span><span class="p">],</span> <span class="n">FLOAT_PARENTS</span><span class="p">):</span>
+            <span class="n">tfs_writer</span><span class="o">.</span><span class="n">add_float_descriptor</span><span class="p">(</span><span class="n">head_name</span><span class="p">,</span> <span class="n">headers_dict</span><span class="p">[</span><span class="n">head_name</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tfs_writer</span><span class="o">.</span><span class="n">add_string_descriptor</span><span class="p">(</span><span class="n">head_name</span><span class="p">,</span> <span class="n">headers_dict</span><span class="p">[</span><span class="n">head_name</span><span class="p">])</span>
+    <span class="n">tfs_writer</span><span class="o">.</span><span class="n">add_column_names</span><span class="p">(</span><span class="n">column_names</span><span class="p">)</span>
+    <span class="n">tfs_writer</span><span class="o">.</span><span class="n">add_column_datatypes</span><span class="p">(</span><span class="n">column_types</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">tfs_writer</span><span class="o">.</span><span class="n">add_table_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">tfs_writer</span><span class="o">.</span><span class="n">write_to_file</span><span class="p">()</span></div>
+
+    <span class="c1"># if save_index:</span>
+    <span class="c1">#     data_frame.drop(idx_name, &quot;columns&quot;, inplace=True)</span>
+
+
+<div class="viewcode-block" id="TfsFormatError"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_pandas.TfsFormatError">[docs]</a><span class="k">class</span> <span class="nc">TfsFormatError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Raised when wrong format is detected in the TFS file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<span class="k">def</span> <span class="nf">_create_data_frame</span><span class="p">(</span><span class="n">column_names</span><span class="p">,</span> <span class="n">column_types</span><span class="p">,</span> <span class="n">rows_list</span><span class="p">,</span> <span class="n">headers</span><span class="p">):</span>
+    <span class="n">data_frame</span> <span class="o">=</span> <span class="n">TfsDataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rows_list</span><span class="p">),</span>
+                              <span class="n">columns</span><span class="o">=</span><span class="n">column_names</span><span class="p">,</span>
+                              <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+    <span class="n">_assign_column_types</span><span class="p">(</span><span class="n">data_frame</span><span class="p">,</span> <span class="n">column_names</span><span class="p">,</span> <span class="n">column_types</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data_frame</span>
+
+
+<span class="k">def</span> <span class="nf">_assign_column_types</span><span class="p">(</span><span class="n">data_frame</span><span class="p">,</span> <span class="n">column_names</span><span class="p">,</span> <span class="n">column_types</span><span class="p">):</span>
+    <span class="n">names_to_types</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">column_names</span><span class="p">,</span> <span class="n">column_types</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names_to_types</span><span class="p">:</span>
+        <span class="n">data_frame</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_frame</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">names_to_types</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_types</span><span class="p">(</span><span class="n">str_list</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">_id_to_type</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="k">for</span> <span class="n">string</span> <span class="ow">in</span> <span class="n">str_list</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_header</span><span class="p">(</span><span class="n">str_list</span><span class="p">):</span>
+    <span class="n">type_idx</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">str_list</span><span class="p">)</span> <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;%&quot;</span><span class="p">)),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">type_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">TfsFormatError</span><span class="p">(</span><span class="s2">&quot;No data type found in header: &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">str_list</span><span class="p">)))</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">str_list</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">type_idx</span><span class="p">])</span>
+    <span class="n">value_str</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">str_list</span><span class="p">[(</span><span class="n">type_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">):])</span>
+    <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">_id_to_type</span><span class="p">(</span><span class="n">str_list</span><span class="p">[</span><span class="n">type_idx</span><span class="p">])(</span><span class="n">value_str</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_id_to_type</span><span class="p">(</span><span class="n">type_str</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ID_TO_TYPE</span><span class="p">[</span><span class="n">type_str</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">type_str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;%&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">type_str</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span>
+        <span class="n">_raise_unknown_type</span><span class="p">(</span><span class="n">type_str</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_type_to_id</span><span class="p">(</span><span class="n">type_f</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">TYPE_TO_ID</span><span class="p">[</span><span class="n">type_f</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_get_column_names</span><span class="p">(</span><span class="n">data_frame</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span>
+
+
+<span class="k">def</span> <span class="nf">_get_column_types</span><span class="p">(</span><span class="n">data_frame</span><span class="p">):</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">type_f</span> <span class="o">=</span> <span class="n">data_frame</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="n">types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_type_to_id</span><span class="p">(</span><span class="n">type_f</span><span class="o">.</span><span class="n">type</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">types</span>
+
+
+<span class="k">def</span> <span class="nf">_raise_unknown_type</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="n">TfsFormatError</span><span class="p">(</span><span class="s2">&quot;Unknown data type: &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="n">data_frame</span><span class="p">,</span> <span class="n">info_str</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Check if Dataframe contains finite values only &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">isnotfinite</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="c1"># most likely string</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="c1"># single entry</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="n">bool_df</span> <span class="o">=</span> <span class="n">data_frame</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">isnotfinite</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bool_df</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;DataFrame </span><span class="si">{:s}</span><span class="s2"> contains non-physical values at Index: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">info_str</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">bool_df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">bool_df</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;columns&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;DataFrame </span><span class="si">{:s}</span><span class="s2"> validated.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">info_str</span><span class="p">))</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

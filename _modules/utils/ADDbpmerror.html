@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>utils.ADDbpmerror &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>utils.ADDbpmerror</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for utils.ADDbpmerror</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Created April, 2014</span>
+
+<span class="sd">:maintainer: Yngve Inntjore Levinsen</span>
+
+<span class="sd">:author: Yngve Inntjore Levinsen (based on awk script by Rogelio Tomas)</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">numpy.random</span> <span class="kn">import</span> <span class="n">normal</span><span class="p">,</span> <span class="n">randint</span>
+
+<div class="viewcode-block" id="convert_files"><a class="viewcode-back" href="../../utils/index.html#utils.ADDbpmerror.convert_files">[docs]</a><span class="k">def</span> <span class="nf">convert_files</span><span class="p">(</span> <span class="n">nparticles</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">infile</span><span class="o">=</span><span class="s1">&#39;trackone&#39;</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="s1">&#39;ALLBPMs&#39;</span><span class="p">,</span> <span class="n">x_error</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y_error</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">n_faulty</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Similar to the old awk script ALLBPMs.</span>
+
+<span class="sd">    The main difference is that this can handle track files with more than one particle.</span>
+<span class="sd">    In this case it will write each particle track to different files</span>
+
+<span class="sd">    :param int nparticles: Number of particles in the track file</span>
+<span class="sd">    :param string infile: Name of input file</span>
+<span class="sd">    :param string outfile: Name of output file</span>
+<span class="sd">    :param float x_error: Sigma of noise in horizontal plane</span>
+<span class="sd">    :param float y_error: Sigma of noise in vertical plane</span>
+<span class="sd">    :param int n_faulty: Number of faulty BPMs</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Print information:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Parsing Mad-X track file </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span><span class="n">outfile</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">x_error</span> <span class="ow">or</span> <span class="n">y_error</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Adding random errors with sigma </span><span class="si">%f</span><span class="s2"> horizontal, and </span><span class="si">%f</span><span class="s2"> vertical&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">x_error</span><span class="p">,</span><span class="n">y_error</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">n_faulty</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Adding </span><span class="si">%i</span><span class="s2"> faulty BPM&#39;s&quot;</span><span class="o">%</span><span class="n">n_faulty</span><span class="p">)</span>
+
+    <span class="n">bpm_name</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+    <span class="n">x</span><span class="o">=</span><span class="p">[{}</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">nparticles</span><span class="p">)]</span>
+    <span class="n">y</span><span class="o">=</span><span class="p">[{}</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">nparticles</span><span class="p">)]</span>
+    <span class="n">bpms</span><span class="o">=</span><span class="p">[]</span>
+    <span class="n">bpm_loc</span><span class="o">=</span><span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">file</span><span class="p">(</span><span class="n">infile</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;@&#39;</span><span class="p">,</span><span class="s1">&#39;*&#39;</span><span class="p">,</span><span class="s1">&#39;$&#39;</span><span class="p">]:</span>
+            <span class="k">continue</span>
+        <span class="n">lsp</span><span class="o">=</span><span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">lsp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;#segment&#39;</span><span class="p">:</span>
+                <span class="n">bpm_name</span><span class="o">=</span><span class="n">lsp</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">bpm_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)):</span>
+                        <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">bpm_name</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+                        <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">bpm_name</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">elif</span> <span class="s1">&#39;BPM&#39;</span> <span class="ow">in</span> <span class="n">bpm_name</span> <span class="ow">or</span> <span class="s1">&#39;PICK&#39;</span> <span class="ow">in</span> <span class="n">bpm_name</span><span class="p">:</span>  <span class="c1"># PICK for ESRF</span>
+            <span class="n">pid</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">lsp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">-</span><span class="mi">1</span>
+            <span class="k">if</span> <span class="n">bpm_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bpms</span><span class="p">:</span>
+                <span class="n">bpms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bpm_name</span><span class="p">)</span>
+                <span class="n">bpm_loc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lsp</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">x_error</span> <span class="ow">and</span> <span class="n">y_error</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">pid</span><span class="p">][</span><span class="n">bpm_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">lsp</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">+</span> <span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">x_error</span><span class="p">)))</span>
+                <span class="n">y</span><span class="p">[</span><span class="n">pid</span><span class="p">][</span><span class="n">bpm_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">lsp</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span> <span class="o">*</span> <span class="mi">1000</span> <span class="o">+</span> <span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y_error</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">[</span><span class="n">pid</span><span class="p">][</span><span class="n">bpm_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">lsp</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">))</span>
+                <span class="n">y</span><span class="p">[</span><span class="n">pid</span><span class="p">][</span><span class="n">bpm_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">lsp</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">n_faulty</span><span class="p">:</span>
+        <span class="n">failing_bpms</span><span class="o">=</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">bpms</span><span class="p">)</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span><span class="n">n_faulty</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">failing_bpms</span><span class="o">=</span><span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">pid</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">nparticles</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Writing particle&quot;</span><span class="p">,</span><span class="n">pid</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nparticles</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">fout</span><span class="o">=</span><span class="n">file</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%i</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span><span class="n">pid</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fout</span><span class="o">=</span><span class="n">file</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;# title</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bpms</span><span class="p">)):</span>
+            <span class="n">bpm</span><span class="o">=</span><span class="n">bpms</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">s</span><span class="o">=</span><span class="n">bpm_loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">failing_bpms</span><span class="p">:</span>
+                <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;0&#39;</span><span class="p">,</span><span class="n">bpm</span><span class="p">,</span><span class="n">s</span><span class="p">]</span><span class="o">+</span><span class="n">x</span><span class="p">[</span><span class="n">pid</span><span class="p">][</span><span class="n">bpm</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">bpms</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">failing_bpms</span><span class="p">:</span>
+                <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="n">bpm</span><span class="p">,</span><span class="n">s</span><span class="p">]</span><span class="o">+</span><span class="n">y</span><span class="p">[</span><span class="n">pid</span><span class="p">][</span><span class="n">bpm</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">convert_files</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

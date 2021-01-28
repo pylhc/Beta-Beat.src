@@ -1,0 +1,1305 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>model.accelerators.lhc &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>model.accelerators.lhc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for model.accelerators.lhc</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">model.accelerators.accelerator</span> <span class="kn">import</span> <span class="n">Accelerator</span><span class="p">,</span> <span class="n">AcceleratorDefinitionError</span><span class="p">,</span> <span class="n">Element</span><span class="p">,</span> <span class="n">AccExcitationMode</span><span class="p">,</span> \
+    <span class="n">get_commonbpm</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_pandas</span>
+<span class="kn">from</span> <span class="nn">utils.entrypoint</span> <span class="kn">import</span> <span class="n">EntryPoint</span><span class="p">,</span> <span class="n">EntryPointParameters</span><span class="p">,</span> <span class="n">split_arguments</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">CURRENT_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
+<span class="n">LHC_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CURRENT_DIR</span><span class="p">,</span> <span class="s2">&quot;lhc&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_lhc_modes</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;lhc_runI&quot;</span><span class="p">:</span> <span class="n">LhcRunI</span><span class="p">,</span>
+        <span class="s2">&quot;lhc_runII&quot;</span><span class="p">:</span> <span class="n">LhcRunII2015</span><span class="p">,</span>
+        <span class="s2">&quot;lhc_runII_2016&quot;</span><span class="p">:</span> <span class="n">LhcRunII2016</span><span class="p">,</span>
+        <span class="s2">&quot;lhc_runII_2016_ats&quot;</span><span class="p">:</span> <span class="n">LhcRunII2016Ats</span><span class="p">,</span>
+        <span class="s2">&quot;lhc_runII_2017&quot;</span><span class="p">:</span> <span class="n">LhcRunII2017</span><span class="p">,</span>
+        <span class="s2">&quot;lhc_runII_2018&quot;</span><span class="p">:</span> <span class="n">LhcRunII2018</span><span class="p">,</span>
+        <span class="s2">&quot;hllhc10&quot;</span><span class="p">:</span> <span class="n">HlLhc10</span><span class="p">,</span>
+        <span class="s2">&quot;hllhc12&quot;</span><span class="p">:</span> <span class="n">HlLhc12</span><span class="p">,</span>
+        <span class="s2">&quot;hllhc13&quot;</span><span class="p">:</span> <span class="n">HlLhc13</span><span class="p">,</span>
+    <span class="p">}</span>
+
+
+<div class="viewcode-block" id="Lhc"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc">[docs]</a><span class="k">class</span> <span class="nc">Lhc</span><span class="p">(</span><span class="n">Accelerator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Parent Class for Lhc-Types.</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        Required</span>
+<span class="sd">        nat_tune_x (float): Natural tune X without integer part.</span>
+<span class="sd">                            **Flags**: [&#39;--nattunex&#39;]</span>
+<span class="sd">        nat_tune_y (float): Natural tune Y without integer part.</span>
+<span class="sd">                            **Flags**: [&#39;--nattuney&#39;]</span>
+<span class="sd">        optics (str): Path to the optics file to use (modifiers file).</span>
+<span class="sd">                      **Flags**: [&#39;--optics&#39;]</span>
+
+<span class="sd">        Optional</span>
+<span class="sd">        acd (bool): Activate excitation with ACD.</span>
+<span class="sd">                    **Flags**: [&#39;--acd&#39;]</span>
+<span class="sd">                    **Default**: ``False``</span>
+<span class="sd">        adt (bool): Activate excitation with ADT.</span>
+<span class="sd">                    **Flags**: [&#39;--adt&#39;]</span>
+<span class="sd">                    **Default**: ``False``</span>
+<span class="sd">        dpp (float or list): Delta p/p to use.</span>
+<span class="sd">                     **Flags**: [&#39;--dpp&#39;]</span>
+<span class="sd">                     **Default**: ``0.0``</span>
+<span class="sd">        drv_tune_x (float): Driven tune X without integer part.</span>
+<span class="sd">                            **Flags**: [&#39;--drvtunex&#39;]</span>
+<span class="sd">        drv_tune_y (float): Driven tune Y without integer part.</span>
+<span class="sd">                            **Flags**: [&#39;--drvtuney&#39;]</span>
+<span class="sd">        energy (float): Energy in Tev.</span>
+<span class="sd">                        **Flags**: [&#39;--energy&#39;]</span>
+<span class="sd">        fullresponse (bool): If True, fullresponse template will be filled</span>
+<span class="sd">        and put in the output directory.</span>
+<span class="sd">                             **Flags**: [&#39;--fullresponse&#39;]</span>
+<span class="sd">                             **Default**: ``False``</span>
+<span class="sd">        xing (bool): If True, x-ing  angles will be applied to model</span>
+<span class="sd">                     **Flags**: [&#39;--xing&#39;]</span>
+<span class="sd">                     **Default**: ``False``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;lhc&quot;</span>
+    <span class="n">MACROS_NAME</span> <span class="o">=</span> <span class="s2">&quot;lhc&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_class_parameters</span><span class="p">():</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPointParameters</span><span class="p">()</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--lhcmode&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;LHC mode to use. Should be one of: &quot;</span> <span class="o">+</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="n">get_lhc_modes</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lhc_mode&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="n">get_lhc_modes</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--beam&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Beam to use.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;beam&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">params</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_instance_parameters</span><span class="p">():</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPointParameters</span><span class="p">()</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--model_dir&quot;</span><span class="p">,</span> <span class="s2">&quot;-m&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to model directory (loads tunes and excitation from model!).&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;model_dir&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--nattunex&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Natural tune X without integer part.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nat_tune_x&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--nattuney&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Natural tune Y without integer part.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nat_tune_y&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--acd&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Activate excitation with ACD.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;acd&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--adt&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Activate excitation with ADT.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;adt&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--drvtunex&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Driven tune X without integer part.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;drv_tune_x&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--drvtuney&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Driven tune Y without integer part.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;drv_tune_y&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--dpp&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Delta p/p to use.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dpp&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--energy&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Energy in Tev.&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;energy&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--optics&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to the optics file to use (modifiers file).&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;optics&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--fullresponse&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;If True, fullresponse template will &quot;</span>
+                  <span class="s2">&quot;be filled and put in the output directory.&quot;</span><span class="p">),</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;fullresponse&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+            <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--xing&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If True, x-ing  angles will be applied to model&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;xing&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">params</span>
+
+    <span class="c1"># Entry-Point Wrappers #####################################################</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># for reasons of import-order and class creation, decoration was not possible</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instance_parameters</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">model_dir</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_from_model_dir</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">model_dir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dpp</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xing</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">nat_tune_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                    <span class="s2">&quot;Argument &#39;nat_tune_x&#39; not allowed when loading from model directory.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">nat_tune_y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                    <span class="s2">&quot;Argument &#39;nat_tune_y&#39; not allowed when loading from model directory.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">drv_tune_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                    <span class="s2">&quot;Argument &#39;drv_tune_x&#39; not allowed when loading from model directory.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">drv_tune_y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                    <span class="s2">&quot;Argument &#39;drv_tune_y&#39; not allowed when loading from model directory.&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">nat_tune_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Argument &#39;nat_tune_x&#39; is required.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">nat_tune_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Argument &#39;nat_tune_y&#39; is required.&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_x</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">nat_tune_x</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_y</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">nat_tune_y</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_x</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_y</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">=</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">FREE</span>
+
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">acd</span> <span class="ow">or</span> <span class="n">opt</span><span class="o">.</span><span class="n">adt</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">acd</span> <span class="ow">and</span> <span class="n">opt</span><span class="o">.</span><span class="n">adt</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                        <span class="s2">&quot;Select only one excitation type.&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">drv_tune_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Argument &#39;drv_tune_x&#39; is required.&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">drv_tune_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Argument &#39;drv_tune_x&#39; is required.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_x</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">drv_tune_x</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_y</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">drv_tune_y</span>
+
+                <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">acd</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">=</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span>
+                <span class="k">elif</span> <span class="n">opt</span><span class="o">.</span><span class="n">adt</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">=</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span>
+
+            <span class="c1"># optional with default</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dpp</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">dpp</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fullresponse</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">fullresponse</span>
+
+            <span class="c1"># optional no default</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;energy&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xing</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;xing&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;optics&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="c1"># for GetLLM</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_dir</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_driven</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_best_knowledge</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_elements</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_elements_centre</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_errordefspath</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">verify_object</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">init_from_model_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_dir</span><span class="p">):</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating accelerator instance from model dir&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_dir</span> <span class="o">=</span> <span class="n">model_dir</span>
+
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;  model path = &quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;twiss.dat&quot;</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;twiss.dat&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;twiss_elements.dat&quot;</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+            <span class="n">bpm_index</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">idx</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;B&quot;</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bpm_index</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Q1&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_y</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Q2&quot;</span><span class="p">])</span>
+
+        <span class="c1"># Excitations #####################################</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_driven</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_x</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_y</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">=</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">FREE</span>
+
+        <span class="n">ac_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;twiss_ac.dat&quot;</span><span class="p">)</span>
+        <span class="n">adt_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;twiss_adt.dat&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">ac_filename</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_driven</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">ac_filename</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">=</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">adt_filename</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;ADT as well as ACD models provided.&quot;</span>
+                                                 <span class="s2">&quot;Please choose only one.&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_driven</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">adt_filename</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">=</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">FREE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_driven_tfs</span><span class="p">()</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Q1&quot;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_y</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_driven_tfs</span><span class="p">()</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Q2&quot;</span><span class="p">])</span>
+
+        <span class="c1"># Best Knowledge #####################################</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_best_knowledge</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">best_knowledge_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;twiss_best_knowledge.dat&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">best_knowledge_path</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_best_knowledge</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">best_knowledge_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Elements #####################################</span>
+        <span class="n">elements_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;twiss_elements.dat&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">elements_path</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_elements</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">elements_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Elements twiss not found&quot;</span><span class="p">)</span>
+
+        <span class="n">center_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;twiss_elements_centre.dat&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">center_path</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_elements_centre</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">center_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_elements_centre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elements</span>
+
+        <span class="c1"># Optics File #########################################</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">opticsfilepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;modifiers.madx&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">opticsfilepath</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span> <span class="o">=</span> <span class="n">opticsfilepath</span>
+
+        <span class="c1"># Error Def #####################################</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errordefspath</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">errordefspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;error_deff.txt&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">errordefspath</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_errordefspath</span> <span class="o">=</span> <span class="n">errordefspath</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># until we have a proper file name convention</span>
+            <span class="n">errordefspath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;error_deffs.txt&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">errordefspath</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_errordefspath</span> <span class="o">=</span> <span class="n">errordefspath</span>
+
+<div class="viewcode-block" id="Lhc.init_and_get_unknowns"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.init_and_get_unknowns">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">init_and_get_unknowns</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Initializes but also returns unknowns.</span>
+
+<span class="sd">         For the desired philosophy of returning parameters all the time,</span>
+<span class="sd">         try to avoid this function, e.g. parse outside parameters first.</span>
+<span class="sd">         &quot;&quot;&quot;</span>
+        <span class="n">opt</span><span class="p">,</span> <span class="n">rest_args</span> <span class="o">=</span> <span class="n">split_arguments</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_instance_parameters</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">opt</span><span class="p">),</span> <span class="n">rest_args</span></div>
+
+<div class="viewcode-block" id="Lhc.get_class"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_class">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns LHC subclass .</span>
+
+<span class="sd">        Keyword Args:</span>
+<span class="sd">            Optional</span>
+<span class="sd">            beam (int): Beam to use.</span>
+<span class="sd">                        **Flags**: [&#39;--beam&#39;]</span>
+<span class="sd">            lhc_mode (str): LHC mode to use.</span>
+<span class="sd">                            **Flags**: [&#39;--lhcmode&#39;]</span>
+<span class="sd">                            **Choices**: [&#39;lhc_runII_2016_ats&#39;, &#39;hllhc12&#39;, &#39;hllhc10&#39;, &#39;lhc_runI&#39;,</span>
+<span class="sd">                            &#39;lhc_runII&#39;, &#39;lhc_runII_2016&#39;, &#39;lhc_runII_2017&#39;]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Lhc subclass.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_class_parameters</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_class</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Lhc.get_class_and_unknown"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_class_and_unknown">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_class_and_unknown</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns LHC subclass and unkown args .</span>
+
+<span class="sd">        For the desired philosophy of returning parameters all the time,</span>
+<span class="sd">        try to avoid this function, e.g. parse outside parameters first.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_class_parameters</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">opt</span><span class="p">,</span> <span class="n">unknown_opt</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_class</span><span class="p">(</span><span class="n">opt</span><span class="p">),</span> <span class="n">unknown_opt</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">opt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Actual get_class function &quot;&quot;&quot;</span>
+        <span class="n">new_class</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">lhc_mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_class</span> <span class="o">=</span> <span class="n">get_lhc_modes</span><span class="p">()[</span><span class="n">opt</span><span class="o">.</span><span class="n">lhc_mode</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">beam</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_class</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_beamed_class</span><span class="p">(</span><span class="n">new_class</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">beam</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_class</span>
+
+    <span class="c1"># Public Methods ##########################################################</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_segment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">first_elem</span><span class="p">,</span> <span class="n">last_elem</span><span class="p">,</span> <span class="n">optics_file</span><span class="p">,</span> <span class="n">twiss_file</span><span class="p">):</span>
+        <span class="n">segment_cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;Segment&quot;</span><span class="p">,</span>
+                           <span class="p">(</span><span class="n">_LhcSegmentMixin</span><span class="p">,</span> <span class="bp">cls</span><span class="p">),</span>
+                           <span class="p">{})</span>
+        <span class="n">segment_inst</span> <span class="o">=</span> <span class="n">segment_cls</span><span class="p">()</span>
+        <span class="n">beam</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span>
+        <span class="n">bpms_file_name</span> <span class="o">=</span> <span class="s2">&quot;beam1bpms.tfs&quot;</span> <span class="k">if</span> <span class="n">beam</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;beam2bpms.tfs&quot;</span>
+        <span class="n">bpms_file</span> <span class="o">=</span> <span class="n">_get_file_for_year</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">YEAR</span><span class="p">,</span> <span class="n">bpms_file_name</span><span class="p">)</span>
+        <span class="n">bpms_file_data</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">bpms_file</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+        <span class="n">first_elem_s</span> <span class="o">=</span> <span class="n">bpms_file_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">first_elem</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+        <span class="n">last_elem_s</span> <span class="o">=</span> <span class="n">bpms_file_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">last_elem</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">Element</span><span class="p">(</span><span class="n">first_elem</span><span class="p">,</span> <span class="n">first_elem_s</span><span class="p">)</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">Element</span><span class="p">(</span><span class="n">last_elem</span><span class="p">,</span> <span class="n">last_elem_s</span><span class="p">)</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">optics_file</span> <span class="o">=</span> <span class="n">optics_file</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">xing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">fullresponse</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">kind</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="c1"># &#39;&#39; means beta from phase, can be &#39;betaamp&#39;, in the future &#39;betakmod&#39;</span>
+
+        <span class="n">segment_inst</span><span class="o">.</span><span class="n">verify_object</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">segment_inst</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_beamed_class</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">new_class</span><span class="p">,</span> <span class="n">beam</span><span class="p">):</span>
+        <span class="n">beam_mixin</span> <span class="o">=</span> <span class="n">_LhcB1Mixin</span> <span class="k">if</span> <span class="n">beam</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">_LhcB2Mixin</span>
+        <span class="n">beamed_class</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">new_class</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;B&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">beam</span><span class="p">),</span>
+                            <span class="p">(</span><span class="n">new_class</span><span class="p">,</span> <span class="n">beam_mixin</span><span class="p">),</span>
+                            <span class="p">{})</span>
+        <span class="k">return</span> <span class="n">beamed_class</span>
+
+<div class="viewcode-block" id="Lhc.verify_object"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.verify_object">[docs]</a>    <span class="k">def</span> <span class="nf">verify_object</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># TODO: Maybe more checks?</span>
+        <span class="sd">&quot;&quot;&quot;Verifies if everything is defined which should be defined</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Accelerator class verification&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;The accelerator definition is incomplete, beam &quot;</span>
+                <span class="s2">&quot;has to be specified (--beam option missing?).&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># is the class is used to create full response?</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                    <span class="s2">&quot;The accelerator definition is incomplete, optics &quot;</span>
+                    <span class="s2">&quot;file or model directory has not been specified.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xing</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Crossing on or off not set.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Excitation mode not set.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span> <span class="ow">or</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Driven tunes not set.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;Optics file &#39;</span><span class="si">{:s}</span><span class="s2">&#39; does not exist.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span><span class="p">))</span>
+
+        <span class="c1"># print info about the accelerator</span>
+        <span class="c1"># TODO: write more output prints</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;... verification passed. Will now print some information about the accelerator&quot;</span><span class="p">)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:32s}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;class name&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:32s}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;beam&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()))</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:32s}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;beam direction&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam_direction</span><span class="p">()))</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Lhc.get_nominal_tmpl"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_nominal_tmpl">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_nominal_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;nominal.madx&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_nominal_multidpp_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;nominal_multidpp.madx&quot;</span><span class="p">)</span>
+    
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_coupling_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;coupling_correct.madx&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_best_knowledge_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;best_knowledge.madx&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_segment_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;segment.madx&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Lhc.get_iteration_tmpl"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_iteration_tmpl">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_iteration_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;template.iterate.madx&quot;</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_basic_seq_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;template.basic_seq.madx&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_update_correction_tmpl</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="s2">&quot;template.update_correction.madx&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CURRENT_DIR</span><span class="p">,</span> <span class="s2">&quot;lhc&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_sequence_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_get_file_for_year</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">YEAR</span><span class="p">,</span> <span class="s2">&quot;main.seq&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;The accelerator definition is incomplete, mode &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;has to be specified (--lhcmode option missing?).&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="Lhc.get_variables"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_variables">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_variables</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">frm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">correctors_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;2012&quot;</span><span class="p">,</span> <span class="s2">&quot;correctors&quot;</span><span class="p">)</span>
+        <span class="n">all_corrs</span> <span class="o">=</span> <span class="n">_merge_jsons</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">correctors_dir</span><span class="p">,</span> <span class="s2">&quot;correctors_b&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()),</span>
+                         <span class="s2">&quot;beta_correctors.json&quot;</span><span class="p">),</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">correctors_dir</span><span class="p">,</span> <span class="s2">&quot;correctors_b&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()),</span>
+                         <span class="s2">&quot;coupling_correctors.json&quot;</span><span class="p">),</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_get_triplet_correctors_file</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="n">my_classes</span> <span class="o">=</span> <span class="n">classes</span>
+        <span class="k">if</span> <span class="n">my_classes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">my_classes</span> <span class="o">=</span> <span class="n">all_corrs</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="n">vars_by_class</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">_flatten_list</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">all_corrs</span><span class="p">[</span><span class="n">corr_cls</span><span class="p">]</span> <span class="k">for</span> <span class="n">corr_cls</span> <span class="ow">in</span> <span class="n">my_classes</span> <span class="k">if</span> <span class="n">corr_cls</span> <span class="ow">in</span> <span class="n">all_corrs</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">frm</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">to</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">vars_by_class</span><span class="p">)</span>
+        <span class="n">elems_matrix</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_get_corrector_elems</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;S&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">frm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">frm</span> <span class="o">&gt;</span> <span class="n">to</span><span class="p">:</span>
+                <span class="n">elems_matrix</span> <span class="o">=</span> <span class="n">elems_matrix</span><span class="p">[(</span><span class="n">elems_matrix</span><span class="o">.</span><span class="n">S</span> <span class="o">&gt;=</span> <span class="n">frm</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">elems_matrix</span><span class="o">.</span><span class="n">S</span> <span class="o">&lt;=</span> <span class="n">to</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">elems_matrix</span> <span class="o">=</span> <span class="n">elems_matrix</span><span class="p">[(</span><span class="n">elems_matrix</span><span class="o">.</span><span class="n">S</span> <span class="o">&gt;=</span> <span class="n">frm</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">elems_matrix</span><span class="o">.</span><span class="n">S</span> <span class="o">&lt;=</span> <span class="n">to</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">frm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">elems_matrix</span> <span class="o">=</span> <span class="n">elems_matrix</span><span class="p">[</span><span class="n">elems_matrix</span><span class="o">.</span><span class="n">S</span> <span class="o">&gt;=</span> <span class="n">frm</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">elems_matrix</span> <span class="o">=</span> <span class="n">elems_matrix</span><span class="p">[</span><span class="n">elems_matrix</span><span class="o">.</span><span class="n">S</span> <span class="o">&lt;=</span> <span class="n">to</span><span class="p">]</span>
+
+        <span class="n">vars_by_position</span> <span class="o">=</span> <span class="n">_remove_dups_keep_order</span><span class="p">(</span><span class="n">_flatten_list</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">raw_vars</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">raw_vars</span> <span class="ow">in</span> <span class="n">elems_matrix</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;VARS&quot;</span><span class="p">]]</span>
+        <span class="p">))</span>
+        <span class="k">return</span> <span class="n">_list_intersect_keep_order</span><span class="p">(</span><span class="n">vars_by_position</span><span class="p">,</span> <span class="n">vars_by_class</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Lhc.get_update_correction_job"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_update_correction_job">[docs]</a>    <span class="k">def</span> <span class="nf">get_update_correction_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tiwss_out_path</span><span class="p">,</span> <span class="n">corrections_file_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return string for madx job of correcting model &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_update_correction_tmpl</span><span class="p">(),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">template</span><span class="p">:</span>
+            <span class="n">madx_template</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">replace_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;LIB&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">MACROS_NAME</span><span class="p">,</span>
+                <span class="s2">&quot;MAIN_SEQ&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_main_seq_madx</span><span class="p">(),</span>
+                <span class="s2">&quot;OPTICS_PATH&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span><span class="p">,</span>
+                <span class="s2">&quot;CROSSING_ON&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xing</span> <span class="k">else</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;NUM_BEAM&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">(),</span>
+                <span class="s2">&quot;DPP&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dpp</span><span class="p">,</span>
+                <span class="s2">&quot;QMX&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_x</span><span class="p">,</span>
+                <span class="s2">&quot;QMY&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_y</span><span class="p">,</span>
+                <span class="s2">&quot;PATH_TWISS&quot;</span><span class="p">:</span> <span class="n">tiwss_out_path</span><span class="p">,</span>
+                <span class="s2">&quot;CORRECTIONS&quot;</span><span class="p">:</span> <span class="n">corrections_file_path</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;The accelerator definition is incomplete. &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;Needs to be an accelator instance. Also: --lhcmode or --beam option missing?&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">madx_template</span> <span class="o">%</span> <span class="n">replace_dict</span></div>
+
+<div class="viewcode-block" id="Lhc.get_basic_seq_job"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_basic_seq_job">[docs]</a>    <span class="k">def</span> <span class="nf">get_basic_seq_job</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return string for madx job of correting model &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_basic_seq_tmpl</span><span class="p">(),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">template</span><span class="p">:</span>
+            <span class="n">madx_template</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">replace_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;LIB&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">MACROS_NAME</span><span class="p">,</span>
+                <span class="s2">&quot;MAIN_SEQ&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_main_seq_madx</span><span class="p">(),</span>
+                <span class="s2">&quot;OPTICS_PATH&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span><span class="p">,</span>
+                <span class="s2">&quot;CROSSING_ON&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xing</span> <span class="k">else</span> <span class="s2">&quot;0&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;NUM_BEAM&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">(),</span>
+                <span class="s2">&quot;DPP&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dpp</span><span class="p">,</span>
+                <span class="s2">&quot;QMX&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_x</span><span class="p">,</span>
+                <span class="s2">&quot;QMY&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_y</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;The accelerator definition is incomplete. &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;Needs to be an accelator instance. Also: --lhcmode or --beam option missing?&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">madx_template</span> <span class="o">%</span> <span class="n">replace_dict</span></div>
+
+<div class="viewcode-block" id="Lhc.get_multi_dpp_job"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_multi_dpp_job">[docs]</a>    <span class="k">def</span> <span class="nf">get_multi_dpp_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dpp_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return madx job to create twisses (models) with dpps from dpp_list &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_nominal_multidpp_tmpl</span><span class="p">())</span> <span class="k">as</span> <span class="n">textfile</span><span class="p">:</span>
+            <span class="n">madx_template</span> <span class="o">=</span> <span class="n">textfile</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">output_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_dir</span>
+            <span class="n">use_acd</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span> <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span>
+                              <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;0&quot;</span>
+            <span class="n">use_adt</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span> <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span>
+                              <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;0&quot;</span>
+            <span class="n">crossing_on</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xing</span> <span class="k">else</span> <span class="s2">&quot;0&quot;</span>
+            <span class="n">beam</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span>
+
+            <span class="n">replace_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;LIB&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">MACROS_NAME</span><span class="p">,</span>
+                <span class="s2">&quot;MAIN_SEQ&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_main_seq_madx</span><span class="p">(),</span>
+                <span class="s2">&quot;OPTICS_PATH&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span><span class="p">,</span>
+                <span class="s2">&quot;NUM_BEAM&quot;</span><span class="p">:</span> <span class="n">beam</span><span class="p">,</span>
+                <span class="s2">&quot;PATH&quot;</span><span class="p">:</span> <span class="n">output_path</span><span class="p">,</span>
+                <span class="s2">&quot;QMX&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_x</span><span class="p">,</span>
+                <span class="s2">&quot;QMY&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_y</span><span class="p">,</span>
+                <span class="s2">&quot;USE_ACD&quot;</span><span class="p">:</span> <span class="n">use_acd</span><span class="p">,</span>
+                <span class="s2">&quot;USE_ADT&quot;</span><span class="p">:</span> <span class="n">use_adt</span><span class="p">,</span>
+                <span class="s2">&quot;CROSSING_ON&quot;</span><span class="p">:</span> <span class="n">crossing_on</span><span class="p">,</span>
+                <span class="s2">&quot;QX&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;QY&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;QDX&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;QDY&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;DPP&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;DPP_ELEMS&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;DPP_AC&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;DPP_ADT&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="ow">in</span>
+                    <span class="p">(</span><span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">,</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">)):</span>
+                <span class="n">replace_dict</span><span class="p">[</span><span class="s2">&quot;QX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_x</span>
+                <span class="n">replace_dict</span><span class="p">[</span><span class="s2">&quot;QY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_y</span>
+                <span class="n">replace_dict</span><span class="p">[</span><span class="s2">&quot;QDX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_x</span>
+                <span class="n">replace_dict</span><span class="p">[</span><span class="s2">&quot;QDY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_y</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;The accelerator definition is incomplete. &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;Needs to be an accelator instance. Also: --lhcmode or --beam option missing?&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># add different dpp twiss-command lines</span>
+        <span class="n">twisses_tmpl</span> <span class="o">=</span> <span class="s2">&quot;twiss, chrom, sequence=LHCB</span><span class="si">{beam:d}</span><span class="s2">, deltap=</span><span class="si">{dpp:f}</span><span class="s2">, file=&#39;</span><span class="si">{twiss:s}</span><span class="s2">&#39;;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">dpp</span> <span class="ow">in</span> <span class="n">dpp_list</span><span class="p">:</span>
+            <span class="n">replace_dict</span><span class="p">[</span><span class="s2">&quot;DPP&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">twisses_tmpl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">beam</span><span class="o">=</span><span class="n">beam</span><span class="p">,</span>
+                <span class="n">dpp</span><span class="o">=</span><span class="n">dpp</span><span class="p">,</span>
+                <span class="n">twiss</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;twiss_</span><span class="si">{:f}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="n">replace_dict</span><span class="p">[</span><span class="s2">&quot;DPP_ELEMS&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">twisses_tmpl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">beam</span><span class="o">=</span><span class="n">beam</span><span class="p">,</span>
+                <span class="n">dpp</span><span class="o">=</span><span class="n">dpp</span><span class="p">,</span>
+                <span class="n">twiss</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;twiss_</span><span class="si">{:f}</span><span class="s2">_elements.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="n">replace_dict</span><span class="p">[</span><span class="s2">&quot;DPP_AC&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">twisses_tmpl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">beam</span><span class="o">=</span><span class="n">beam</span><span class="p">,</span>
+                <span class="n">dpp</span><span class="o">=</span><span class="n">dpp</span><span class="p">,</span>
+                <span class="n">twiss</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;twiss_</span><span class="si">{:f}</span><span class="s2">_ac.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="n">replace_dict</span><span class="p">[</span><span class="s2">&quot;DPP_ADT&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">twisses_tmpl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">beam</span><span class="o">=</span><span class="n">beam</span><span class="p">,</span>
+                <span class="n">dpp</span><span class="o">=</span><span class="n">dpp</span><span class="p">,</span>
+                <span class="n">twiss</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;twiss_</span><span class="si">{:f}</span><span class="s2">_adt.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">madx_template</span> <span class="o">%</span> <span class="n">replace_dict</span></div>
+
+    <span class="n">LHC_IPS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;5&quot;</span><span class="p">,</span> <span class="s2">&quot;8&quot;</span><span class="p">)</span>
+    <span class="n">NORMAL_IP_BPMS</span> <span class="o">=</span> <span class="s2">&quot;BPMSW.1</span><span class="si">{side}{ip}</span><span class="s2">.B</span><span class="si">{beam}</span><span class="s2">&quot;</span>
+    <span class="n">DOROS_IP_BPMS</span> <span class="o">=</span> <span class="s2">&quot;LHC.BPM.1</span><span class="si">{side}{ip}</span><span class="s2">.B</span><span class="si">{beam}</span><span class="s2">_DOROS&quot;</span>
+
+<div class="viewcode-block" id="Lhc.get_ips"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_ips">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_ips</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns an iterable with this accelerator IPs.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An iterator returning tuples with:</span>
+<span class="sd">                (&quot;ip name&quot;, &quot;left BPM name&quot;, &quot;right BPM name&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">beam</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ip</span> <span class="ow">in</span> <span class="n">Lhc</span><span class="o">.</span><span class="n">LHC_IPS</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="s2">&quot;IP</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ip</span><span class="p">),</span>
+                   <span class="n">Lhc</span><span class="o">.</span><span class="n">NORMAL_IP_BPMS</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="n">ip</span><span class="o">=</span><span class="n">ip</span><span class="p">,</span> <span class="n">beam</span><span class="o">=</span><span class="n">beam</span><span class="p">),</span>
+                   <span class="n">Lhc</span><span class="o">.</span><span class="n">NORMAL_IP_BPMS</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="n">ip</span><span class="o">=</span><span class="n">ip</span><span class="p">,</span> <span class="n">beam</span><span class="o">=</span><span class="n">beam</span><span class="p">))</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="s2">&quot;IP</span><span class="si">{}</span><span class="s2">_DOROS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ip</span><span class="p">),</span>
+                   <span class="n">Lhc</span><span class="o">.</span><span class="n">DOROS_IP_BPMS</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s2">&quot;L&quot;</span><span class="p">,</span> <span class="n">ip</span><span class="o">=</span><span class="n">ip</span><span class="p">,</span> <span class="n">beam</span><span class="o">=</span><span class="n">beam</span><span class="p">),</span>
+                   <span class="n">Lhc</span><span class="o">.</span><span class="n">DOROS_IP_BPMS</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="n">ip</span><span class="o">=</span><span class="n">ip</span><span class="p">,</span> <span class="n">beam</span><span class="o">=</span><span class="n">beam</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">log_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  model dir = &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_dir</span><span class="p">)</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:10.3f}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Natural Tune X&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_x</span><span class="p">))</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:10.3f}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Natural Tune Y&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nat_tune_y</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_best_knowledge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:&gt;10s}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Best Knowledge Model&quot;</span><span class="p">,</span> <span class="s2">&quot;NO&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:&gt;10s}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Best Knowledge Model&quot;</span><span class="p">,</span> <span class="s2">&quot;OK&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">FREE</span><span class="p">:</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:&gt;10s}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Excitation&quot;</span><span class="p">,</span> <span class="s2">&quot;NO&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:&gt;10s}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Excitation&quot;</span><span class="p">,</span> <span class="s2">&quot;ACD&quot;</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">:</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:&gt;10s}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Excitation&quot;</span><span class="p">,</span> <span class="s2">&quot;ADT&quot;</span><span class="p">))</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:10.3f}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;&gt; Driven Tune X&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_x</span><span class="p">))</span>
+            <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:20s}</span><span class="s2"> [</span><span class="si">{:10.3f}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;&gt; Driven Tune Y&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drv_tune_y</span><span class="p">))</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_main_seq_madx</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_get_call_main_for_year</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">YEAR</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;The accelerator definition is incomplete, mode &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;has to be specified (--lhcmode option missing?).&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Private Methods ##########################################################</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_triplet_correctors_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">correctors_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;2012&quot;</span><span class="p">,</span> <span class="s2">&quot;correctors&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">correctors_dir</span><span class="p">,</span> <span class="s2">&quot;triplet_correctors.json&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_corrector_elems</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">correctors_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;2012&quot;</span><span class="p">,</span> <span class="s2">&quot;correctors&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">correctors_dir</span><span class="p">,</span>
+                            <span class="s2">&quot;corrector_elems_b&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_beam</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;.tfs&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">excitation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span>
+
+    <span class="nd">@excitation</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">excitation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">excitation_mode</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">excitation_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">FREE</span><span class="p">,</span>
+                                   <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">,</span>
+                                   <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Wrong excitation mode.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_excitation</span> <span class="o">=</span> <span class="n">excitation_mode</span>
+
+    <span class="c1"># For GetLLM --------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Lhc.get_exciter_bpm"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_exciter_bpm">[docs]</a>    <span class="k">def</span> <span class="nf">get_exciter_bpm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">commonbpms</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_commonbpm</span><span class="p">(</span>
+                    <span class="s2">&quot;BPMYB.6L4.B1&quot;</span><span class="p">,</span> <span class="s2">&quot;BPM.7L4.B1&quot;</span><span class="p">,</span> <span class="n">commonbpms</span><span class="p">),</span> <span class="s2">&quot;MKQA.6L4.B1&quot;</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;X&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">get_commonbpm</span><span class="p">(</span>
+                        <span class="s2">&quot;BPMWA.B5L4.B1&quot;</span><span class="p">,</span> <span class="s2">&quot;BPMWA.A5L4.B1&quot;</span><span class="p">,</span> <span class="n">commonbpms</span><span class="p">),</span> <span class="s2">&quot;ADTKH.C5L4.B1&quot;</span>
+                <span class="k">elif</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">get_commonbpm</span><span class="p">(</span>
+                        <span class="s2">&quot;BPMWA.B5R4.B1&quot;</span><span class="p">,</span> <span class="s2">&quot;BPMWA.A5R4.B1&quot;</span><span class="p">,</span> <span class="n">commonbpms</span><span class="p">),</span> <span class="s2">&quot;ADTKV.B5R4.B1&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">get_commonbpm</span><span class="p">(</span>
+                    <span class="s2">&quot;BPMYA.6L4.B2&quot;</span><span class="p">,</span> <span class="s2">&quot;BPM.7L4.B2&quot;</span><span class="p">,</span> <span class="n">commonbpms</span><span class="p">),</span> <span class="s2">&quot;MKQA.6L4.B2&quot;</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;X&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">get_commonbpm</span><span class="p">(</span>
+                        <span class="s2">&quot;BPMWA.B5R4.B2&quot;</span><span class="p">,</span> <span class="s2">&quot;BPMWA.A5R4.B2&quot;</span><span class="p">,</span> <span class="n">commonbpms</span><span class="p">),</span> <span class="s2">&quot;ADTKH.C5R4.B2&quot;</span>
+                <span class="k">elif</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">get_commonbpm</span><span class="p">(</span>
+                        <span class="s2">&quot;BPMWA.B5L4.B2&quot;</span><span class="p">,</span> <span class="s2">&quot;BPMWA.A5L4.B2&quot;</span><span class="p">,</span> <span class="n">commonbpms</span><span class="p">),</span> <span class="s2">&quot;ADTKV.B5L4.B2&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="nf">get_important_phase_advances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span><span class="p">[[</span><span class="s2">&quot;MKD.O5R6.B2&quot;</span><span class="p">,</span> <span class="s2">&quot;TCTPH.4R1.B2&quot;</span><span class="p">],</span>
+                   <span class="p">[</span><span class="s2">&quot;MKD.O5R6.B2&quot;</span><span class="p">,</span> <span class="s2">&quot;TCTPH.4R5.B2&quot;</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[[</span><span class="s2">&quot;MKD.O5L6.B1&quot;</span><span class="p">,</span> <span class="s2">&quot;TCTPH.4L1.B1&quot;</span><span class="p">],</span>
+                    <span class="p">[</span><span class="s2">&quot;MKD.O5L6.B1&quot;</span><span class="p">,</span> <span class="s2">&quot;TCTPH.4L5.B1&quot;</span><span class="p">]]</span>
+
+<div class="viewcode-block" id="Lhc.get_exciter_name"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_exciter_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_exciter_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;MKQA.6L4.B1&#39;</span>
+                <span class="k">elif</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;MKQA.6L4.B1&#39;</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;ADTKH.C5L4.B1&quot;</span>
+                <span class="k">elif</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;ADTKV.B5R4.B1&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ACD</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;MKQA.6L4.B2&#39;</span>
+                <span class="k">elif</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;MKQA.6L4.B2&#39;</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">excitation</span> <span class="o">==</span> <span class="n">AccExcitationMode</span><span class="o">.</span><span class="n">ADT</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;ADTKH.B5R4.B2&quot;</span>
+                <span class="k">elif</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;ADTKV.C5L4.B2&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Lhc.get_s_first_BPM"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_s_first_BPM">[docs]</a>    <span class="k">def</span> <span class="nf">get_s_first_BPM</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">&quot;BPMSW.1L2.B1&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">&quot;BPMSW.1L8.B2&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Lhc.get_errordefspath"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_errordefspath">[docs]</a>    <span class="k">def</span> <span class="nf">get_errordefspath</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the path to the uncertainty definitions file (formerly called error definitions file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_errordefspath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No error definitions file given in this accelerator instance.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_errordefspath</span></div>
+
+    <span class="k">def</span> <span class="nf">set_errordefspath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errordefspath</span> <span class="o">=</span> <span class="n">path</span>
+
+<div class="viewcode-block" id="Lhc.get_k_first_BPM"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_k_first_BPM">[docs]</a>    <span class="k">def</span> <span class="nf">get_k_first_BPM</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">model_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="s2">&quot;BPMSW.1L2.B1&quot;</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">model_k</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+                <span class="n">kname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">model_k</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">kname</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">kname</span><span class="p">)</span>
+                <span class="n">model_k</span> <span class="o">=</span> <span class="n">model_k</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">model_k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="s2">&quot;BPMSW.1L8.B2&quot;</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">model_k</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+                <span class="n">kname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">model_k</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">kname</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">kname</span><span class="p">)</span>
+                <span class="n">model_k</span> <span class="o">=</span> <span class="n">model_k</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="nf">get_synch_BPMs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="c1"># expect passing index.values</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_tfs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">&quot;BPMSW.33L2.B1&quot;</span><span class="p">:]</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="ow">in</span> <span class="n">index</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_tfs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">&quot;BPMSW.33R8.B2&quot;</span><span class="p">:]</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Lhc.get_model_tfs"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_model_tfs">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span></div>
+
+<div class="viewcode-block" id="Lhc.get_driven_tfs"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_driven_tfs">[docs]</a>    <span class="k">def</span> <span class="nf">get_driven_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_driven</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No driven model given in this accelerator instance.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_driven</span></div>
+
+<div class="viewcode-block" id="Lhc.get_best_knowledge_model_tfs"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_best_knowledge_model_tfs">[docs]</a>    <span class="k">def</span> <span class="nf">get_best_knowledge_model_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_best_knowledge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;No best knowledge model given in this accelerator instance.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_best_knowledge</span></div>
+
+<div class="viewcode-block" id="Lhc.get_elements_tfs"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_elements_tfs">[docs]</a>    <span class="k">def</span> <span class="nf">get_elements_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elements</span></div>
+
+    <span class="k">def</span> <span class="nf">get_elements_centre_tfs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elements_centre</span>
+
+<div class="viewcode-block" id="Lhc.get_element_types_mask"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.Lhc.get_element_types_mask">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_element_types_mask</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">list_of_elements</span><span class="p">,</span> <span class="n">types</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return boolean mask for elements in list_of_elements that belong</span>
+<span class="sd">        to any of the specified types.</span>
+<span class="sd">        Needs to handle: &quot;bpm&quot;, &quot;magnet&quot;, &quot;arc_bpm&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            list_of_elements: List of elements</span>
+<span class="sd">            types: Kinds of elements to look for</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Boolean array of elements of specified kinds.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">re_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;bpm&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;BPM&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;magnet&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;M&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;arc_bpm&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;BPM.*\.0*(1[5-9]|[2-9]\d|[1-9]\d{2,})[RL]&quot;</span><span class="p">,</span>  <span class="c1"># bpms &gt; 14 L or R of IP</span>
+        <span class="p">}</span>
+
+        <span class="n">unknown_elements</span> <span class="o">=</span> <span class="p">[</span><span class="n">ty</span> <span class="k">for</span> <span class="n">ty</span> <span class="ow">in</span> <span class="n">types</span> <span class="k">if</span> <span class="n">ty</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">re_dict</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unknown_elements</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unknown element(s): &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">unknown_elements</span><span class="p">)))</span>
+
+        <span class="n">series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">list_of_elements</span><span class="p">)</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">re_dict</span><span class="p">[</span><span class="n">types</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">case</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ty</span> <span class="ow">in</span> <span class="n">types</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">|</span> <span class="n">series</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">re_dict</span><span class="p">[</span><span class="n">ty</span><span class="p">],</span> <span class="n">case</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mask</span><span class="o">.</span><span class="n">values</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">_LhcSegmentMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">get_segment_vars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">classes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_variables</span><span class="p">(</span><span class="n">frm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+                                  <span class="n">to</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+                                  <span class="n">classes</span><span class="o">=</span><span class="n">classes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">verify_object</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_beam</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;The accelerator definition is incomplete, beam &quot;</span>
+                <span class="s2">&quot;has to be specified (--beam option missing?).&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;The accelerator definition is incomplete, optics &quot;</span>
+                <span class="s2">&quot;file has not been specified.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xing</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Crossing on or off not set.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Segment label not set.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Segment start not set.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AcceleratorDefinitionError</span><span class="p">(</span><span class="s2">&quot;Segment end not set.&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_LhcB1Mixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_beam</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_beam_direction</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+
+
+<span class="k">class</span> <span class="nc">_LhcB2Mixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_beam</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">2</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_beam_direction</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+
+
+<div class="viewcode-block" id="LhcAts"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.LhcAts">[docs]</a><span class="k">class</span> <span class="nc">LhcAts</span><span class="p">(</span><span class="n">Lhc</span><span class="p">):</span>
+    <span class="n">MACROS_NAME</span> <span class="o">=</span> <span class="s2">&quot;lhc_runII_ats&quot;</span></div>
+
+
+<span class="c1"># Specific accelerator definitions ###########################################</span>
+
+
+<div class="viewcode-block" id="LhcRunI"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.LhcRunI">[docs]</a><span class="k">class</span> <span class="nc">LhcRunI</span><span class="p">(</span><span class="n">Lhc</span><span class="p">):</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;2012&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_main_seq_madx</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">load_main_seq</span> <span class="o">=</span> <span class="n">_get_call_main_for_year</span><span class="p">(</span><span class="s2">&quot;2012&quot;</span><span class="p">)</span>
+        <span class="n">load_main_seq</span> <span class="o">+=</span> <span class="n">_get_madx_call_command</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;2012&quot;</span><span class="p">,</span> <span class="s2">&quot;install_additional_elements.madx&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">load_main_seq</span></div>
+
+
+<div class="viewcode-block" id="LhcRunII2015"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.LhcRunII2015">[docs]</a><span class="k">class</span> <span class="nc">LhcRunII2015</span><span class="p">(</span><span class="n">Lhc</span><span class="p">):</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;2015&quot;</span></div>
+
+
+<div class="viewcode-block" id="LhcRunII2016"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.LhcRunII2016">[docs]</a><span class="k">class</span> <span class="nc">LhcRunII2016</span><span class="p">(</span><span class="n">Lhc</span><span class="p">):</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;2016&quot;</span></div>
+
+
+<div class="viewcode-block" id="LhcRunII2016Ats"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.LhcRunII2016Ats">[docs]</a><span class="k">class</span> <span class="nc">LhcRunII2016Ats</span><span class="p">(</span><span class="n">LhcAts</span><span class="p">,</span> <span class="n">LhcRunII2016</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="LhcRunII2017"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.LhcRunII2017">[docs]</a><span class="k">class</span> <span class="nc">LhcRunII2017</span><span class="p">(</span><span class="n">LhcAts</span><span class="p">):</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;2017&quot;</span></div>
+
+
+<div class="viewcode-block" id="LhcRunII2018"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.LhcRunII2018">[docs]</a><span class="k">class</span> <span class="nc">LhcRunII2018</span><span class="p">(</span><span class="n">LhcAts</span><span class="p">):</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;2018&quot;</span></div>
+
+
+<div class="viewcode-block" id="HlLhc10"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.HlLhc10">[docs]</a><span class="k">class</span> <span class="nc">HlLhc10</span><span class="p">(</span><span class="n">LhcAts</span><span class="p">):</span>
+    <span class="n">MACROS_NAME</span> <span class="o">=</span> <span class="s2">&quot;hllhc&quot;</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;hllhc1.0&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_main_seq_madx</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">load_main_seq</span> <span class="o">=</span> <span class="n">_get_call_main_for_year</span><span class="p">(</span><span class="s2">&quot;2015&quot;</span><span class="p">)</span>
+        <span class="n">load_main_seq</span> <span class="o">+=</span> <span class="n">_get_call_main_for_year</span><span class="p">(</span><span class="s2">&quot;hllhc1.0&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">load_main_seq</span></div>
+
+
+<div class="viewcode-block" id="HlLhc12"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.HlLhc12">[docs]</a><span class="k">class</span> <span class="nc">HlLhc12</span><span class="p">(</span><span class="n">LhcAts</span><span class="p">):</span>
+    <span class="n">MACROS_NAME</span> <span class="o">=</span> <span class="s2">&quot;hllhc&quot;</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;hllhc1.2&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_main_seq_madx</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">load_main_seq</span> <span class="o">=</span> <span class="n">_get_call_main_for_year</span><span class="p">(</span><span class="s2">&quot;2015&quot;</span><span class="p">)</span>
+        <span class="n">load_main_seq</span> <span class="o">+=</span> <span class="n">_get_call_main_for_year</span><span class="p">(</span><span class="s2">&quot;hllhc1.2&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">load_main_seq</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_triplet_correctors_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">correctors_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;hllhc1.2&quot;</span><span class="p">,</span> <span class="s2">&quot;correctors&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">correctors_dir</span><span class="p">,</span> <span class="s2">&quot;triplet_correctors.json&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_corrector_elems</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">correctors_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;hllhc1.2&quot;</span><span class="p">,</span> <span class="s2">&quot;correctors&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">correctors_dir</span><span class="p">,</span>
+                            <span class="s2">&quot;corrector_elems_b&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_beam</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;.tfs&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HlLhc12NewCircuit"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.HlLhc12NewCircuit">[docs]</a><span class="k">class</span> <span class="nc">HlLhc12NewCircuit</span><span class="p">(</span><span class="n">LhcAts</span><span class="p">):</span>
+    <span class="n">MACROS_NAME</span> <span class="o">=</span> <span class="s2">&quot;hllhc&quot;</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;hllhc12&quot;</span></div>
+
+
+<div class="viewcode-block" id="HlLhc12NoQ2Trim"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.HlLhc12NoQ2Trim">[docs]</a><span class="k">class</span> <span class="nc">HlLhc12NoQ2Trim</span><span class="p">(</span><span class="n">HlLhc12</span><span class="p">):</span>
+    <span class="n">MACROS_NAME</span> <span class="o">=</span> <span class="s2">&quot;hllhc&quot;</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;hllhc12&quot;</span></div>
+
+
+<div class="viewcode-block" id="HlLhc13"><a class="viewcode-back" href="../../../model/index.html#model.accelerators.lhc.HlLhc13">[docs]</a><span class="k">class</span> <span class="nc">HlLhc13</span><span class="p">(</span><span class="n">LhcAts</span><span class="p">):</span>
+    <span class="n">MACROS_NAME</span> <span class="o">=</span> <span class="s2">&quot;hllhc&quot;</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s2">&quot;hllhc1.3&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_main_seq_madx</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">load_main_seq</span> <span class="o">=</span> <span class="n">_get_madx_call_command</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;hllhc1.3&quot;</span><span class="p">,</span> <span class="s2">&quot;lhcrunIII.seq&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">load_main_seq</span> <span class="o">+=</span> <span class="n">_get_call_main_for_year</span><span class="p">(</span><span class="s2">&quot;hllhc1.3&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">load_main_seq</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_triplet_correctors_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">correctors_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;hllhc1.3&quot;</span><span class="p">,</span> <span class="s2">&quot;correctors&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">correctors_dir</span><span class="p">,</span> <span class="s2">&quot;triplet_correctors.json&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_corrector_elems</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="n">correctors_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="s2">&quot;hllhc1.3&quot;</span><span class="p">,</span> <span class="s2">&quot;correctors&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">correctors_dir</span><span class="p">,</span>
+                            <span class="s2">&quot;corrector_elems_b&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_beam</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;.tfs&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># General functions ##########################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_get_call_main_for_year</span><span class="p">(</span><span class="n">year</span><span class="p">):</span>
+    <span class="n">call_main</span> <span class="o">=</span> <span class="n">_get_madx_call_command</span><span class="p">(</span>
+        <span class="n">_get_file_for_year</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="s2">&quot;main.seq&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">call_main</span>
+
+
+<span class="k">def</span> <span class="nf">_get_madx_call_command</span><span class="p">(</span><span class="n">path_to_call</span><span class="p">):</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;call, file = </span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+    <span class="n">command</span> <span class="o">+=</span> <span class="n">path_to_call</span>
+    <span class="n">command</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">command</span>
+
+
+<span class="k">def</span> <span class="nf">_get_file_for_year</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LHC_DIR</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_merge_jsons</span><span class="p">(</span><span class="o">*</span><span class="n">files</span><span class="p">):</span>
+    <span class="n">full_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">json_file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_data</span><span class="p">:</span>
+            <span class="n">json_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">json_data</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">json_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">full_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">json_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">full_dict</span>
+
+
+<span class="k">def</span> <span class="nf">_flatten_list</span><span class="p">(</span><span class="n">my_list</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">my_list</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_remove_dups_keep_order</span><span class="p">(</span><span class="n">my_list</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">OrderedDict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">my_list</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_list_intersect_keep_order</span><span class="p">(</span><span class="n">primary_list</span><span class="p">,</span> <span class="n">secondary_list</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">elem</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">primary_list</span> <span class="k">if</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">secondary_list</span><span class="p">]</span>
+
+
+<span class="c1"># Script Mode ##################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">EnvironmentError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2"> is not supposed to run as main.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

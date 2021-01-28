@@ -1,0 +1,786 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>harmonic_analysis.harpy &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>harmonic_analysis.harpy</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for harmonic_analysis.harpy</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module is the actual implementation of the resonance search for</span>
+<span class="sd">turn-by-turn data.</span>
+<span class="sd">It uses a combination of the laskar method with SVD decomposition to speed up</span>
+<span class="sd">the search of resonances.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">outliers</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">scipy.fftpack</span> <span class="kn">import</span> <span class="n">fft</span> <span class="k">as</span> <span class="n">_fft</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="kn">import</span> <span class="n">fft</span> <span class="k">as</span> <span class="n">_fft</span>
+
+<span class="n">NUMBA_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">jit</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">NUMBA_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">LOGGER</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">NullHandler</span><span class="p">())</span>  <span class="c1"># avoid &#39;no handler&#39; warn from _which_compute_coef() on import</span>
+
+<span class="n">PI2I</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="nb">complex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="n">RESONANCE_LISTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;X&quot;</span><span class="p">:</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+    <span class="s2">&quot;Y&quot;</span><span class="p">:</span> <span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+    <span class="s2">&quot;Z&quot;</span><span class="p">:</span> <span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="p">}</span>
+
+<span class="n">MAIN_LINES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;X&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;Z&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+<span class="n">Z_TOLERANCE</span> <span class="o">=</span> <span class="mf">0.0001</span>
+<span class="n">NUM_HARMS</span> <span class="o">=</span> <span class="mi">300</span>
+<span class="n">NUM_HARMS_SVD</span> <span class="o">=</span> <span class="mi">100</span>
+
+<span class="n">PROCESSES</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="harpy"><a class="viewcode-back" href="../../harmonic_analysis/index.html#harmonic_analysis.harpy.harpy">[docs]</a><span class="k">def</span> <span class="nf">harpy</span><span class="p">(</span><span class="n">harpy_input</span><span class="p">,</span> <span class="n">bpm_matrix_x</span><span class="p">,</span> <span class="n">usv_x</span><span class="p">,</span> <span class="n">bpm_matrix_y</span><span class="p">,</span> <span class="n">usv_y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">all_frequencies</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">all_coefficients</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">spectr</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">bad_bpms_summaries</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">pandas_dfs</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">cases</span> <span class="o">=</span> <span class="p">((</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="n">bpm_matrix_x</span><span class="p">,</span> <span class="n">usv_x</span><span class="p">),</span>
+             <span class="p">(</span><span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="n">bpm_matrix_y</span><span class="p">,</span> <span class="n">usv_y</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">plane</span><span class="p">,</span> <span class="n">bpm_matrix</span><span class="p">,</span> <span class="n">usv</span> <span class="ow">in</span> <span class="n">cases</span><span class="p">:</span>
+        <span class="n">panda</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">bpm_matrix</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">harpy_mode</span> <span class="o">==</span> <span class="s2">&quot;window&quot;</span><span class="p">:</span>
+            <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="n">windowed_padded_fft</span><span class="p">(</span><span class="n">bpm_matrix</span><span class="p">,</span> <span class="n">usv</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="n">harpy_input</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="n">harmonic_analysis</span><span class="p">(</span><span class="n">bpm_matrix</span><span class="p">,</span> <span class="n">usv</span><span class="o">=</span><span class="n">usv</span><span class="p">,</span>
+                                                          <span class="n">mode</span><span class="o">=</span><span class="n">harpy_input</span><span class="o">.</span><span class="n">harpy_mode</span><span class="p">,</span>
+                                                          <span class="n">sequential</span><span class="o">=</span><span class="n">harpy_input</span><span class="o">.</span><span class="n">sequential</span><span class="p">,</span> <span class="p">)</span>
+        <span class="n">spectr</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">_get_bpms_spectr</span><span class="p">(</span><span class="n">bpm_matrix</span><span class="p">,</span>
+                                         <span class="n">coefficients</span><span class="p">,</span>
+                                         <span class="n">frequencies</span><span class="p">)</span>
+        <span class="n">panda</span><span class="p">,</span> <span class="n">not_tune_bpms</span> <span class="o">=</span> <span class="n">_get_main_resonances</span><span class="p">(</span>
+            <span class="n">harpy_input</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span>
+            <span class="n">plane</span><span class="p">,</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tolerance</span><span class="p">,</span> <span class="n">panda</span>
+        <span class="p">)</span>
+        <span class="n">cleaned_by_tune_bpms</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">no_tune_clean</span><span class="p">:</span>
+            <span class="n">cleaned_by_tune_bpms</span> <span class="o">=</span> <span class="n">clean_by_tune</span><span class="p">(</span><span class="n">panda</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;TUNE&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">],</span>
+                                                 <span class="n">harpy_input</span><span class="o">.</span><span class="n">tune_clean_limit</span><span class="p">)</span>
+        <span class="n">panda</span> <span class="o">=</span> <span class="n">panda</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">panda</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">cleaned_by_tune_bpms</span><span class="p">)]</span>
+        <span class="n">bpm_matrix</span> <span class="o">=</span> <span class="n">bpm_matrix</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">panda</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">coefficients</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">panda</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">frequencies</span> <span class="o">=</span> <span class="n">frequencies</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">panda</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="n">bad_bpms_summaries</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">_get_bad_bpms_summary</span><span class="p">(</span>
+            <span class="n">not_tune_bpms</span><span class="p">,</span>
+            <span class="n">cleaned_by_tune_bpms</span>
+        <span class="p">)</span>
+        <span class="n">panda</span> <span class="o">=</span> <span class="n">_amp_and_mu_from_avg</span><span class="p">(</span><span class="n">bpm_matrix</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">panda</span><span class="p">)</span>
+        <span class="n">panda</span> <span class="o">=</span> <span class="n">_get_natural_tunes</span><span class="p">(</span><span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">harpy_input</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">panda</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tunez</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">panda</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_get_main_resonances</span><span class="p">(</span>
+                <span class="n">harpy_input</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span>
+                <span class="s2">&quot;Z&quot;</span><span class="p">,</span> <span class="n">Z_TOLERANCE</span><span class="p">,</span> <span class="n">panda</span>
+            <span class="p">)</span>
+
+        <span class="n">pandas_dfs</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">panda</span>
+        <span class="n">all_frequencies</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">frequencies</span>
+        <span class="n">all_coefficients</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">coefficients</span>
+
+    <span class="n">tunez</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tunez</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">tunez</span> <span class="o">=</span> <span class="n">pandas_dfs</span><span class="p">[</span><span class="s2">&quot;X&quot;</span><span class="p">][</span><span class="s2">&quot;TUNEZ&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">tunes</span> <span class="o">=</span> <span class="p">(</span><span class="n">pandas_dfs</span><span class="p">[</span><span class="s2">&quot;X&quot;</span><span class="p">][</span><span class="s2">&quot;TUNEX&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+             <span class="n">pandas_dfs</span><span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">][</span><span class="s2">&quot;TUNEY&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+             <span class="n">tunez</span><span class="p">)</span>
+    <span class="n">nattunes</span> <span class="o">=</span> <span class="p">(</span><span class="n">pandas_dfs</span><span class="p">[</span><span class="s2">&quot;X&quot;</span><span class="p">][</span><span class="s2">&quot;NATTUNEX&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+                <span class="n">pandas_dfs</span><span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">][</span><span class="s2">&quot;NATTUNEY&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+
+    <span class="c1"># Log as an error in tune == nattune</span>
+    <span class="k">if</span> <span class="n">tunes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">nattunes</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Tune and nattune for plane X are equal: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tunes</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="n">tunes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">nattunes</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Tune and nattune for plane Y are equal: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tunes</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="n">n_turns</span> <span class="o">=</span> <span class="n">bpm_matrix_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">):</span>
+        <span class="n">resonances_freqs</span> <span class="o">=</span> <span class="n">_compute_resonances_freqs</span><span class="p">(</span><span class="n">plane</span><span class="p">,</span> <span class="n">tunes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tunez</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">resonances_freqs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_compute_resonances_freqs</span><span class="p">(</span><span class="s2">&quot;Z&quot;</span><span class="p">,</span> <span class="n">tunes</span><span class="p">))</span>
+        <span class="n">pandas_dfs</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">_resonance_search</span><span class="p">(</span><span class="n">all_frequencies</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span>
+                                              <span class="n">all_coefficients</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span>
+                                              <span class="n">resonances_freqs</span><span class="p">,</span>
+                                              <span class="n">pandas_dfs</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span>
+                                              <span class="n">n_turns</span><span class="p">)</span>
+
+        <span class="k">yield</span> <span class="n">pandas_dfs</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span> <span class="n">spectr</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span> <span class="n">bad_bpms_summaries</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_bpms_spectr</span><span class="p">(</span><span class="n">bpm_matrix</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">):</span>
+    <span class="n">all_bpms_coefs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">coefficients</span><span class="p">,</span>
+                                  <span class="n">index</span><span class="o">=</span><span class="n">bpm_matrix</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">all_bpms_freqs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">frequencies</span><span class="p">,</span>
+                                  <span class="n">index</span><span class="o">=</span><span class="n">bpm_matrix</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">all_bpms_spectr</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;COEFS&quot;</span><span class="p">:</span> <span class="n">all_bpms_coefs</span><span class="p">,</span> <span class="s2">&quot;FREQS&quot;</span><span class="p">:</span> <span class="n">all_bpms_freqs</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">all_bpms_spectr</span>
+
+
+<div class="viewcode-block" id="harmonic_analysis"><a class="viewcode-back" href="../../harmonic_analysis/index.html#harmonic_analysis.harpy.harmonic_analysis">[docs]</a><span class="k">def</span> <span class="nf">harmonic_analysis</span><span class="p">(</span><span class="n">bpm_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">usv</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bpm&quot;</span><span class="p">,</span> <span class="n">sequential</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs the laskar method on every of the BPMs signals contained in each</span>
+<span class="sd">    row of the bpm_matrix pandas DataFame.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        bpm_matrix: Pandas DataFrame containing the signals of each bpm in</span>
+<span class="sd">                    each row. In bpm mode this parameter is obligatory.</span>
+<span class="sd">        usv: Truncated SVD decomposition of the bpm matrix. It must contain a</span>
+<span class="sd">             tuple (U, S, V), where U must be a DataFrame with the bpm names as index.</span>
+<span class="sd">        mode: one of &#39;bpm&#39;, &#39;svd&#39;, or &#39;fast&#39;. Check &#39;harmonic_analysis_bpm&#39;</span>
+<span class="sd">              documentation for &#39;bpm&#39; mode and &#39;harmonic_analysis_svd&quot; for &#39;svd&#39; and &#39;fast&#39;.</span>
+<span class="sd">        sequential: If true, it will run all the computations in a single core.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        frequencies: A numpy array with the frequencies found per BPM.</span>
+<span class="sd">        bpm_coefficients: A numpy array containing the complex coefficients found per BPM.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;bpm&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">bpm_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bpm_matrix has to be provided &quot;</span>
+                             <span class="s2">&quot;for the bpm mode&quot;</span><span class="p">)</span>
+        <span class="n">frequencies</span><span class="p">,</span> <span class="n">bpm_coefficients</span> <span class="o">=</span> <span class="n">harmonic_analysis_bpm</span><span class="p">(</span>
+            <span class="n">bpm_matrix</span><span class="p">,</span>
+            <span class="n">sequential</span><span class="o">=</span><span class="n">sequential</span><span class="p">,</span>
+            <span class="n">num_harms</span><span class="o">=</span><span class="n">NUM_HARMS</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;svd&quot;</span><span class="p">,</span> <span class="s2">&quot;fast&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">usv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;SVD decomposition has to be provided &quot;</span>
+                             <span class="s2">&quot;for fast or svd modes&quot;</span><span class="p">)</span>
+        <span class="n">num_harms</span> <span class="o">=</span> <span class="n">NUM_HARMS</span> <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;fast&quot;</span> <span class="k">else</span> <span class="n">NUM_HARMS_SVD</span>
+        <span class="n">frequencies</span><span class="p">,</span> <span class="n">bpm_coefficients</span> <span class="o">=</span> <span class="n">harmonic_analysis_svd</span><span class="p">(</span>
+            <span class="n">usv</span><span class="p">,</span>
+            <span class="n">fast</span><span class="o">=</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;fast&quot;</span><span class="p">,</span>
+            <span class="n">sequential</span><span class="o">=</span><span class="n">sequential</span><span class="p">,</span>
+            <span class="n">num_harms</span><span class="o">=</span><span class="n">num_harms</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid harpy mode: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mode</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">bpm_coefficients</span></div>
+
+
+<div class="viewcode-block" id="harmonic_analysis_bpm"><a class="viewcode-back" href="../../harmonic_analysis/index.html#harmonic_analysis.harpy.harmonic_analysis_bpm">[docs]</a><span class="k">def</span> <span class="nf">harmonic_analysis_bpm</span><span class="p">(</span><span class="n">bpm_matrix</span><span class="p">,</span>
+                          <span class="n">sequential</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_harms</span><span class="o">=</span><span class="n">NUM_HARMS</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs the laskar method on every of the BPMs signals contained in each</span>
+<span class="sd">    row of the bpm_matrix pandas DataFame. This method will run the full</span>
+<span class="sd">    laskar analysis in each BPM in parallel (slow).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        bpm_matrix: Pandas DataFrame containing the signals of each bpm in</span>
+<span class="sd">                    each row. In bpm mode this parameter is obligatory.</span>
+<span class="sd">        sequential: If true, it will run all the computations in a single core.</span>
+<span class="sd">        num_harms: Number of harmonics to compute per BPM.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        frequencies: A numpy array with the frequencies found per BPM.</span>
+<span class="sd">        bpm_coefficients: A numpy array containing the complex coefficients found per BPM.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">frequencies</span><span class="p">,</span> <span class="n">bpm_coefficients</span> <span class="o">=</span> <span class="n">_parallel_laskar</span><span class="p">(</span>
+        <span class="n">bpm_matrix</span><span class="p">,</span> <span class="n">sequential</span><span class="p">,</span> <span class="n">num_harms</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">bpm_coefficients</span></div>
+
+
+<div class="viewcode-block" id="harmonic_analysis_svd"><a class="viewcode-back" href="../../harmonic_analysis/index.html#harmonic_analysis.harpy.harmonic_analysis_svd">[docs]</a><span class="k">def</span> <span class="nf">harmonic_analysis_svd</span><span class="p">(</span><span class="n">usv</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">sequential</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_harms</span><span class="o">=</span><span class="n">NUM_HARMS</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs the laskar method on every of the BPMs signals contained in each</span>
+<span class="sd">    row of the bpm_matrix pandas DataFame. It takes advantage of the</span>
+<span class="sd">    truncation of the V matrix in the SVD decomposition to speed up the</span>
+<span class="sd">    calculations. Mode &#39;svd&#39; is slower but more precise, &#39;bpm&#39; mode is the</span>
+<span class="sd">    fastest but makes more assumptions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        usv: Truncated SVD decomposition of the bpm matrix. It must contain a</span>
+<span class="sd">             tuple (U, S, V), where U must be a DataFrame with the bpm names</span>
+<span class="sd">             as index.</span>
+<span class="sd">        fast: If true, it will use the &#39;fast&#39; calculation mode (&#39;svd&#39;</span>
+<span class="sd">              otherwise)</span>
+<span class="sd">        sequential: If true, it will run all the computations in a single core.</span>
+<span class="sd">        num_harms: Number of harmonics to compute per BPM.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        frequencies: A numpy array with the frequencies found per BPM.</span>
+<span class="sd">        bpm_coefficients: A numpy array containing the complex coefficients found per BPM.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">usv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">usv</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">fake_bpms</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;MODE</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sv</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+    <span class="n">sv</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">fake_bpms</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">sv</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fast</span><span class="p">:</span>
+        <span class="n">frequencies</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_laskar_per_mode</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sv</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">num_harms</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">frequencies</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_parallel_laskar</span><span class="p">(</span>
+            <span class="n">sv</span><span class="p">,</span> <span class="n">sequential</span><span class="p">,</span> <span class="n">num_harms</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">frequencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span>
+    <span class="n">svd_coefficients</span> <span class="o">=</span> <span class="n">_compute_coefs_for_freqs</span><span class="p">(</span><span class="n">sv</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">)</span>
+    <span class="n">bpm_coefficients</span> <span class="o">=</span> <span class="n">usv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">svd_coefficients</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">frequencies</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">index</span><span class="o">=</span><span class="n">bpm_coefficients</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">bpm_coefficients</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">frequencies</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">bpm_coefficients</span></div>
+
+
+<div class="viewcode-block" id="clean_by_tune"><a class="viewcode-back" href="../../harmonic_analysis/index.html#harmonic_analysis.harpy.clean_by_tune">[docs]</a><span class="k">def</span> <span class="nf">clean_by_tune</span><span class="p">(</span><span class="n">tunes</span><span class="p">,</span> <span class="n">tune_clean_limit</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function looks for outliers in the tunes pandas Series and returns</span>
+<span class="sd">    their indices.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tunes: Pandas series with the tunes per BPM and the BPM names as</span>
+<span class="sd">            index.</span>
+<span class="sd">        tune_clean_limit: No BPM will find as oulier if its distance to the</span>
+<span class="sd">            average is lower than this limit.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bad_bpms_mask</span> <span class="o">=</span> <span class="n">outliers</span><span class="o">.</span><span class="n">get_filter_mask</span><span class="p">(</span>
+        <span class="n">tunes</span><span class="p">,</span>
+        <span class="n">limit</span><span class="o">=</span><span class="n">tune_clean_limit</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">bad_bpms_names</span> <span class="o">=</span> <span class="n">tunes</span><span class="p">[</span><span class="o">~</span><span class="n">bad_bpms_mask</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
+    <span class="k">return</span> <span class="n">bad_bpms_names</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_bad_bpms_summary</span><span class="p">(</span><span class="n">not_tune_bpms</span><span class="p">,</span> <span class="n">cleaned_by_tune_bpms</span><span class="p">):</span>
+    <span class="n">bad_bpms_summary</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">bpm_name</span> <span class="ow">in</span> <span class="n">not_tune_bpms</span><span class="p">:</span>
+        <span class="n">bad_bpms_summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bpm_name</span> <span class="o">+</span>
+                                <span class="s2">&quot; The main resonance has not been found.&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">bpm_name</span> <span class="ow">in</span> <span class="n">cleaned_by_tune_bpms</span><span class="p">:</span>
+        <span class="n">bad_bpms_summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> tune is too far from average&quot;</span>
+            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bpm_name</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">bad_bpms_summary</span>
+
+
+<span class="k">def</span> <span class="nf">_parallel_laskar</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">sequential</span><span class="p">,</span> <span class="n">num_harms</span><span class="p">):</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">index</span><span class="o">=</span><span class="n">samples</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">num_harms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">coefs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">index</span><span class="o">=</span><span class="n">samples</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">num_harms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_collect_results</span><span class="p">(</span><span class="n">bpm_name</span><span class="p">,</span> <span class="n">freq_and_coef</span><span class="p">):</span>
+        <span class="n">freq</span><span class="p">,</span> <span class="n">coef</span> <span class="o">=</span> <span class="n">freq_and_coef</span>
+        <span class="n">freqs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bpm_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">freq</span>
+        <span class="n">coefs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bpm_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">coef</span>
+
+    <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="n">PROCESSES</span><span class="p">,</span> <span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]))</span>
+    <span class="k">for</span> <span class="n">bpm_name</span> <span class="ow">in</span> <span class="n">samples</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">samples</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bpm_name</span><span class="p">,</span> <span class="p">:],</span> <span class="n">num_harms</span><span class="p">)</span>
+        <span class="n">callback</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">_collect_results</span><span class="p">,</span> <span class="n">bpm_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sequential</span><span class="p">:</span>
+            <span class="n">callback</span><span class="p">(</span><span class="n">_laskar_per_mode</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">_laskar_per_mode</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span>
+                             <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">freqs</span><span class="p">,</span> <span class="n">coefs</span>
+
+
+<span class="k">def</span> <span class="nf">_laskar_per_mode</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">number_of_harmonics</span><span class="p">):</span>
+    <span class="n">freqs</span><span class="p">,</span> <span class="n">coefs</span> <span class="o">=</span> <span class="n">_laskar_method</span><span class="p">(</span><span class="n">samples</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">number_of_harmonics</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">freqs</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coefs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_coefs_for_freqs</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">freqs</span><span class="p">):</span>  <span class="c1"># Samples is a matrix</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">coefficients</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">PI2I</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">freqs</span><span class="p">))</span>
+    <span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="k">return</span> <span class="n">coefficients</span>
+
+
+<span class="k">def</span> <span class="nf">_get_main_resonances</span><span class="p">(</span><span class="n">harpy_input</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span>
+                         <span class="n">plane</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">panda</span><span class="p">):</span>
+    <span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">l</span> <span class="o">=</span> <span class="n">MAIN_LINES</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span>
+    <span class="n">freq</span> <span class="o">=</span> <span class="p">((</span><span class="n">h</span> <span class="o">*</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tunex</span><span class="p">)</span> <span class="o">+</span>
+            <span class="p">(</span><span class="n">v</span> <span class="o">*</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tuney</span><span class="p">)</span> <span class="o">+</span>
+            <span class="p">(</span><span class="n">l</span> <span class="o">*</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tunez</span><span class="p">))</span>
+    <span class="n">max_coefs</span><span class="p">,</span> <span class="n">max_freqs</span> <span class="o">=</span> <span class="n">_search_highest_coefs</span><span class="p">(</span>
+        <span class="n">freq</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">max_coefs</span><span class="p">)</span> <span class="ow">and</span> <span class="n">plane</span> <span class="o">!=</span> <span class="s2">&quot;Z&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;No main &quot;</span> <span class="o">+</span> <span class="n">plane</span> <span class="o">+</span> <span class="s2">&quot; resonances found, &quot;</span>
+            <span class="s2">&quot;try to increase the tolerance or adjust the tunes&quot;</span>
+        <span class="p">)</span>
+    <span class="n">bad_bpms_by_tune</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">max_coefs</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">panda</span><span class="p">[</span><span class="s1">&#39;TUNE&#39;</span><span class="o">+</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_freqs</span>
+    <span class="n">panda</span><span class="p">[</span><span class="s1">&#39;AMP&#39;</span><span class="o">+</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_coefs</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>
+    <span class="n">panda</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="o">+</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">max_coefs</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">plane</span> <span class="o">!=</span> <span class="s2">&quot;Z&quot;</span><span class="p">:</span>
+        <span class="n">panda</span> <span class="o">=</span> <span class="n">panda</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">panda</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">bad_bpms_by_tune</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">panda</span><span class="p">,</span> <span class="n">bad_bpms_by_tune</span>
+
+
+<span class="k">def</span> <span class="nf">_search_highest_coefs</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">):</span>
+    <span class="n">min_val</span> <span class="o">=</span> <span class="n">freq</span> <span class="o">-</span> <span class="n">tolerance</span>
+    <span class="n">max_val</span> <span class="o">=</span> <span class="n">freq</span> <span class="o">+</span> <span class="n">tolerance</span>
+    <span class="n">freq_vals</span> <span class="o">=</span> <span class="n">frequencies</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">coefs_vals</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">on_window_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">freq_vals</span> <span class="o">&gt;=</span> <span class="n">min_val</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">freq_vals</span> <span class="o">&lt;=</span> <span class="n">max_val</span><span class="p">)</span>
+    <span class="n">filtered_coefs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">on_window_mask</span><span class="p">,</span> <span class="n">coefs_vals</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">filtered_amps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">filtered_coefs</span><span class="p">)</span>
+    <span class="n">max_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">filtered_amps</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">max_coefs</span> <span class="o">=</span> <span class="n">filtered_coefs</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">coefs_vals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">max_indices</span><span class="p">]</span>
+    <span class="n">max_coefs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">coefficients</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">max_coefs</span><span class="p">)</span>
+    <span class="n">max_freqs</span> <span class="o">=</span> <span class="n">freq_vals</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">freq_vals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">max_indices</span><span class="p">]</span>
+    <span class="n">max_freqs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">coefficients</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">max_coefs</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">max_freqs</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">max_coefs</span><span class="p">,</span> <span class="n">max_freqs</span>
+
+
+<span class="k">def</span> <span class="nf">_amp_and_mu_from_avg</span><span class="p">(</span><span class="n">bpm_matrix</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">panda</span><span class="p">):</span>
+    <span class="n">avg_coefs</span> <span class="o">=</span> <span class="n">_compute_coefs_for_freqs</span><span class="p">(</span>
+        <span class="n">bpm_matrix</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">panda</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;TUNE&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="n">panda</span><span class="p">[</span><span class="s1">&#39;AMP&#39;</span><span class="o">+</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">avg_coefs</span><span class="p">)</span>
+    <span class="n">panda</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="o">+</span><span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">avg_coefs</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">panda</span>
+
+
+<span class="k">def</span> <span class="nf">_get_natural_tunes</span><span class="p">(</span><span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">harpy_input</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">panda</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">nattunex</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">nattuney</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">panda</span>
+    <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;X&quot;</span><span class="p">:</span>
+        <span class="n">freq</span> <span class="o">=</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">nattunex</span>
+    <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;Y&quot;</span><span class="p">:</span>
+        <span class="n">freq</span> <span class="o">=</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">nattuney</span>
+    <span class="n">max_coefs</span><span class="p">,</span> <span class="n">max_freqs</span> <span class="o">=</span> <span class="n">_search_highest_coefs</span><span class="p">(</span>
+        <span class="n">freq</span><span class="p">,</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tolerance</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span>
+    <span class="p">)</span>
+    <span class="n">panda</span><span class="p">[</span><span class="s1">&#39;NATTUNE&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_freqs</span>
+    <span class="n">panda</span><span class="p">[</span><span class="s1">&#39;NATMU&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">max_coefs</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="n">panda</span><span class="p">[</span><span class="s1">&#39;NATAMP&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">max_coefs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">panda</span>
+
+
+<span class="c1"># Vectorized - coefficiens are matrix:</span>
+<span class="k">def</span> <span class="nf">_resonance_search</span><span class="p">(</span><span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span>
+                      <span class="n">resonances_freqs</span><span class="p">,</span> <span class="n">panda</span><span class="p">,</span> <span class="n">n_turns</span><span class="p">):</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">panda</span>
+    <span class="k">for</span> <span class="n">resonance</span> <span class="ow">in</span> <span class="n">resonances_freqs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">tolerance</span> <span class="o">=</span> <span class="n">_get_resonance_tolerance</span><span class="p">(</span><span class="n">resonance</span><span class="p">,</span> <span class="n">n_turns</span><span class="p">)</span>
+        <span class="n">max_coefs</span><span class="p">,</span> <span class="n">max_freqs</span> <span class="o">=</span> <span class="n">_search_highest_coefs</span><span class="p">(</span><span class="n">resonances_freqs</span><span class="p">[</span><span class="n">resonance</span><span class="p">],</span> <span class="n">tolerance</span><span class="p">,</span>
+                                                     <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">)</span>
+        <span class="n">resstr</span> <span class="o">=</span> <span class="n">_get_resonance_suffix</span><span class="p">(</span><span class="n">resonance</span><span class="p">)</span>
+        <span class="n">results</span><span class="p">[</span><span class="s1">&#39;AMP&#39;</span> <span class="o">+</span> <span class="n">resstr</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">max_coefs</span><span class="p">)</span>
+        <span class="n">results</span><span class="p">[</span><span class="s1">&#39;PHASE&#39;</span> <span class="o">+</span> <span class="n">resstr</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">max_coefs</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="n">results</span><span class="p">[</span><span class="s1">&#39;FREQ&#39;</span> <span class="o">+</span> <span class="n">resstr</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_freqs</span>
+    <span class="k">return</span> <span class="n">results</span>
+
+
+<span class="k">def</span> <span class="nf">_get_resonance_suffix</span><span class="p">(</span><span class="n">resonance</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">resonance</span>
+    <span class="k">if</span> <span class="n">z</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">resstr</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">resstr</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">z</span><span class="p">))</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resstr</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_resonances_freqs</span><span class="p">(</span><span class="n">plane</span><span class="p">,</span> <span class="n">tunes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the frequencies for all the resonances listed in the</span>
+<span class="sd">    constante RESONANCE_LISTS, together with the natural tunes</span>
+<span class="sd">    frequencies if given.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tunex</span><span class="p">,</span> <span class="n">tuney</span><span class="p">,</span> <span class="n">tunez</span> <span class="o">=</span> <span class="n">tunes</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">resonance_h</span> <span class="o">*</span> <span class="n">tunex</span><span class="p">)</span> <span class="o">+</span>
+             <span class="p">(</span><span class="n">resonance_v</span> <span class="o">*</span> <span class="n">tuney</span><span class="p">)</span> <span class="o">+</span>
+             <span class="p">(</span><span class="n">resonance_l</span> <span class="o">*</span> <span class="n">tunez</span><span class="p">)</span>
+             <span class="k">for</span> <span class="p">(</span><span class="n">resonance_h</span><span class="p">,</span> <span class="n">resonance_v</span><span class="p">,</span> <span class="n">resonance_l</span><span class="p">)</span> <span class="ow">in</span> <span class="n">RESONANCE_LISTS</span><span class="p">[</span><span class="n">plane</span><span class="p">]]</span>
+    <span class="c1"># Move to [0, 1] domain.</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="p">[</span><span class="n">freq</span> <span class="o">+</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">freq</span> <span class="o">&lt;</span> <span class="mf">0.</span> <span class="k">else</span> <span class="n">freq</span> <span class="k">for</span> <span class="n">freq</span> <span class="ow">in</span> <span class="n">freqs</span><span class="p">]</span>
+    <span class="n">resonances_freqs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">RESONANCE_LISTS</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span> <span class="n">freqs</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">resonances_freqs</span>
+
+
+<span class="k">def</span> <span class="nf">_laskar_method</span><span class="p">(</span><span class="n">tbt</span><span class="p">,</span> <span class="n">num_harmonics</span><span class="p">):</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">tbt</span><span class="p">[:]</span>  <span class="c1"># Copy the samples array.</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+    <span class="n">int_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">coefficients</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">frequencies</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_harmonics</span><span class="p">):</span>
+        <span class="c1"># Compute this harmonic frequency and coefficient.</span>
+        <span class="n">dft_data</span> <span class="o">=</span> <span class="n">_fft</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+        <span class="n">frequency</span> <span class="o">=</span> <span class="n">_jacobsen</span><span class="p">(</span><span class="n">dft_data</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">coefficient</span> <span class="o">=</span> <span class="n">_compute_coef</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">frequency</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+
+        <span class="c1"># Store frequency and amplitude</span>
+        <span class="n">coefficients</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span>
+        <span class="n">frequencies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frequency</span><span class="p">)</span>
+
+        <span class="c1"># Subtract the found pure tune from the signal</span>
+        <span class="n">new_signal</span> <span class="o">=</span> <span class="n">coefficient</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">PI2I</span> <span class="o">*</span> <span class="n">frequency</span> <span class="o">*</span> <span class="n">int_range</span><span class="p">)</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span> <span class="o">-</span> <span class="n">new_signal</span>
+
+    <span class="n">coefficients</span><span class="p">,</span> <span class="n">frequencies</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">),</span>
+                                            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="nb">tuple</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                                            <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span>
+
+
+<span class="k">def</span> <span class="nf">_jacobsen</span><span class="p">(</span><span class="n">dft_values</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method interpolates the real frequency of the</span>
+<span class="sd">    signal using the three highest peaks in the FFT.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dft_values</span><span class="p">))</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">dft_values</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">kp</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span>
+    <span class="n">km</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">((</span><span class="n">r</span><span class="p">[</span><span class="n">km</span><span class="p">]</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="n">kp</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">r</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="n">km</span><span class="p">]</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="n">kp</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="n">delta</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span>
+
+
+<span class="k">def</span> <span class="nf">_fft_method</span><span class="p">(</span><span class="n">tbt</span><span class="p">,</span> <span class="n">num_harmonics</span><span class="p">):</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">tbt</span><span class="p">[:]</span>  <span class="c1"># Copy the samples array.</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">))</span>
+    <span class="n">dft_data</span> <span class="o">=</span> <span class="n">_fft</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dft_data</span><span class="p">))[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="n">num_harmonics</span><span class="p">]</span>
+    <span class="n">frequencies</span> <span class="o">=</span> <span class="n">indices</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="n">coefficients</span> <span class="o">=</span> <span class="n">dft_data</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="k">return</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coefficients</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_coef_simple</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">kprime</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the coefficient of the Discrete Time Fourier</span>
+<span class="sd">    Transform corresponding to the given frequency (kprime).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+    <span class="n">freq</span> <span class="o">=</span> <span class="n">kprime</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="n">exponents</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">PI2I</span> <span class="o">*</span> <span class="n">freq</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+    <span class="n">coef</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">exponents</span> <span class="o">*</span> <span class="n">samples</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coef</span>
+
+
+<span class="k">def</span> <span class="nf">_compute_coef_goertzel</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">kprime</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the coefficient of the Discrete Time Fourier</span>
+<span class="sd">    Transform corresponding to the given frequency (kprime).</span>
+<span class="sd">    This function is faster than the previous one if compiled</span>
+<span class="sd">    with Numba.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">kprime</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="nb">complex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="nb">complex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">kprime</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">s1</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="n">s2</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">s0</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">s1</span> <span class="o">-</span> <span class="n">s2</span>
+        <span class="n">s2</span> <span class="o">=</span> <span class="n">s1</span>
+        <span class="n">s1</span> <span class="o">=</span> <span class="n">s0</span>
+    <span class="n">s0</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">s1</span> <span class="o">-</span> <span class="n">s2</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">s0</span> <span class="o">-</span> <span class="n">s1</span> <span class="o">*</span> <span class="n">c</span>
+    <span class="k">return</span> <span class="n">y</span> <span class="o">*</span> <span class="n">d</span>
+
+
+<span class="k">def</span> <span class="nf">_get_resonance_tolerance</span><span class="p">(</span><span class="n">resonance</span><span class="p">,</span> <span class="n">n_turns</span><span class="p">):</span>
+    <span class="n">tolerance</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">n_turns</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">resonance</span>
+    <span class="k">if</span> <span class="n">z</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="nb">abs</span><span class="p">(</span><span class="n">y</span><span class="p">))</span> <span class="o">*</span> <span class="n">tolerance</span>
+    <span class="k">return</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="nb">abs</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="nb">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tolerance</span>
+
+
+<span class="k">def</span> <span class="nf">_which_compute_coef</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">NUMBA_AVAILABLE</span><span class="p">:</span>
+        <span class="n">LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Cannot import numba, using numpy functions.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_compute_coef_simple</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Using compiled Numba functions.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jit</span><span class="p">(</span><span class="n">_compute_coef_goertzel</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="n">_compute_coef</span> <span class="o">=</span> <span class="n">_which_compute_coef</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">windowed_padded_fft</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">svd</span><span class="p">,</span> <span class="n">turn_bits</span><span class="p">,</span> <span class="n">harpy_input</span><span class="p">):</span>
+    <span class="c1"># TODO fft is used just once on real data -&gt; rfft can be used and together with np.conj() when needed</span>
+    <span class="n">for_freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">svd</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">svd</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">for_freqs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">padded_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">turn_bits</span><span class="p">)</span>
+    <span class="n">ints2pi</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">length</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+    <span class="n">nuttal4</span> <span class="o">=</span> <span class="mf">0.3125</span> <span class="o">-</span> <span class="mf">0.46875</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ints2pi</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.1875</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">ints2pi</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.03125</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mf">3.</span> <span class="o">*</span> <span class="n">ints2pi</span><span class="p">)</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nuttal4</span><span class="p">)</span>
+    <span class="c1">#nuttal3 = 0.375 - 0.5 * np.cos(ints2pi) + 0.125 * np.cos(2. * ints2pi)</span>
+    <span class="c1">#norm = np.sum(nuttal3)</span>
+    <span class="n">s_vt_freq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">for_freqs</span> <span class="o">*</span> <span class="n">nuttal4</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">padded_length</span><span class="p">)</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">turn_bits</span> <span class="o">-</span> <span class="mi">13</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">_get_mask</span><span class="p">(</span><span class="n">harpy_input</span><span class="o">.</span><span class="n">tolerance</span><span class="p">,</span> <span class="n">s_vt_freq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">harpy_input</span><span class="p">)</span>
+    <span class="n">extended</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">samples</span><span class="p">))</span> <span class="o">*</span> <span class="n">samples</span><span class="p">)</span>
+    <span class="n">coefficients</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">svd</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">s_vt_freq</span><span class="p">[:,</span> <span class="n">mask</span><span class="p">])</span>
+    <span class="n">new_coeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">coefficients</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">extended</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+    <span class="n">new_freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">coefficients</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">extended</span><span class="p">))</span>
+    <span class="n">new_coeffs</span><span class="p">[:,:</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">))]</span> <span class="o">=</span> <span class="n">coefficients</span>
+    <span class="n">coef</span> <span class="o">=</span> <span class="n">new_coeffs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">extended</span><span class="o">/</span><span class="n">samples</span><span class="p">),</span> <span class="n">samples</span><span class="p">)</span>
+    <span class="n">argsmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">new_coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">extended</span><span class="o">/</span><span class="n">samples</span><span class="p">))</span><span class="o">*</span><span class="n">samples</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">coef</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">turn_bits</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">turn_bits</span><span class="p">))</span>
+    <span class="n">new_freqs</span><span class="p">[:,</span> <span class="p">:</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">))]</span> <span class="o">=</span> <span class="n">freqs</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">matrix</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">new_coeffs</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">new_coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">argsmax</span><span class="p">]</span> <span class="o">/</span> <span class="n">norm</span><span class="p">)</span>
+    <span class="n">frequencies</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">coeffs</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">new_freqs</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">new_freqs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">argsmax</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">coeffs</span>
+
+
+<span class="k">def</span> <span class="nf">_get_mask</span><span class="p">(</span><span class="n">tol</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">harpy_input</span><span class="p">):</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">]:</span>
+        <span class="n">freqs</span><span class="o">.</span><span class="n">extend</span><span class="p">([(</span><span class="n">resonance_h</span> <span class="o">*</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tunex</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">resonance_v</span> <span class="o">*</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tuney</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">resonance_l</span> <span class="o">*</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tunez</span><span class="p">)</span>
+             <span class="k">for</span> <span class="p">(</span><span class="n">resonance_h</span><span class="p">,</span> <span class="n">resonance_v</span><span class="p">,</span> <span class="n">resonance_l</span><span class="p">)</span> <span class="ow">in</span> <span class="n">RESONANCE_LISTS</span><span class="p">[</span><span class="n">dim</span><span class="p">]])</span>
+    <span class="n">freqs</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">harpy_input</span><span class="o">.</span><span class="n">nattunex</span><span class="p">,</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">nattuney</span><span class="p">,</span> <span class="n">harpy_input</span><span class="o">.</span><span class="n">tunez</span><span class="p">])</span>
+    <span class="c1"># Move to [0, 1] domain.</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="p">[</span><span class="n">freq</span> <span class="o">+</span> <span class="mf">1.</span> <span class="k">if</span> <span class="n">freq</span> <span class="o">&lt;</span> <span class="mf">0.</span> <span class="k">else</span> <span class="n">freq</span> <span class="k">for</span> <span class="n">freq</span> <span class="ow">in</span> <span class="n">freqs</span><span class="p">]</span>
+    <span class="n">freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">freqs</span><span class="p">)</span> <span class="o">*</span> <span class="n">length</span>
+    <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tol</span> <span class="o">*</span> <span class="n">length</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">freqs</span><span class="p">:</span>
+        <span class="n">mask</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span> <span class="o">-</span> <span class="n">tolerance</span><span class="p">)):</span><span class="nb">min</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span> <span class="o">+</span> <span class="n">tolerance</span><span class="p">))]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">mask</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

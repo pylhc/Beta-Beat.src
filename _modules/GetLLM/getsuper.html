@@ -1,0 +1,1056 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>GetLLM.getsuper &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>GetLLM.getsuper</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for GetLLM.getsuper</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Created sometime 2009-2011</span>
+
+<span class="sd">:maintainer: Yngve Inntjore Levinsen</span>
+
+<span class="sd">:author: Glenn Vanbavinckhove, Yngve Inntjore Levinsen</span>
+
+<span class="sd">:version: 3.1.3</span>
+
+<span class="sd">Getsuper calculates with the help of GetLLM chromatic beta functions.</span>
+<span class="sd">The Montague W and Phi functions are output.</span>
+
+<span class="sd">What getsuper essentially does is run GetLLM on files with different dp/p and then afterwards</span>
+<span class="sd">interpolate the results to see how the functions vary with dp/p.</span>
+
+<span class="sd">To run getsuper.py you need several source files(sdds files) with different DPP(delta_p/p).</span>
+<span class="sd">At least one of the source files must have DPP=0.0 .</span>
+<span class="sd">Hint: You can change DPP in the GUI application in the Analysis panel. Change the entries in the</span>
+<span class="sd">column &#39;dp/d&#39; in the table at the top.</span>
+
+<span class="sd">Further you need AC dipole in your model. If your twissfile is &#39;Twiss.dat&#39; you need to provide the</span>
+<span class="sd">file &#39;Twiss_ac.dat&#39; in the same directory.</span>
+
+<span class="sd">Usage cmd line::</span>
+
+<span class="sd">    Usage: getsuper.py [options] sdds-file1 [sdds-file2 ...]</span>
+
+<span class="sd">    Options:</span>
+<span class="sd">      -h, --help            show this help message and exit</span>
+<span class="sd">      -f TwissFile, --files=TwissFile</span>
+<span class="sd">                            Files from analysis, separated by comma</span>
+<span class="sd">      --twissfile=/path/to/twiss.dat</span>
+<span class="sd">                            Twiss file to use</span>
+<span class="sd">      -o &lt;path&gt;, --output=&lt;path&gt;</span>
+<span class="sd">                            Output path, where to store the results</span>
+<span class="sd">      -b &lt;path&gt;, --beta=&lt;path&gt;</span>
+<span class="sd">                            Path to Beat-Beat.src folder</span>
+<span class="sd">      -t ALGORITHM, --algorithm=ALGORITHM</span>
+<span class="sd">                            Which algorithm to use (SUSSIX/SVD)</span>
+<span class="sd">      -a ACCEL, --accel=ACCEL</span>
+<span class="sd">                            Which accelerator: LHCB1 LHCB2 SPS RHIC</span>
+<span class="sd">      -d &lt;deltapScalingFactor&gt;, --deltapScalingFactor=&lt;deltapScalingFactor&gt;</span>
+<span class="sd">                            Scaling factor for deltap, remember final value must</span>
+<span class="sd">                            be in MAD units</span>
+
+<span class="sd">Usage in another Python module::</span>
+
+<span class="sd">    import GetLLM.getsuper</span>
+<span class="sd">    ...</span>
+<span class="sd">    GetLLM.getsuper.main(my_src_files_list, path_to_twiss_file)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">abspath</span><span class="p">,</span> <span class="n">join</span><span class="p">,</span> <span class="n">dirname</span>
+
+<span class="n">new_path</span> <span class="o">=</span> <span class="n">abspath</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span> <span class="n">os</span><span class="o">.</span><span class="n">pardir</span><span class="p">))</span>
+<span class="k">if</span> <span class="n">new_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_path</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">Python_Classes4MAD.metaclass</span> <span class="k">as</span> <span class="nn">metaclass</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">bpm</span> <span class="k">as</span> <span class="n">bpm_util</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span> <span class="k">as</span> <span class="n">logtools</span>
+<span class="kn">from</span> <span class="nn">utils.dict_tools</span> <span class="kn">import</span> <span class="n">DotDict</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_utils</span>
+<span class="kn">from</span> <span class="nn">model</span> <span class="kn">import</span> <span class="n">manager</span><span class="p">,</span> <span class="n">creator</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logtools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># ==================================================================================================</span>
+<span class="c1"># Argument Handling</span>
+<span class="c1"># ==================================================================================================</span>
+
+<span class="n">ALGO_CHOICES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;SUSSIX&quot;</span><span class="p">,</span> <span class="s2">&quot;SVD&quot;</span><span class="p">,</span> <span class="s2">&quot;HA&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Parses arguments from command line. &quot;&quot;&quot;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+    <span class="c1"># general</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="s2">&quot;--files&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Files from analysis, separated by comma&quot;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;TwissFile&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;files&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--twissfile&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Twiss file to use&quot;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;/path/to/twiss.dat&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;twissfile&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="s2">&quot;--output&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output path, where to store the results&quot;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;&lt;path&gt;&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;./&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;output_path&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="s2">&quot;--algorithm&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which algorithm to use </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ALGO_CHOICES</span><span class="p">),</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;ALGORITHM&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">ALGO_CHOICES</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;algorithm&quot;</span><span class="p">,</span>
+                        <span class="n">choices</span><span class="o">=</span><span class="n">ALGO_CHOICES</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="s2">&quot;--deltapScalingFactor&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Scaling factor for deltap, remember final value must be in MAD units&quot;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;&lt;deltapScalingFactor&gt;&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;deltap_scaling_factor&quot;</span><span class="p">)</span>
+
+    <span class="c1"># parse arguments</span>
+    <span class="n">accel_cls</span><span class="p">,</span> <span class="n">remain_args</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">get_accel_class_from_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">remain_args</span><span class="p">)</span>
+    <span class="n">source_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+
+    <span class="c1"># put all arguments into one dict</span>
+    <span class="n">options_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;accel_cls&quot;</span><span class="p">:</span> <span class="n">accel_cls</span><span class="p">,</span>
+        <span class="s2">&quot;source_files&quot;</span><span class="p">:</span> <span class="n">source_files</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">options_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+
+    <span class="n">options_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;files&quot;</span><span class="p">)</span>  <span class="c1"># is &quot;source_files&quot; now</span>
+
+    <span class="k">return</span> <span class="n">options_dict</span>
+
+
+<div class="viewcode-block" id="check_input"><a class="viewcode-back" href="../../GetLLM/index.html#GetLLM.getsuper.check_input">[docs]</a><span class="k">def</span> <span class="nf">check_input</span><span class="p">(</span><span class="n">opt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Approves the input and sets default &quot;&quot;&quot;</span>
+
+    <span class="c1"># files</span>
+    <span class="k">if</span> <span class="s2">&quot;source_files&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">opt</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">source_files</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Provide at least two source files!&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f_name</span> <span class="ow">in</span> <span class="n">opt</span><span class="o">.</span><span class="n">source_files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">f_name</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">f_name</span> <span class="o">+</span> <span class="s1">&#39;.gz&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f_name</span> <span class="o">+</span> <span class="s1">&#39; does not exist&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;twissfile&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">opt</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Twissfile needed for execution.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">twissfile</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Twissfile does not exist: &quot;</span> <span class="o">+</span> <span class="n">opt</span><span class="o">.</span><span class="n">twissfile</span><span class="p">)</span>
+
+    <span class="c1"># set defaults</span>
+    <span class="n">opt</span><span class="o">.</span><span class="n">deltap_scaling_factor</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;deltap_scaling_factor&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="n">opt</span><span class="o">.</span><span class="n">output_path</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_path&quot;</span><span class="p">,</span> <span class="s2">&quot;./&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">output_path</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">output_path</span><span class="p">)</span>
+
+    <span class="n">opt</span><span class="o">.</span><span class="n">algorithm</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;algorithm&quot;</span><span class="p">,</span> <span class="n">ALGO_CHOICES</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">algorithm</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ALGO_CHOICES</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Algorithm needs to be either one of  &#39;&quot;</span> <span class="o">+</span> <span class="n">ALGO_CHOICES</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">opt</span></div>
+
+
+<span class="c1"># ==================================================================================================</span>
+<span class="c1"># main()-function</span>
+<span class="c1"># ==================================================================================================</span>
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../GetLLM/index.html#GetLLM.getsuper.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; getsuper main function</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        source_files (list): list of strings with file_paths to TFS files</span>
+<span class="sd">        twissfile (str): path to TFS model file</span>
+<span class="sd">        output_path (str): Path to store created files</span>
+<span class="sd">        algorithm (str): Used Turn-by-turn data analysis algorithm: &#39;SUSSIX&#39;, &#39;SVD&#39; or &#39;HA&#39;</span>
+<span class="sd">        accel_cls (accelerator): Accelerator class object</span>
+<span class="sd">        deltap_scaling_factor (float): Scaling factor for deltap,</span>
+<span class="sd">                                       remember final value must be in MAD units</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">options</span> <span class="o">=</span> <span class="n">check_input</span><span class="p">(</span><span class="n">DotDict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">))</span>
+
+    <span class="n">files_dict</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># dpp --&gt; files with corresponding dpp</span>
+
+    <span class="k">for</span> <span class="n">f_name</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">source_files</span><span class="p">:</span>
+
+        <span class="n">datax</span><span class="p">,</span> <span class="n">datay</span> <span class="o">=</span> <span class="n">_load_from_file</span><span class="p">(</span><span class="n">f_name</span><span class="p">)</span>
+
+        <span class="n">dppx</span> <span class="o">=</span> <span class="n">datax</span><span class="o">.</span><span class="n">DPP</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">deltap_scaling_factor</span>  <span class="c1"># scaling factor hack for old files</span>
+        <span class="n">dppy</span> <span class="o">=</span> <span class="n">datay</span><span class="o">.</span><span class="n">DPP</span> <span class="o">*</span> <span class="n">options</span><span class="o">.</span><span class="n">deltap_scaling_factor</span>
+
+        <span class="k">if</span> <span class="n">dppx</span> <span class="o">!=</span> <span class="n">dppy</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Discrepancy between horizontal&quot;</span>
+                             <span class="s2">&quot;</span><span class="si">{:f}</span><span class="s2"> and vertical </span><span class="si">{:f}</span><span class="s2"> dpp&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dppx</span><span class="p">,</span> <span class="n">dppy</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dpp</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dppx</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dpp</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">files_dict</span><span class="p">:</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Adding dpp </span><span class="si">{:f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">))</span>
+            <span class="n">files_dict</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">f_name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">files_dict</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Less than two DPP-Values found. Cannot do W-Analysis.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="mi">0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">files_dict</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;NO DPP=0.0. Provide at least one source file with DPP=0.0.&quot;</span><span class="p">)</span>
+
+    <span class="n">accel_inst</span> <span class="o">=</span> <span class="n">_create_accel_instance</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">accel_cls</span><span class="p">,</span> <span class="n">files_dict</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span>
+                                        <span class="n">options</span><span class="o">.</span><span class="n">twissfile</span><span class="p">)</span>
+
+    <span class="n">_create_models_by_madx</span><span class="p">(</span><span class="n">accel_inst</span><span class="p">,</span> <span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="k">for</span> <span class="n">dpp</span> <span class="ow">in</span> <span class="n">files_dict</span><span class="p">:</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="n">files_dict</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span>
+        <span class="n">twiss_dpp_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;twiss_</span><span class="si">{:f}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">))</span>
+        <span class="n">_rungetllm</span><span class="p">(</span><span class="n">twiss_dpp_path</span><span class="p">,</span> <span class="n">files</span><span class="p">,</span> <span class="n">dpp</span><span class="p">,</span>
+                   <span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="n">accel_inst</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">algorithm</span><span class="p">)</span>
+
+    <span class="c1"># The GUI wants the default files to have the names without _0.0</span>
+    <span class="n">_copy_default_outfiles</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">)</span>
+
+    <span class="c1">#TODO: HOPE THAT GETLLM DOES A BETTER JOB</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Cleaning files of NAN! This should not be necessary!&quot;</span><span class="p">)</span>
+    <span class="n">all_files</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">)</span>
+    <span class="n">tfs_utils</span><span class="o">.</span><span class="n">remove_nan_from_files</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">all_files</span><span class="p">],</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># adding data</span>
+    <span class="n">betalistx</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">betalisty</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">couplelist</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">betalistxf</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">betalistyf</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">couplelistf</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">listx</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">listxf</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">listy</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">listyf</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">listc</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">listcf</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">dpp</span> <span class="ow">in</span> <span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Loading driven data for dpp </span><span class="si">{:f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">))</span>
+        <span class="n">betx_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;getbetax</span><span class="si">{ext:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="n">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="p">)))</span>
+        <span class="n">bety_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;getbetay</span><span class="si">{ext:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="n">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="p">)))</span>
+        <span class="n">couple_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;getcouple</span><span class="si">{ext:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="n">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="p">)))</span>
+
+        <span class="n">betx</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">betx_path</span><span class="p">)</span>
+        <span class="n">bety</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">bety_path</span><span class="p">)</span>
+        <span class="n">couple</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">couple_path</span><span class="p">)</span>
+
+        <span class="n">betalistx</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span> <span class="o">=</span> <span class="n">betx</span>
+        <span class="n">betalisty</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span> <span class="o">=</span> <span class="n">bety</span>
+        <span class="n">couplelist</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span> <span class="o">=</span> <span class="n">couple</span>
+
+        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">dpp</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">zerobx</span> <span class="o">=</span> <span class="n">betx</span>
+            <span class="n">zeroby</span> <span class="o">=</span> <span class="n">bety</span>
+
+        <span class="n">listx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">betx</span><span class="p">)</span>
+        <span class="n">listy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bety</span><span class="p">)</span>
+        <span class="n">listc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">couple</span><span class="p">)</span>
+
+        <span class="n">modeld</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">twissfile</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">betaxf_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;getbetax_free</span><span class="si">{ext:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="n">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="p">)))</span>
+            <span class="n">betxf</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">betaxf_path</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Loaded betax free data from &#39;</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">betaxf_path</span><span class="p">))</span>
+
+
+            <span class="n">betayf_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;getbetay_free</span><span class="si">{ext:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="n">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="p">)))</span>
+            <span class="n">betyf</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">betayf_path</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Loaded betay free data from &#39;</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">betayf_path</span><span class="p">))</span>
+
+            <span class="n">couplef_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;getcouple_free</span><span class="si">{ext:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ext</span><span class="o">=</span><span class="n">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="p">)))</span>
+            <span class="n">couplef</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">couplef_path</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Loaded coupling free data from &#39;</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">couplef_path</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="n">use_free</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;WARNING: Could not open all of the free data files.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">use_free</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">betalistxf</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span> <span class="o">=</span> <span class="n">betxf</span>
+            <span class="n">betalistyf</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span> <span class="o">=</span> <span class="n">betyf</span>
+            <span class="n">couplelistf</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span> <span class="o">=</span> <span class="n">couplef</span>
+
+            <span class="n">listxf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">betxf</span><span class="p">)</span>
+            <span class="n">listyf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">betyf</span><span class="p">)</span>
+            <span class="n">listcf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">couplef</span><span class="p">)</span>
+
+            <span class="n">modelf</span> <span class="o">=</span> <span class="n">modeld</span>
+
+            <span class="n">path_ac_file</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">twissfile</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.dat&quot;</span><span class="p">,</span> <span class="s2">&quot;_ac.dat&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path_ac_file</span><span class="p">):</span>
+                <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Ac file &#39;</span><span class="si">{:s}</span><span class="s2">&#39; does not exist.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_ac_file</span><span class="p">))</span>
+                <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;  -&gt; In GUI check &#39;Ac dipole&#39; box to create a model with ac dipole.&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">modeld</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">path_ac_file</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">dpp</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">zerobxf</span> <span class="o">=</span> <span class="n">betalistxf</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span>
+                <span class="n">zerobyf</span> <span class="o">=</span> <span class="n">betalistyf</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span>
+
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Getting Driven beta&quot;</span><span class="p">)</span>
+    <span class="c1"># H</span>
+    <span class="n">fileobj</span> <span class="o">=</span> <span class="n">_chromFileWriter</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;chrombetax&quot;</span> <span class="o">+</span> <span class="n">_ext</span><span class="p">()),</span> <span class="s1">&#39;H&#39;</span><span class="p">)</span>
+    <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">listx</span><span class="p">)</span>
+    <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">model_intersect</span><span class="p">(</span><span class="n">bpms</span><span class="p">,</span> <span class="n">modeld</span><span class="p">)</span>
+    <span class="n">_do_lin_reg_bet</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">betalistx</span><span class="p">,</span> <span class="n">bpms</span><span class="p">,</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">zerobx</span><span class="p">,</span> <span class="n">modeld</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">fileobj</span>
+
+    <span class="c1"># V</span>
+    <span class="n">fileobj</span> <span class="o">=</span> <span class="n">_chromFileWriter</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;chrombetay&quot;</span> <span class="o">+</span> <span class="n">_ext</span><span class="p">()),</span> <span class="s1">&#39;V&#39;</span><span class="p">)</span>
+    <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">listy</span><span class="p">)</span>
+    <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">model_intersect</span><span class="p">(</span><span class="n">bpms</span><span class="p">,</span> <span class="n">modeld</span><span class="p">)</span>
+    <span class="n">_do_lin_reg_bet</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">betalisty</span><span class="p">,</span> <span class="n">bpms</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="n">zeroby</span><span class="p">,</span> <span class="n">modeld</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">fileobj</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Driven beta finished&quot;</span><span class="p">)</span>
+
+
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Getting Driven coupling&quot;</span><span class="p">)</span>
+    <span class="n">fileobj</span> <span class="o">=</span> <span class="n">_chromFileWriter</span><span class="p">(</span><span class="s1">&#39;coupling&#39;</span><span class="p">,</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;chromcoupling&quot;</span> <span class="o">+</span> <span class="n">_ext</span><span class="p">()),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">listc</span><span class="p">)</span>
+    <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">model_intersect</span><span class="p">(</span><span class="n">bpms</span><span class="p">,</span> <span class="n">modeld</span><span class="p">)</span>
+    <span class="n">_do_linreg_coupling</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">bpms</span><span class="p">,</span> <span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">fileobj</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">fileobj</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Driven coupling finished&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_free</span><span class="p">:</span>
+        <span class="c1">#</span>
+        <span class="c1"># free beta</span>
+        <span class="c1">#</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Getting Free beta&quot;</span><span class="p">)</span>
+        <span class="c1"># H</span>
+        <span class="n">fileobj</span> <span class="o">=</span> <span class="n">_chromFileWriter</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span>
+                                   <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;chrombetax_free&quot;</span> <span class="o">+</span> <span class="n">_ext</span><span class="p">()),</span> <span class="s1">&#39;H&#39;</span><span class="p">)</span>
+        <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">listxf</span><span class="p">)</span>
+        <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">model_intersect</span><span class="p">(</span><span class="n">bpms</span><span class="p">,</span> <span class="n">modelf</span><span class="p">)</span>
+        <span class="n">_do_lin_reg_bet</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">betalistxf</span><span class="p">,</span> <span class="n">bpms</span><span class="p">,</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">zerobxf</span><span class="p">,</span> <span class="n">modelf</span><span class="p">)</span>
+
+        <span class="c1"># V</span>
+        <span class="n">fileobj</span> <span class="o">=</span> <span class="n">_chromFileWriter</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span>
+                                   <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;chrombetay_free&quot;</span> <span class="o">+</span> <span class="n">_ext</span><span class="p">()),</span> <span class="s1">&#39;V&#39;</span><span class="p">)</span>
+        <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">listyf</span><span class="p">)</span>
+        <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">model_intersect</span><span class="p">(</span><span class="n">bpms</span><span class="p">,</span> <span class="n">modelf</span><span class="p">)</span>
+        <span class="n">_do_lin_reg_bet</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">betalistyf</span><span class="p">,</span> <span class="n">bpms</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="n">zerobyf</span><span class="p">,</span> <span class="n">modelf</span><span class="p">)</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Free beta finished&quot;</span><span class="p">)</span>
+
+
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;GettingFree coupling&quot;</span><span class="p">)</span>
+        <span class="n">fileobj</span> <span class="o">=</span> <span class="n">_chromFileWriter</span><span class="p">(</span><span class="s1">&#39;coupling&#39;</span><span class="p">,</span>
+                                   <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;chromcoupling_free&quot;</span> <span class="o">+</span> <span class="n">_ext</span><span class="p">()),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">listcf</span><span class="p">)</span>
+        <span class="n">bpms</span> <span class="o">=</span> <span class="n">bpm_util</span><span class="o">.</span><span class="n">model_intersect</span><span class="p">(</span><span class="n">bpms</span><span class="p">,</span> <span class="n">modelf</span><span class="p">)</span>
+        <span class="n">_do_linreg_coupling</span><span class="p">(</span><span class="n">couplelistf</span><span class="p">,</span> <span class="n">bpms</span><span class="p">,</span> <span class="n">files_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">fileobj</span><span class="p">)</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Free coupling finished&quot;</span><span class="p">)</span></div>
+
+<span class="c1"># ===================================================================================================</span>
+<span class="c1"># helper-functions</span>
+<span class="c1"># ===================================================================================================</span>
+
+
+<span class="k">def</span> <span class="nf">_load_from_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.gz&#39;</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">datax</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">filepath</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.gz&quot;</span><span class="p">,</span> <span class="s2">&quot;.linx.gz&quot;</span><span class="p">))</span>
+            <span class="n">datay</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">filepath</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.gz&quot;</span><span class="p">,</span> <span class="s2">&quot;.liny.gz&quot;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="n">datax</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">filepath</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.gz&quot;</span><span class="p">,</span> <span class="s2">&quot;_linx.gz&quot;</span><span class="p">))</span>
+            <span class="n">datay</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">filepath</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.gz&quot;</span><span class="p">,</span> <span class="s2">&quot;_liny.gz&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">datax</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">filepath</span> <span class="o">+</span> <span class="s2">&quot;.linx&quot;</span><span class="p">)</span>
+            <span class="n">datay</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">filepath</span> <span class="o">+</span> <span class="s2">&quot;.liny&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="n">datax</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">filepath</span> <span class="o">+</span> <span class="s2">&quot;_linx&quot;</span><span class="p">)</span>
+            <span class="n">datay</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">filepath</span> <span class="o">+</span> <span class="s2">&quot;_liny&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">datax</span><span class="p">,</span> <span class="n">datay</span>
+
+
+<span class="k">def</span> <span class="nf">_create_accel_instance</span><span class="p">(</span><span class="n">accel_cls</span><span class="p">,</span> <span class="n">files_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">twissfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        dpps: list of dp/p to create model for</span>
+<span class="sd">        dict files_dict: dpp_value --&gt; corresponding_filenames</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="p">(</span><span class="n">exp_qx</span><span class="p">,</span> <span class="n">exp_qy</span><span class="p">,</span> <span class="n">mdl_qx</span><span class="p">,</span> <span class="n">mdl_qy</span><span class="p">)</span> <span class="o">=</span> <span class="n">_get_tunes</span><span class="p">(</span><span class="n">twissfile</span><span class="p">,</span> <span class="n">files_dict</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">testpath</span> <span class="ow">in</span> <span class="p">[</span><span class="n">output_path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">twissfile</span><span class="p">)]:</span>
+        <span class="n">modifiers</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">testpath</span><span class="p">,</span> <span class="s1">&#39;modifiers.madx&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">modifiers</span><span class="p">):</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Using file &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">modifiers</span><span class="p">))</span>
+            <span class="k">break</span>
+
+    <span class="n">acd</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">adt</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">twissfile</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.dat&quot;</span><span class="p">,</span> <span class="s2">&quot;_ac.dat&quot;</span><span class="p">)):</span>
+        <span class="n">acd</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">twissfile</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.dat&quot;</span><span class="p">,</span> <span class="s2">&quot;_adt.dat&quot;</span><span class="p">)):</span>
+        <span class="n">adt</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">accel_inst</span> <span class="o">=</span> <span class="n">accel_cls</span><span class="p">(</span>
+        <span class="n">optics</span><span class="o">=</span><span class="n">modifiers</span><span class="p">,</span>
+        <span class="n">nat_tune_x</span><span class="o">=</span><span class="n">mdl_qx</span><span class="p">,</span>
+        <span class="n">nat_tune_y</span><span class="o">=</span><span class="n">mdl_qy</span><span class="p">,</span>
+        <span class="n">drv_tune_x</span><span class="o">=</span><span class="n">exp_qx</span><span class="p">,</span>
+        <span class="n">drv_tune_y</span><span class="o">=</span><span class="n">exp_qy</span><span class="p">,</span>
+        <span class="n">acd</span><span class="o">=</span><span class="n">acd</span><span class="p">,</span>
+        <span class="n">adt</span><span class="o">=</span><span class="n">adt</span><span class="p">,</span>
+        <span class="n">xing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">accel_inst</span><span class="o">.</span><span class="n">model_dir</span> <span class="o">=</span> <span class="n">output_path</span>
+
+    <span class="k">return</span> <span class="n">accel_inst</span>
+
+
+<span class="k">def</span> <span class="nf">_create_models_by_madx</span><span class="p">(</span><span class="n">accel_inst</span><span class="p">,</span> <span class="n">dpps</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Creates the needed models &quot;&quot;&quot;</span>
+    <span class="n">model_creator</span> <span class="o">=</span> <span class="n">creator</span><span class="o">.</span><span class="n">CREATORS</span><span class="p">[</span><span class="n">accel_inst</span><span class="o">.</span><span class="n">NAME</span><span class="p">][</span><span class="s2">&quot;nominal&quot;</span><span class="p">]</span>
+    <span class="n">model_creator</span><span class="o">.</span><span class="n">prepare_run</span><span class="p">(</span><span class="n">accel_inst</span><span class="p">,</span> <span class="n">accel_inst</span><span class="o">.</span><span class="n">model_dir</span><span class="p">)</span>
+    <span class="n">madx_script</span> <span class="o">=</span> <span class="n">accel_inst</span><span class="o">.</span><span class="n">get_multi_dpp_job</span><span class="p">(</span><span class="n">dpps</span><span class="p">)</span>
+    <span class="n">model_creator</span><span class="o">.</span><span class="n">run_madx</span><span class="p">(</span><span class="n">madx_script</span><span class="p">,</span>
+                           <span class="n">logfile</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">accel_inst</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;w_analysis_multidpp.log&quot;</span><span class="p">),</span>
+                           <span class="n">writeto</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">accel_inst</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;w_analysis_multidpp.madx&quot;</span><span class="p">),</span>
+                           <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get_output_filenames</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">dpp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns list of available file names</span>
+<span class="sd">    for the given dpp.</span>
+
+<span class="sd">    Example: _get_output_filenames(0.)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dpp: dpp appendix to list of files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">output_path</span><span class="p">):</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="n">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;get[^_]+[_free\d?]?&quot;</span> <span class="o">+</span> <span class="n">ext</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="k">def</span> <span class="nf">_rungetllm</span><span class="p">(</span><span class="n">twiss_filename</span><span class="p">,</span> <span class="n">files</span><span class="p">,</span> <span class="n">dpp</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">accel_inst</span><span class="p">,</span> <span class="n">algorithm</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Running GetLLM...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">GetLLM</span>
+
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Will run getllm for dpp </span><span class="si">{:f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="s2">&quot;lhc&quot;</span> <span class="o">==</span> <span class="n">accel_inst</span><span class="o">.</span><span class="n">NAME</span><span class="p">:</span>
+        <span class="n">lhcphase</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+        <span class="n">accel_name</span> <span class="o">=</span> <span class="s2">&quot;LHCB&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">accel_inst</span><span class="o">.</span><span class="n">get_beam</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lhcphase</span> <span class="o">=</span> <span class="s2">&quot;0&quot;</span>
+        <span class="n">accel_name</span> <span class="o">=</span> <span class="n">accel_inst</span><span class="o">.</span><span class="n">NAME</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>  <span class="c1">#TODO: TEST that! Should work for ESRF at least.</span>
+
+    <span class="n">GetLLM</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="n">outputpath</span><span class="o">=</span><span class="n">output_path</span><span class="p">,</span>
+            <span class="n">files_to_analyse</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">files</span><span class="p">),</span>
+            <span class="n">model_filename</span><span class="o">=</span><span class="n">twiss_filename</span><span class="p">,</span>
+            <span class="n">accel</span><span class="o">=</span><span class="n">accel_name</span><span class="p">,</span>
+            <span class="n">tbtana</span><span class="o">=</span><span class="n">algorithm</span><span class="p">,</span>
+            <span class="n">lhcphase</span><span class="o">=</span><span class="n">lhcphase</span><span class="p">)</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;GetLLM finished&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">_get_output_filenames</span><span class="p">(</span><span class="n">output_path</span><span class="p">):</span>
+        <span class="n">src_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="n">dst_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">fname</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">_ext</span><span class="p">(),</span> <span class="n">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="p">)))</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">src_path</span><span class="p">,</span> <span class="n">dst_path</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_copy_default_outfiles</span><span class="p">(</span><span class="n">output_path</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">_get_output_filenames</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">dpp</span><span class="o">=</span><span class="mf">0.</span><span class="p">):</span>
+        <span class="n">src_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="n">dst_path</span> <span class="o">=</span> <span class="n">_join_with_output_path</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">fname</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">_ext</span><span class="p">(</span><span class="mf">0.</span><span class="p">),</span> <span class="n">_ext</span><span class="p">()))</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">src_path</span><span class="p">,</span> <span class="n">dst_path</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_ext</span><span class="p">(</span><span class="n">dpp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">dpp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;.out&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;_</span><span class="si">{:f}</span><span class="s2">.out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dpp</span><span class="p">)</span>
+
+
+<span class="c1"># for chromatic</span>
+
+<span class="k">def</span> <span class="nf">_do_lin_reg_bet</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">listx</span><span class="p">,</span> <span class="n">listy</span><span class="p">,</span> <span class="n">bpms</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">twiss</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates stuff and writes to the file in a table</span>
+<span class="sd">    Closes the file afterwards</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fileobj: _chromFileWriter for output table</span>
+<span class="sd">        listx: List of variables...</span>
+<span class="sd">        listy: List of variables...</span>
+<span class="sd">        bpms: List of BPMs</span>
+<span class="sd">        plane: Which plane (H/V)</span>
+<span class="sd">        zero: Twiss for dp/p = 0</span>
+<span class="sd">        twiss: Twiss</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">bpm</span> <span class="ow">in</span> <span class="n">bpms</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">bpm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">sloc</span> <span class="o">=</span> <span class="n">bpm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">indx</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">bm</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">am</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s2">&quot;H&quot;</span> <span class="ow">in</span> <span class="n">plane</span><span class="p">:</span>
+            <span class="n">beta0</span> <span class="o">=</span> <span class="n">zero</span><span class="o">.</span><span class="n">BETX</span><span class="p">[</span><span class="n">zero</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="n">alfa0</span> <span class="o">=</span> <span class="n">zero</span><span class="o">.</span><span class="n">ALFX</span><span class="p">[</span><span class="n">zero</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">alfa0err</span> <span class="o">=</span> <span class="n">zero</span><span class="o">.</span><span class="n">STDALFX</span><span class="p">[</span><span class="n">zero</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="n">alfa0err</span> <span class="o">=</span> <span class="n">zero</span><span class="o">.</span><span class="n">ERRALFX</span><span class="p">[</span><span class="n">zero</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+
+
+            <span class="n">beta0m</span> <span class="o">=</span> <span class="n">twiss</span><span class="o">.</span><span class="n">BETX</span><span class="p">[</span><span class="n">twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="n">alfa0m</span> <span class="o">=</span> <span class="n">twiss</span><span class="o">.</span><span class="n">ALFX</span><span class="p">[</span><span class="n">twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+
+            <span class="n">wmo</span> <span class="o">=</span> <span class="n">twiss</span><span class="o">.</span><span class="n">WX</span><span class="p">[</span><span class="n">twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="n">pmo</span> <span class="o">=</span> <span class="n">twiss</span><span class="o">.</span><span class="n">PHIX</span><span class="p">[</span><span class="n">twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="n">beta0</span> <span class="o">=</span> <span class="n">zero</span><span class="o">.</span><span class="n">BETY</span><span class="p">[</span><span class="n">zero</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="n">alfa0</span> <span class="o">=</span> <span class="n">zero</span><span class="o">.</span><span class="n">ALFY</span><span class="p">[</span><span class="n">zero</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">alfa0err</span> <span class="o">=</span> <span class="n">zero</span><span class="o">.</span><span class="n">STDALFY</span><span class="p">[</span><span class="n">zero</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="n">alfa0err</span> <span class="o">=</span> <span class="n">zero</span><span class="o">.</span><span class="n">ERRALFY</span><span class="p">[</span><span class="n">zero</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+
+            <span class="n">beta0m</span> <span class="o">=</span> <span class="n">twiss</span><span class="o">.</span><span class="n">BETY</span><span class="p">[</span><span class="n">twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="n">alfa0m</span> <span class="o">=</span> <span class="n">twiss</span><span class="o">.</span><span class="n">ALFY</span><span class="p">[</span><span class="n">twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+
+            <span class="n">wmo</span> <span class="o">=</span> <span class="n">twiss</span><span class="o">.</span><span class="n">WY</span><span class="p">[</span><span class="n">twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+            <span class="n">pmo</span> <span class="o">=</span> <span class="n">twiss</span><span class="o">.</span><span class="n">PHIY</span><span class="p">[</span><span class="n">twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]]</span>
+        <span class="k">for</span> <span class="n">dpp</span> <span class="ow">in</span> <span class="n">listx</span><span class="p">:</span>
+            <span class="n">_file</span> <span class="o">=</span> <span class="n">listy</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span>
+            <span class="n">ix</span> <span class="o">=</span> <span class="n">_file</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="n">indx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;H&quot;</span> <span class="ow">in</span> <span class="n">plane</span><span class="p">:</span>
+                <span class="n">b</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_file</span><span class="o">.</span><span class="n">BETX</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_file</span><span class="o">.</span><span class="n">ALFX</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+
+                <span class="n">bm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_file</span><span class="o">.</span><span class="n">BETXMDL</span><span class="p">[</span><span class="n">_file</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span>
+                <span class="n">am</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_file</span><span class="o">.</span><span class="n">ALFXMDL</span><span class="p">[</span><span class="n">_file</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">b</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_file</span><span class="o">.</span><span class="n">BETY</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_file</span><span class="o">.</span><span class="n">ALFY</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span>
+
+                <span class="n">bm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_file</span><span class="o">.</span><span class="n">BETYMDL</span><span class="p">[</span><span class="n">_file</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span>
+                <span class="n">am</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_file</span><span class="o">.</span><span class="n">ALFYMDL</span><span class="p">[</span><span class="n">_file</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span>
+
+        <span class="n">bfit</span> <span class="o">=</span> <span class="n">linreg</span><span class="p">(</span><span class="n">listx</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="n">afit</span> <span class="o">=</span> <span class="n">linreg</span><span class="p">(</span><span class="n">listx</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+        <span class="n">bfitm</span> <span class="o">=</span> <span class="n">linreg</span><span class="p">(</span><span class="n">listx</span><span class="p">,</span> <span class="n">bm</span><span class="p">)</span>
+        <span class="n">afitm</span> <span class="o">=</span> <span class="n">linreg</span><span class="p">(</span><span class="n">listx</span><span class="p">,</span> <span class="n">am</span><span class="p">)</span>
+
+        <span class="c1"># measurement</span>
+        <span class="n">dbb</span> <span class="o">=</span> <span class="n">bfit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">beta0</span>
+        <span class="n">dbberr</span> <span class="o">=</span> <span class="n">bfit</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">/</span><span class="n">beta0</span>
+        <span class="n">da</span> <span class="o">=</span> <span class="n">afit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">daerr</span> <span class="o">=</span> <span class="n">afit</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">dbb</span>
+        <span class="n">Aerr</span> <span class="o">=</span> <span class="n">dbberr</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">da</span><span class="o">-</span><span class="n">alfa0</span><span class="o">*</span><span class="n">dbb</span>
+        <span class="n">Berr</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">daerr</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">alfa0err</span><span class="o">*</span><span class="n">dbb</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">alfa0</span><span class="o">*</span><span class="n">dbberr</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">A</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">B</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">werr</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="p">(</span><span class="n">Aerr</span><span class="o">*</span><span class="n">A</span><span class="o">/</span><span class="n">w</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">Berr</span><span class="o">*</span><span class="n">B</span><span class="o">/</span><span class="n">w</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>  <span class="p">)</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">B</span><span class="p">,</span><span class="n">A</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span>
+        <span class="n">phierr</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="p">(</span><span class="n">A</span><span class="o">/</span><span class="n">B</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="p">(</span><span class="n">Aerr</span><span class="o">/</span><span class="n">B</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">A</span><span class="o">/</span><span class="n">B</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Berr</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span>
+
+        <span class="c1">#model</span>
+        <span class="n">dbbm</span> <span class="o">=</span> <span class="n">bfitm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">beta0m</span>
+        <span class="n">dbberrm</span> <span class="o">=</span> <span class="n">bfitm</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">/</span><span class="n">beta0m</span>
+        <span class="n">dam</span> <span class="o">=</span> <span class="n">afitm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">daerrm</span> <span class="o">=</span> <span class="n">afitm</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">Am</span> <span class="o">=</span> <span class="n">dbbm</span>
+        <span class="n">Aerrm</span> <span class="o">=</span> <span class="n">dbberrm</span>
+        <span class="n">Bm</span> <span class="o">=</span> <span class="n">dam</span><span class="o">-</span><span class="n">alfa0m</span><span class="o">*</span><span class="n">dbbm</span>
+        <span class="n">Berrm</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">daerrm</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">alfa0m</span><span class="o">*</span><span class="n">dbberrm</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">wm</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Am</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">Bm</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">werrm</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="p">(</span><span class="n">Aerrm</span><span class="o">*</span><span class="n">Am</span><span class="o">/</span><span class="n">wm</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">Berrm</span><span class="o">*</span><span class="n">Bm</span><span class="o">/</span><span class="n">wm</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>  <span class="p">)</span>
+        <span class="n">phim</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">Bm</span><span class="p">,</span><span class="n">Am</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span>
+        <span class="n">phierrm</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="p">(</span><span class="n">Am</span><span class="o">/</span><span class="n">Bm</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="p">(</span><span class="n">Aerrm</span><span class="o">/</span><span class="n">Bm</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">Am</span><span class="o">/</span><span class="n">Bm</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">Berrm</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span>
+
+        <span class="n">fileobj</span><span class="o">.</span><span class="n">writeLine</span><span class="p">(</span><span class="nb">locals</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+
+<span class="k">def</span> <span class="nf">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">bpm_name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    calculates the linear regression of &#39;value&#39; for each</span>
+<span class="sd">    dpp in dpplist</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        couplelist: list of getcouple files (for each dpp)</span>
+<span class="sd">        dpplist: list of all dpp values available</span>
+<span class="sd">        bpm_name: name of bpm</span>
+<span class="sd">        value: name of column (e.g. F1001R)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lst</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">dpp</span> <span class="ow">in</span> <span class="n">dpplist</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dpp</span><span class="p">)</span>
+        <span class="n">couplefile</span> <span class="o">=</span> <span class="n">couplelist</span><span class="p">[</span><span class="n">dpp</span><span class="p">]</span>
+        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">couplefile</span><span class="p">,</span> <span class="n">value</span><span class="p">)[</span><span class="n">couplefile</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bpm_name</span><span class="p">]])</span>
+
+    <span class="n">lreg</span> <span class="o">=</span> <span class="n">linreg</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">lst</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">lreg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">lreg</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_do_linreg_coupling</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">bpms</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    linreg for chromatic coupling</span>
+
+<span class="sd">    Writes to fileobj the chromatic coupling.</span>
+<span class="sd">    f1001, f1010 derivatives wrt dp/p, and errors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">bpm</span> <span class="ow">in</span> <span class="n">bpms</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">bpm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">sloc</span> <span class="o">=</span> <span class="n">bpm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">chr_f1001r</span><span class="p">,</span> <span class="n">chr_err_f1001r</span> <span class="o">=</span> <span class="n">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;F1001R&#39;</span><span class="p">)</span>
+        <span class="n">chr_f1001i</span><span class="p">,</span> <span class="n">chr_err_f1001i</span> <span class="o">=</span> <span class="n">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;F1001I&#39;</span><span class="p">)</span>
+        <span class="n">chr_f1010r</span><span class="p">,</span> <span class="n">chr_err_f1010r</span> <span class="o">=</span> <span class="n">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;F1010R&#39;</span><span class="p">)</span>
+        <span class="n">chr_f1010i</span><span class="p">,</span> <span class="n">chr_err_f1010i</span> <span class="o">=</span> <span class="n">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;F1010I&#39;</span><span class="p">)</span>
+
+        <span class="n">mdl_chr_f1001r</span><span class="p">,</span> <span class="n">mdl_chr_err_f1001r</span> <span class="o">=</span> <span class="n">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;MDLF1001R&#39;</span><span class="p">)</span>
+        <span class="n">mdl_chr_f1001i</span><span class="p">,</span> <span class="n">mdl_chr_err_f1001i</span> <span class="o">=</span> <span class="n">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;MDLF1001I&#39;</span><span class="p">)</span>
+        <span class="n">mdl_chr_f1010r</span><span class="p">,</span> <span class="n">mdl_chr_err_f1010r</span> <span class="o">=</span> <span class="n">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;MDLF1010R&#39;</span><span class="p">)</span>
+        <span class="n">mdl_chr_f1010i</span><span class="p">,</span> <span class="n">mdl_chr_err_f1010i</span> <span class="o">=</span> <span class="n">_get_f</span><span class="p">(</span><span class="n">couplelist</span><span class="p">,</span> <span class="n">dpplist</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;MDLF1010I&#39;</span><span class="p">)</span>
+
+        <span class="n">fileobj</span><span class="o">.</span><span class="n">writeLine</span><span class="p">(</span><span class="nb">locals</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+
+<span class="k">def</span> <span class="nf">_get_tunes</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">fileslist</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads in the driven tunes from the</span>
+<span class="sd">    file with dpp=0</span>
+<span class="sd">    Reads in the model tunes from the</span>
+<span class="sd">    twiss model (twiss.dat)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fileslist: dictionary of files, dpp used as key</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (qx, qy, qdx, qdy, qmx, qmy)</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If fileslist[0] does not exist</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tw_x</span><span class="p">,</span> <span class="n">tw_y</span> <span class="o">=</span> <span class="n">_load_from_file</span><span class="p">(</span><span class="n">fileslist</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">tw</span> <span class="o">=</span> <span class="n">metaclass</span><span class="o">.</span><span class="n">twiss</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+
+    <span class="n">exp_qx</span> <span class="o">=</span> <span class="n">tw_x</span><span class="o">.</span><span class="n">Q1</span>
+    <span class="n">exp_qy</span> <span class="o">=</span> <span class="n">tw_y</span><span class="o">.</span><span class="n">Q2</span>
+    <span class="n">mdl_qx</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">Q1</span>
+    <span class="n">mdl_qy</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">Q2</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">exp_qx</span><span class="p">,</span> <span class="n">exp_qy</span><span class="p">,</span> <span class="n">mdl_qx</span><span class="p">,</span> <span class="n">mdl_qy</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="linreg"><a class="viewcode-back" href="../../GetLLM/index.html#GetLLM.getsuper.linreg">[docs]</a><span class="k">def</span> <span class="nf">linreg</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns coefficients to the regression line &quot;y=ax+b&quot; from x[] and y[], and R^2 Value</span>
+
+<span class="sd">    Summary:</span>
+<span class="sd">        Linear regression of y = ax + b</span>
+
+<span class="sd">    Usage:</span>
+<span class="sd">        real, real, real = linreg(list, list)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Y</span><span class="p">):</span>  <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="s1">&#39;unequal length&#39;</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">Sx</span> <span class="o">=</span> <span class="n">Sy</span> <span class="o">=</span> <span class="n">Sxx</span> <span class="o">=</span> <span class="n">Syy</span> <span class="o">=</span> <span class="n">Sxy</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+        <span class="n">Sx</span> <span class="o">=</span> <span class="n">Sx</span> <span class="o">+</span> <span class="n">x</span>
+        <span class="n">Sy</span> <span class="o">=</span> <span class="n">Sy</span> <span class="o">+</span> <span class="n">y</span>
+        <span class="n">Sxx</span> <span class="o">=</span> <span class="n">Sxx</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">x</span>
+        <span class="n">Syy</span> <span class="o">=</span> <span class="n">Syy</span> <span class="o">+</span> <span class="n">y</span><span class="o">*</span><span class="n">y</span>
+        <span class="n">Sxy</span> <span class="o">=</span> <span class="n">Sxy</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">y</span>
+    <span class="n">det</span> <span class="o">=</span> <span class="n">Sxx</span> <span class="o">*</span> <span class="n">N</span> <span class="o">-</span> <span class="n">Sx</span> <span class="o">*</span> <span class="n">Sx</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">Sxy</span> <span class="o">*</span> <span class="n">N</span> <span class="o">-</span> <span class="n">Sy</span> <span class="o">*</span> <span class="n">Sx</span><span class="p">)</span><span class="o">/</span><span class="n">det</span><span class="p">,</span> <span class="p">(</span><span class="n">Sxx</span> <span class="o">*</span> <span class="n">Sy</span> <span class="o">-</span> <span class="n">Sx</span> <span class="o">*</span> <span class="n">Sxy</span><span class="p">)</span><span class="o">/</span><span class="n">det</span>
+    <span class="n">meanerror</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+        <span class="n">meanerror</span> <span class="o">=</span> <span class="n">meanerror</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">Sy</span><span class="o">/</span><span class="n">N</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">residual</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+    <span class="k">if</span> <span class="n">residual</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">meanerror</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">RR</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">RR</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">residual</span><span class="o">/</span><span class="n">meanerror</span>
+    <span class="k">if</span> <span class="n">N</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">/</span> <span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">Var_a</span><span class="p">,</span> <span class="n">Var_b</span> <span class="o">=</span> <span class="n">ss</span> <span class="o">*</span> <span class="n">N</span> <span class="o">/</span> <span class="n">det</span><span class="p">,</span> <span class="n">ss</span> <span class="o">*</span> <span class="n">Sxx</span> <span class="o">/</span> <span class="n">det</span>
+    <span class="c1">#print &quot;y=ax+b&quot;</span>
+    <span class="c1">#print &quot;N= %d&quot; % N</span>
+    <span class="c1">#print &quot;a= %g \pm t_{%d;\alpha/2} %g&quot; % (a, N-2, sqrt(Var_a))</span>
+    <span class="c1">#print &quot;b= %g \pm t_{%d;\alpha/2} %g&quot; % (b, N-2, sqrt(Var_b))</span>
+    <span class="c1">#print &quot;R^2= %g&quot; % RR</span>
+    <span class="c1">#print &quot;s^2= %g&quot; % ss</span>
+    <span class="k">return</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">RR</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Var_a</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Var_b</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_join_with_output_path</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="o">*</span><span class="n">path_tokens</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="o">*</span><span class="n">path_tokens</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_chromFileWriter</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ftype</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            ftype: string, &#39;beta&#39; or &#39;coupling&#39;</span>
+<span class="sd">            fname: string, name of file</span>
+<span class="sd">            plane: &quot;H&quot; or &quot;V&quot;</span>
+<span class="sd">            overwrite: Overwrite file if it already exist</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fstream</span> <span class="o">=</span> <span class="n">file</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_clen</span> <span class="o">=</span> <span class="mi">19</span> <span class="c1"># column length..</span>
+
+        <span class="k">if</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">==</span><span class="s2">&quot;H&quot;</span><span class="p">:</span>
+            <span class="n">plane</span> <span class="o">=</span> <span class="s2">&quot;X&quot;</span>
+        <span class="k">elif</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">==</span><span class="s2">&quot;V&quot;</span><span class="p">:</span>
+            <span class="n">plane</span> <span class="o">=</span> <span class="s2">&quot;Y&quot;</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot overwrite file &quot;</span><span class="o">+</span><span class="n">fname</span><span class="p">)</span>
+
+        <span class="n">betacolumns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;sloc&#39;</span><span class="p">,</span>  <span class="s1">&#39;dbb&#39;</span><span class="p">,</span> <span class="s1">&#39;dbberr&#39;</span><span class="p">,</span> <span class="s1">&#39;da&#39;</span><span class="p">,</span> <span class="s1">&#39;daerr&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="s1">&#39;werr&#39;</span><span class="p">,</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="s1">&#39;werrm&#39;</span><span class="p">,</span> <span class="s1">&#39;wmo&#39;</span><span class="p">,</span> <span class="s1">&#39;phi&#39;</span><span class="p">,</span> <span class="s1">&#39;phierr&#39;</span><span class="p">,</span><span class="s1">&#39;phim&#39;</span><span class="p">,</span><span class="s1">&#39;phierrm&#39;</span><span class="p">,</span><span class="s1">&#39;pmo&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;A&#39;</span><span class="p">,</span><span class="s1">&#39;Aerr&#39;</span><span class="p">,</span><span class="s1">&#39;Am&#39;</span><span class="p">,</span><span class="s1">&#39;Aerrm&#39;</span><span class="p">,</span><span class="s1">&#39;B&#39;</span><span class="p">,</span><span class="s1">&#39;Berr&#39;</span><span class="p">,</span><span class="s1">&#39;Bm&#39;</span><span class="p">,</span><span class="s1">&#39;Berrm&#39;</span><span class="p">,</span> <span class="s1">&#39;dbbm&#39;</span><span class="p">,</span><span class="s1">&#39;dbberrm&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;dam&#39;</span><span class="p">,</span><span class="s1">&#39;daerrm&#39;</span><span class="p">]</span>
+        <span class="n">couplecolumns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;sloc&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_f1001r&#39;</span><span class="p">,</span> <span class="s1">&#39;chr_err_f1001r&#39;</span><span class="p">,</span> <span class="s1">&#39;chr_f1001i&#39;</span><span class="p">,</span> <span class="s1">&#39;chr_err_f1001i&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_f1010r&#39;</span><span class="p">,</span> <span class="s1">&#39;chr_err_f1010r&#39;</span><span class="p">,</span> <span class="s1">&#39;chr_f1010i&#39;</span><span class="p">,</span> <span class="s1">&#39;chr_err_f1010i&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_f1001r&#39;</span><span class="p">,</span> <span class="s1">&#39;mdl_chr_err_f1001r&#39;</span><span class="p">,</span> <span class="s1">&#39;mdl_chr_f1001i&#39;</span><span class="p">,</span> <span class="s1">&#39;mdl_chr_err_f1001i&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_f1010r&#39;</span><span class="p">,</span> <span class="s1">&#39;mdl_chr_err_f1010r&#39;</span><span class="p">,</span> <span class="s1">&#39;mdl_chr_f1010i&#39;</span><span class="p">,</span> <span class="s1">&#39;mdl_chr_err_f1010i&#39;</span><span class="p">,</span>
+          <span class="p">]</span>
+
+        <span class="n">headnames</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;NAME&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;sloc&#39;</span><span class="p">:</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;dbb&#39;</span><span class="p">:</span> <span class="s1">&#39;dbb&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;dbberr&#39;</span><span class="p">:</span> <span class="s1">&#39;dbberr&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;da&#39;</span><span class="p">:</span> <span class="s1">&#39;dalfa&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;daerr&#39;</span><span class="p">:</span> <span class="s1">&#39;daerr&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">:</span> <span class="s1">&#39;W</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;werr&#39;</span><span class="p">:</span> <span class="s1">&#39;W</span><span class="si">%(plane)s</span><span class="s1">ERR&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;wmo&#39;</span><span class="p">:</span> <span class="s1">&#39;WMO&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;phi&#39;</span><span class="p">:</span> <span class="s1">&#39;PHI</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;phierr&#39;</span><span class="p">:</span> <span class="s1">&#39;PHI</span><span class="si">%(plane)s</span><span class="s1">ERR&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;phim&#39;</span><span class="p">:</span> <span class="s1">&#39;PHI</span><span class="si">%(plane)s</span><span class="s1">M&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;phierrm&#39;</span><span class="p">:</span> <span class="s1">&#39;PHI</span><span class="si">%(plane)s</span><span class="s1">ERRM&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;pmo&#39;</span><span class="p">:</span> <span class="s1">&#39;PHIZERO&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;dbbm&#39;</span><span class="p">:</span> <span class="s1">&#39;dbbM&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;dbberrm&#39;</span><span class="p">:</span> <span class="s1">&#39;dbberrM&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;dam&#39;</span><span class="p">:</span> <span class="s1">&#39;dalfaM&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;daerrm&#39;</span><span class="p">:</span> <span class="s1">&#39;daerrM&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;wm&#39;</span><span class="p">:</span> <span class="s1">&#39;W</span><span class="si">%(plane)s</span><span class="s1">M&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;werrm&#39;</span><span class="p">:</span> <span class="s1">&#39;W</span><span class="si">%(plane)s</span><span class="s1">ERRM&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="s1">&#39;CHROM_A</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Aerr&#39;</span><span class="p">:</span> <span class="s1">&#39;CHROM_Aerr</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Am&#39;</span><span class="p">:</span> <span class="s1">&#39;CHROM_AM</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Aerrm&#39;</span><span class="p">:</span> <span class="s1">&#39;CHROM_AERRM</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="s1">&#39;CHROM_B</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Berr&#39;</span><span class="p">:</span> <span class="s1">&#39;CHROM_Berr</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Bm&#39;</span><span class="p">:</span> <span class="s1">&#39;CHROM_BM</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Berrm&#39;</span><span class="p">:</span> <span class="s1">&#39;CHROM_BERRM</span><span class="si">%(plane)s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_f1001r&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1001r&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_err_f1001r&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1001rERR&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_f1001i&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1001i&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_err_f1001i&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1001iERR&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_f1010r&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1010r&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_err_f1010r&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1010rERR&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_f1010i&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1010i&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;chr_err_f1010i&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1010iERR&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_f1001r&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1001r_MDL&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_err_f1001r&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1001rERR_MDL&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_f1001i&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1001i_MDL&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_err_f1001i&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1001iERR_MDL&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_f1010r&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1010r_MDL&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_err_f1010r&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1010rERR_MDL&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_f1010i&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1010i_MDL&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mdl_chr_err_f1010i&#39;</span><span class="p">:</span> <span class="s1">&#39;Cf1010iERR_MDL&#39;</span><span class="p">}</span>
+        <span class="n">headtypes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">headnames</span><span class="p">:</span>
+            <span class="c1"># for all others we use &#39;%le&#39;...</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">headtypes</span><span class="p">:</span>
+                <span class="n">headtypes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%le</span><span class="s1">&#39;</span>
+
+        <span class="k">if</span> <span class="n">ftype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;beta&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ftype</span> <span class="o">=</span> <span class="s1">&#39;beta&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">betacolumns</span>
+        <span class="k">elif</span> <span class="n">ftype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;coupling&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ftype</span> <span class="o">=</span> <span class="s1">&#39;coupling&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">couplecolumns</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;ftype </span><span class="si">%s</span><span class="s2"> not understood&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ftype</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="p">[</span><span class="n">headnames</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">%</span> <span class="nb">locals</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="n">headcount</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">))]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="n">headtypes</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;* &#39;</span><span class="o">+</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clen</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+        <span class="n">headcount</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;# &#39;</span><span class="o">+</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">headcount</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clen</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;$ &#39;</span><span class="o">+</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clen</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">)</span>
+        <span class="c1"># According to SL-CO-Note-91-32, this is allowed...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_list</span><span class="p">(</span><span class="n">headcount</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">writeLine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write one line.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: Dictionary of data columns to write</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tmp_line</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_list</span><span class="p">(</span><span class="n">tmp_line</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_write_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp_list</span><span class="p">):</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">tmp_list</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clen</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fstream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+
+<span class="c1"># ==================================================================================================</span>
+<span class="c1"># main invocation</span>
+<span class="c1"># ==================================================================================================</span>
+
+<span class="k">def</span> <span class="nf">_start</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Starter function to not pollute the global space with variables options and args &quot;&quot;&quot;</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">_parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">main</span><span class="p">(</span><span class="o">**</span><span class="n">options</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">_start</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

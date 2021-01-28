@@ -1,0 +1,809 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>plotshop.plot_tfs &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>plotshop.plot_tfs</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for plotshop.plot_tfs</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module plotshop.plot_tfs</span>
+<span class="sd">-------------------------</span>
+
+<span class="sd">Wrapper to easily plot tfs-files. With entrypoint functionality.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">abspath</span><span class="p">,</span> <span class="n">join</span><span class="p">,</span> <span class="n">pardir</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">abspath</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="vm">__file__</span><span class="p">,</span> <span class="n">pardir</span><span class="p">,</span> <span class="n">pardir</span><span class="p">)))</span>
+
+<span class="kn">from</span> <span class="nn">matplotlib.backends.backend_pdf</span> <span class="kn">import</span> <span class="n">PdfPages</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span><span class="p">,</span> <span class="n">gridspec</span><span class="p">,</span> <span class="n">rcParams</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">utils.entrypoint</span> <span class="kn">import</span> <span class="n">EntryPointParameters</span><span class="p">,</span> <span class="n">entrypoint</span>
+<span class="kn">from</span> <span class="nn">plotshop</span> <span class="kn">import</span> <span class="n">plot_style</span> <span class="k">as</span> <span class="n">ps</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_pandas</span> <span class="k">as</span> <span class="n">tfs</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># Constants, Style and Arguments #############################################</span>
+
+
+<span class="k">def</span> <span class="nf">get_params</span><span class="p">():</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPointParameters</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--files&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Twiss files to plot&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;files&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">basestring</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;-y&quot;</span><span class="p">,</span> <span class="s2">&quot;--y_cols&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of column names to plot (e.g. BETX, BETY)&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;y_cols&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">basestring</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;-x&quot;</span><span class="p">,</span> <span class="s2">&quot;--x_cols&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of column names to use as x-values.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;x_cols&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">basestring</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;-e&quot;</span><span class="p">,</span> <span class="s2">&quot;--e_cols&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of parameters to get error values from.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;e_cols&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">basestring</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ylabels&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Y-Lables for the plots, default: column_labels or file_labels.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;y_labels&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">basestring</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--columnlabels&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Column-Lables for the plots, default: y_column.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;column_labels&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">basestring</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--filelabels&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Names for the sources for the plots, default: filenames.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;file_labels&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">basestring</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--output&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Base-Name of the output files. _&#39;y_col&#39;.pdf will be attached.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">basestring</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--changemarker&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Changes marker for each line in the plot.&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;change_marker&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--nolegend&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Deactivates the legend.&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;no_legend&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--noshow&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Suppresses opening plotting windows.&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;no_show&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--xy&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Plots X and Y for the give parameters into one figure (two axes).&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--autoscale&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Scales the plot, so that this percentage of points is inside the picture.&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;auto_scale&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--figperfile&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Plots all columns into one figure. (Works only with one file so far).&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;figure_per_file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">params</span>
+
+
+<span class="n">IR_POS_DEFAULT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;LHCB1&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;IP1&#39;</span><span class="p">:</span> <span class="mf">23519.36962</span><span class="p">,</span>
+        <span class="s1">&#39;IP2&#39;</span><span class="p">:</span> <span class="mf">192.923</span><span class="p">,</span>
+        <span class="s1">&#39;IP3&#39;</span><span class="p">:</span> <span class="mf">3525.207216</span><span class="p">,</span>
+        <span class="s1">&#39;IP4&#39;</span><span class="p">:</span> <span class="mf">6857.491433</span><span class="p">,</span>
+        <span class="s1">&#39;IP5&#39;</span><span class="p">:</span> <span class="mf">10189.77565</span><span class="p">,</span>
+        <span class="s1">&#39;IP6&#39;</span><span class="p">:</span> <span class="mf">13522.21223</span><span class="p">,</span>
+        <span class="s1">&#39;IP7&#39;</span><span class="p">:</span> <span class="mf">16854.64882</span><span class="p">,</span>
+        <span class="s1">&#39;IP8&#39;</span><span class="p">:</span> <span class="mf">20175.8654</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;LHCB2&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;IP1&#39;</span><span class="p">:</span> <span class="mf">3195.252584</span><span class="p">,</span>
+        <span class="s1">&#39;IP2&#39;</span><span class="p">:</span> <span class="mf">6527.5368</span><span class="p">,</span>
+        <span class="s1">&#39;IP3&#39;</span><span class="p">:</span> <span class="mf">9859.973384</span><span class="p">,</span>
+        <span class="s1">&#39;IP4&#39;</span><span class="p">:</span> <span class="mf">13192.40997</span><span class="p">,</span>
+        <span class="s1">&#39;IP5&#39;</span><span class="p">:</span> <span class="mf">16524.84655</span><span class="p">,</span>
+        <span class="s1">&#39;IP6&#39;</span><span class="p">:</span> <span class="mf">19857.13077</span><span class="p">,</span>
+        <span class="s1">&#39;IP7&#39;</span><span class="p">:</span> <span class="mf">23189.41498</span><span class="p">,</span>
+        <span class="s1">&#39;IP8&#39;</span><span class="p">:</span> <span class="mf">26510.4792</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">MANUAL_STYLE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># differences to the standard style</span>
+    <span class="sa">u</span><span class="s1">&#39;lines.markersize&#39;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+    <span class="sa">u</span><span class="s1">&#39;lines.linestyle&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">ERROR_ALPHA</span> <span class="o">=</span> <span class="mf">1.</span>  <span class="c1"># Set errorbar transparency</span>
+<span class="n">MAX_LEGENDLENGTH</span> <span class="o">=</span> <span class="mi">78</span>  <span class="c1"># maximum length of legend letters before linebreak</span>
+<span class="n">COMPLEX_NAMES</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">+</span><span class="n">ext</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;1001&quot;</span><span class="p">,</span> <span class="s2">&quot;1010&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="s2">&quot;RI&quot;</span><span class="p">]</span>  <span class="c1"># Endings of columns that contain complex data</span>
+
+<span class="c1"># Main invocation ############################################################</span>
+
+
+<div class="viewcode-block" id="plot"><a class="viewcode-back" href="../../plotshop/index.html#plotshop.plot_tfs.plot">[docs]</a><span class="nd">@entrypoint</span><span class="p">(</span><span class="n">get_params</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="n">opt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Plots data from different twiss-input files into one plot.</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        Required</span>
+<span class="sd">        files (basestring): Twiss files to plot</span>
+<span class="sd">                            **Flags**: --files</span>
+<span class="sd">        y_cols (basestring): List of column names to plot (e.g. BETX, BETY)</span>
+<span class="sd">                             **Flags**: [&#39;-y&#39;, &#39;--y_cols&#39;]</span>
+<span class="sd">        Optional</span>
+<span class="sd">        auto_scale (float): Scales the plot, so that this percentage of</span>
+<span class="sd">                            points is inside the picture.</span>
+<span class="sd">                            **Flags**: --autoscale</span>
+<span class="sd">        change_marker: Changes marker for each line in the plot.</span>
+<span class="sd">                       **Flags**: --changemarker</span>
+<span class="sd">                       **Action**: ``store_true``</span>
+<span class="sd">        e_cols (basestring): List of parameters to get error values from.</span>
+<span class="sd">                             **Flags**: [&#39;-e&#39;, &#39;--e_cols&#39;]</span>
+<span class="sd">        labels (basestring): Y-Lables for the plots, default: y_col.</span>
+<span class="sd">                             **Flags**: --labels</span>
+<span class="sd">        no_legend: Deactivates the legend.</span>
+<span class="sd">                   **Flags**: --nolegend</span>
+<span class="sd">                   **Action**: ``store_true``</span>
+<span class="sd">        no_show: Suppresses opening plotting windows.</span>
+<span class="sd">                 **Flags**: --noshow</span>
+<span class="sd">                 **Action**: ``store_true``</span>
+<span class="sd">        output (basestring): Base-Name of the output files. _&#39;y_col&#39;.pdf will be attached.</span>
+<span class="sd">                             **Flags**: --output</span>
+<span class="sd">        figure_per_file (bool): Plots  all colimns into one figure. (Works only with one file so far).</span>
+<span class="sd">                           **Flags**: --figperfile</span>
+<span class="sd">                           **Action**: ``store_true``</span>
+
+<span class="sd">        file_labels (basestring): Names for the sources for the plots, default: filenames.</span>
+<span class="sd">                                   **Flags**: --file_labels</span>
+<span class="sd">        x_cols (basestring): List of column names to use as x-values.</span>
+<span class="sd">                             **Flags**: [&#39;-x&#39;, &#39;--x_cols&#39;]</span>
+<span class="sd">        xy (bool): Plots X and Y for the give parameters into one figure (two axes).</span>
+<span class="sd">                   **Flags**: --xy</span>
+<span class="sd">                   **Action**: ``store_true``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Starting plotting of tfs files: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">files</span><span class="p">)))</span>
+
+    <span class="c1"># preparations</span>
+    <span class="n">opt</span> <span class="o">=</span> <span class="n">_check_opt</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span>
+
+    <span class="c1"># extract data</span>
+    <span class="n">twiss_data</span> <span class="o">=</span> <span class="n">_get_data</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">files</span><span class="p">)</span>
+
+    <span class="c1"># plotting</span>
+    <span class="n">figs</span> <span class="o">=</span> <span class="n">_create_plots</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">x_cols</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">y_cols</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">e_cols</span><span class="p">,</span> <span class="n">twiss_data</span><span class="p">,</span>
+                         <span class="n">opt</span><span class="o">.</span><span class="n">file_labels</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">column_labels</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">y_labels</span><span class="p">,</span>
+                         <span class="n">opt</span><span class="o">.</span><span class="n">xy</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">change_marker</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">no_legend</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">auto_scale</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">figure_per_file</span><span class="p">)</span>
+
+    <span class="c1"># exports</span>
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">output</span><span class="p">:</span>
+        <span class="n">export_plots</span><span class="p">(</span><span class="n">figs</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">opt</span><span class="o">.</span><span class="n">no_show</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">figs</span></div>
+
+
+<span class="c1"># Private Functions ##########################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_get_data</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Load all data from files &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">tfs</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">tfs</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">_LoopGenerator</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; Takes care of the loop order and collects the figures. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># just here so the IDE does not complain, reassigned below</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_cols</span><span class="p">,</span> <span class="n">y_cols</span><span class="p">,</span> <span class="n">e_cols</span><span class="p">,</span> <span class="n">datas</span><span class="p">,</span> <span class="n">file_labels</span><span class="p">,</span> <span class="n">column_labels</span><span class="p">,</span> <span class="n">y_labels</span><span class="p">,</span> <span class="n">xy</span><span class="p">,</span> <span class="n">figure_per_file</span><span class="p">):</span>
+        <span class="c1"># self.gs = _get_gridspec(xy)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_cols</span> <span class="o">=</span> <span class="n">x_cols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_cols</span> <span class="o">=</span> <span class="n">y_cols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e_cols</span> <span class="o">=</span> <span class="n">e_cols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datas</span> <span class="o">=</span> <span class="n">datas</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_labels</span> <span class="o">=</span> <span class="n">file_labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_labels</span> <span class="o">=</span> <span class="n">column_labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_labels</span> <span class="o">=</span> <span class="n">y_labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xy</span> <span class="o">=</span> <span class="n">xy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figure_per_file</span> <span class="o">=</span> <span class="n">figure_per_file</span>
+
+        <span class="k">if</span> <span class="n">figure_per_file</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_do_figure_per_file</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_do_figure_per_column</span>
+
+    <span class="k">def</span> <span class="nf">get_figs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">figs</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_current_axes</span><span class="p">(</span><span class="n">axs</span><span class="p">,</span> <span class="n">idx_plot</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">axs</span><span class="p">[</span><span class="n">idx_plot</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">axs</span>
+
+    <span class="k">def</span> <span class="nf">_get_fig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># matplotlib&gt;=2.2</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_do_figure_per_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; figure per file: loop over the files as outer loop &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">idx_file</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_labels</span><span class="p">)):</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_fig</span><span class="p">()</span>
+            <span class="n">p_title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_labels</span><span class="p">[</span><span class="n">idx_file</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">:</span>
+                <span class="n">p_title</span> <span class="o">+=</span> <span class="s2">&quot;_dualPlane&quot;</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s2">&quot;File &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p_title</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">figs</span><span class="p">[</span><span class="n">p_title</span><span class="p">]</span> <span class="o">=</span> <span class="n">fig</span>
+            <span class="k">for</span> <span class="n">idx_plot</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">):</span>
+                <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_current_axes</span><span class="p">(</span><span class="n">axs</span><span class="p">,</span> <span class="n">idx_plot</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">idx_col</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_cols</span><span class="p">)):</span>
+                    <span class="c1"># ax, idx_plot, idx_line, data, x_col, y_col, e_col, legend, y_label, last_line</span>
+                    <span class="k">yield</span> <span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">idx_plot</span><span class="p">,</span> <span class="n">idx_col</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datas</span><span class="p">[</span><span class="n">idx_file</span><span class="p">],</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">x_cols</span><span class="p">[</span><span class="n">idx_col</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_cols</span><span class="p">[</span><span class="n">idx_col</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cols</span><span class="p">[</span><span class="n">idx_col</span><span class="p">],</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">column_labels</span><span class="p">[</span><span class="n">idx_col</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_labels</span><span class="p">[</span><span class="n">idx_file</span><span class="p">],</span>
+                           <span class="n">idx_col</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_cols</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                           <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_do_figure_per_column</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; a figure for each parameter: loop over the columns as outer loop &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">y_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">idx_col</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_cols</span><span class="p">)):</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_fig</span><span class="p">()</span>
+            <span class="n">p_title</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_labels</span><span class="p">[</span><span class="n">idx_col</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">:</span>
+                <span class="n">p_title</span> <span class="o">+=</span> <span class="s2">&quot;_dualPlane&quot;</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s2">&quot;Parameter &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p_title</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">figs</span><span class="p">[</span><span class="n">p_title</span><span class="p">]</span> <span class="o">=</span> <span class="n">fig</span>
+            <span class="k">for</span> <span class="n">idx_plot</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">xy</span><span class="p">):</span>
+                <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_current_axes</span><span class="p">(</span><span class="n">axs</span><span class="p">,</span> <span class="n">idx_plot</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">idx_data</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datas</span><span class="p">)):</span>
+                    <span class="c1"># ax, idx_plot, idx_line, data, x_col, y_col, e_col, legend, y_label, last_line</span>
+                    <span class="k">yield</span> <span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">idx_plot</span><span class="p">,</span> <span class="n">idx_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datas</span><span class="p">[</span><span class="n">idx_data</span><span class="p">],</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">x_cols</span><span class="p">[</span><span class="n">idx_col</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_cols</span><span class="p">[</span><span class="n">idx_col</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_cols</span><span class="p">[</span><span class="n">idx_col</span><span class="p">],</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">file_labels</span><span class="p">[</span><span class="n">idx_data</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_labels</span><span class="p">[</span><span class="n">idx_col</span><span class="p">],</span>
+                           <span class="n">idx_data</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datas</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                           <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_ncols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the number of columns for the legend.</span>
+
+<span class="sd">        Done here, as this class divides single-plot from multiplot anyway</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_labels</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">figure_per_file</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_labels</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ps</span><span class="o">.</span><span class="n">get_legend_ncols</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">MAX_LEGENDLENGTH</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">3</span>
+
+
+<span class="k">def</span> <span class="nf">_create_plots</span><span class="p">(</span><span class="n">x_cols</span><span class="p">,</span> <span class="n">y_cols</span><span class="p">,</span> <span class="n">e_cols</span><span class="p">,</span> <span class="n">datas</span><span class="p">,</span> <span class="n">file_labels</span><span class="p">,</span> <span class="n">column_labels</span><span class="p">,</span> <span class="n">y_labels</span><span class="p">,</span>
+                  <span class="n">xy</span><span class="p">,</span> <span class="n">change_marker</span><span class="p">,</span> <span class="n">no_legend</span><span class="p">,</span> <span class="n">auto_scale</span><span class="p">,</span> <span class="n">figure_per_file</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="c1"># create layout</span>
+    <span class="n">ps</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="n">MANUAL_STYLE</span><span class="p">)</span>
+    <span class="n">ir_positions</span><span class="p">,</span> <span class="n">x_is_position</span> <span class="o">=</span> <span class="n">_get_ir_positions</span><span class="p">(</span><span class="n">datas</span><span class="p">,</span> <span class="n">x_cols</span><span class="p">)</span>
+
+    <span class="n">y_lims</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">the_loop</span> <span class="o">=</span> <span class="n">_LoopGenerator</span><span class="p">(</span><span class="n">x_cols</span><span class="p">,</span> <span class="n">y_cols</span><span class="p">,</span> <span class="n">e_cols</span><span class="p">,</span> <span class="n">datas</span><span class="p">,</span>
+                              <span class="n">file_labels</span><span class="p">,</span> <span class="n">column_labels</span><span class="p">,</span> <span class="n">y_labels</span><span class="p">,</span>
+                              <span class="n">xy</span><span class="p">,</span> <span class="n">figure_per_file</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">idx_plot</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">x_col</span><span class="p">,</span> <span class="n">y_col</span><span class="p">,</span> <span class="n">e_col</span><span class="p">,</span> <span class="n">legend</span><span class="p">,</span> <span class="n">y_label</span><span class="p">,</span> <span class="n">last_line</span> <span class="ow">in</span> <span class="n">the_loop</span><span class="p">():</span>
+        <span class="c1"># plot data</span>
+        <span class="n">y_label_from_col</span><span class="p">,</span> <span class="n">y_plane</span><span class="p">,</span> <span class="n">y_col</span><span class="p">,</span> <span class="n">e_col</span><span class="p">,</span> <span class="n">chromatic</span> <span class="o">=</span> <span class="n">_get_names_and_columns</span><span class="p">(</span><span class="n">idx_plot</span><span class="p">,</span> <span class="n">xy</span><span class="p">,</span>
+                                                                                     <span class="n">y_col</span><span class="p">,</span> <span class="n">e_col</span><span class="p">)</span>
+
+        <span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">e_val</span> <span class="o">=</span> <span class="n">_get_column_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x_col</span><span class="p">,</span> <span class="n">y_col</span><span class="p">,</span> <span class="n">e_col</span><span class="p">)</span>
+
+        <span class="n">ebar</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">e_val</span><span class="p">,</span>
+                           <span class="n">ls</span><span class="o">=</span><span class="n">rcParams</span><span class="p">[</span><span class="sa">u</span><span class="s2">&quot;lines.linestyle&quot;</span><span class="p">],</span> <span class="n">fmt</span><span class="o">=</span><span class="n">get_marker</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">change_marker</span><span class="p">),</span>
+                           <span class="n">label</span><span class="o">=</span><span class="n">legend</span><span class="p">)</span>
+
+        <span class="n">_change_ebar_alpha</span><span class="p">(</span><span class="n">ebar</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">auto_scale</span><span class="p">:</span>
+            <span class="n">current_y_lims</span> <span class="o">=</span> <span class="n">_get_auto_scale</span><span class="p">(</span><span class="n">y_val</span><span class="p">,</span> <span class="n">auto_scale</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">y_lims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">y_lims</span> <span class="o">=</span> <span class="n">current_y_lims</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">y_lims</span> <span class="o">=</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">y_lims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">current_y_lims</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                          <span class="nb">max</span><span class="p">(</span><span class="n">y_lims</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">current_y_lims</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="k">if</span> <span class="n">last_line</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">*</span><span class="n">y_lims</span><span class="p">)</span>
+
+        <span class="c1"># things to do only once</span>
+        <span class="k">if</span> <span class="n">last_line</span><span class="p">:</span>
+            <span class="c1"># setting the y_label</span>
+            <span class="k">if</span> <span class="n">y_label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">_set_ylabel</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">y_col</span><span class="p">,</span> <span class="n">y_label_from_col</span><span class="p">,</span> <span class="n">y_plane</span><span class="p">,</span> <span class="n">chromatic</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">y_label_from_label</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">if</span> <span class="n">y_label</span><span class="p">:</span>
+                    <span class="n">y_label_from_label</span><span class="p">,</span> <span class="n">y_plane</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">chromatic</span> <span class="o">=</span> <span class="n">_get_names_and_columns</span><span class="p">(</span>
+                        <span class="n">idx_plot</span><span class="p">,</span> <span class="n">xy</span><span class="p">,</span> <span class="n">y_label</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">xy</span><span class="p">:</span>
+                    <span class="n">y_label</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2"> </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">y_label</span><span class="p">,</span> <span class="n">y_plane</span><span class="p">)</span>
+                <span class="n">_set_ylabel</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">y_label</span><span class="p">,</span> <span class="n">y_label_from_label</span><span class="p">,</span> <span class="n">y_plane</span><span class="p">,</span> <span class="n">chromatic</span><span class="p">)</span>
+
+            <span class="c1"># setting x limits</span>
+            <span class="k">if</span> <span class="n">x_is_position</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">ps</span><span class="o">.</span><span class="n">set_xLimits</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">,</span> <span class="n">ax</span><span class="p">)</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="n">ps</span><span class="o">.</span><span class="n">ArgumentError</span><span class="p">):</span>
+                    <span class="k">pass</span>
+
+            <span class="c1"># setting visibility, ir-markers and label</span>
+            <span class="k">if</span> <span class="n">xy</span> <span class="ow">and</span> <span class="n">idx_plot</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">x_is_position</span> <span class="ow">and</span> <span class="n">ir_positions</span><span class="p">:</span>
+                    <span class="n">ps</span><span class="o">.</span><span class="n">show_ir</span><span class="p">(</span><span class="n">ir_positions</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;lines&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">x_is_position</span><span class="p">:</span>
+                    <span class="n">ps</span><span class="o">.</span><span class="n">set_xaxis_label</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">ir_positions</span><span class="p">:</span>
+                        <span class="n">ps</span><span class="o">.</span><span class="n">show_ir</span><span class="p">(</span><span class="n">ir_positions</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;outside&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">no_legend</span> <span class="ow">and</span> <span class="n">idx_plot</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ps</span><span class="o">.</span><span class="n">make_top_legend</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">the_loop</span><span class="o">.</span><span class="n">get_ncols</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">the_loop</span><span class="o">.</span><span class="n">get_figs</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="export_plots"><a class="viewcode-back" href="../../plotshop/index.html#plotshop.plot_tfs.export_plots">[docs]</a><span class="k">def</span> <span class="nf">export_plots</span><span class="p">(</span><span class="n">figs</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Export all created figures to PDF &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">figs</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">figs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+        <span class="n">pdf_path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">_</span><span class="si">{:s}</span><span class="s2">.pdf&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+        <span class="n">mpdf</span> <span class="o">=</span> <span class="n">PdfPages</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mpdf</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Exported tfs-contents to PDF &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pdf_path</span><span class="p">))</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">mpdf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<span class="c1"># Helper #####################################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_check_opt</span><span class="p">(</span><span class="n">opt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Sanity checks for the opt structure &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">figure_per_file</span> <span class="ow">and</span> <span class="n">opt</span><span class="o">.</span><span class="n">y_labels</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">y_labels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">opt</span><span class="o">.</span><span class="n">y_labels</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">y_lables</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">files</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">y_labels</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">files</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Supply either one y-label or one y-label per file!&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">file_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">file_labels</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">files</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">file_labels</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">files</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;The number of file-labels and number of files differ!&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">column_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">column_labels</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">y_cols</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">column_labels</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">y_cols</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;The number of column-labels and number of y columns differ!&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">e_cols</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">e_cols</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">y_cols</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">e_cols</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">y_cols</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;The number of error columns and number of y columns differ!&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">x_cols</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">x_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;S&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">y_cols</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">x_cols</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">y_cols</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;The number of x columns and number of y columns differ!&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">opt</span>
+
+
+<div class="viewcode-block" id="get_marker"><a class="viewcode-back" href="../../plotshop/index.html#plotshop.plot_tfs.get_marker">[docs]</a><span class="k">def</span> <span class="nf">get_marker</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">change</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return the marker used &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">change</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ps</span><span class="o">.</span><span class="n">MarkerList</span><span class="o">.</span><span class="n">get_marker</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;lines.marker&#39;</span><span class="p">]</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_auto_scale</span><span class="p">(</span><span class="n">y_val</span><span class="p">,</span> <span class="n">scaling</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Find the y-limits so that scaling% of the points are visible &quot;&quot;&quot;</span>
+    <span class="n">y_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">y_val</span><span class="p">)</span>
+    <span class="n">n_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_val</span><span class="p">)</span>
+    <span class="n">y_min</span> <span class="o">=</span> <span class="n">y_sorted</span><span class="p">[</span><span class="nb">int</span><span class="p">(((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">scaling</span><span class="o">/</span><span class="mf">100.</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_points</span><span class="p">)]</span>
+    <span class="n">y_max</span> <span class="o">=</span> <span class="n">y_sorted</span><span class="p">[</span><span class="nb">int</span><span class="p">(((</span><span class="mi">1</span> <span class="o">+</span> <span class="n">scaling</span><span class="o">/</span><span class="mf">100.</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_points</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span>
+
+
+<span class="k">def</span> <span class="nf">_find_ir_pos</span><span class="p">(</span><span class="n">all_data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return the middle positions of the interaction regions &quot;&quot;&quot;</span>
+    <span class="n">ip_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;IP&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">9</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">all_data</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ip_pos</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_names</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># loading failed, use defaults</span>
+                <span class="k">return</span> <span class="n">IR_POS_DEFAULT</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">]</span>
+                <span class="c1"># return {}</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="c1"># continue looking</span>
+                <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ip_names</span><span class="p">,</span> <span class="n">ip_pos</span><span class="p">))</span>
+
+    <span class="c1"># did not find ips or defaults</span>
+    <span class="k">return</span> <span class="p">{}</span>
+
+
+<span class="k">def</span> <span class="nf">_get_ir_positions</span><span class="p">(</span><span class="n">all_data</span><span class="p">,</span> <span class="n">x_cols</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Check if x is position around the ring and return ir positions if possible &quot;&quot;&quot;</span>
+    <span class="n">ir_pos</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">x_is_pos</span> <span class="o">=</span> <span class="nb">all</span><span class="p">([</span><span class="n">xc</span> <span class="o">==</span> <span class="s2">&quot;S&quot;</span> <span class="k">for</span> <span class="n">xc</span> <span class="ow">in</span> <span class="n">x_cols</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">x_is_pos</span><span class="p">:</span>
+        <span class="n">ir_pos</span> <span class="o">=</span> <span class="n">_find_ir_pos</span><span class="p">(</span><span class="n">all_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ir_pos</span><span class="p">,</span> <span class="n">x_is_pos</span>
+
+
+<span class="k">def</span> <span class="nf">_get_gridspec</span><span class="p">(</span><span class="n">xy</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Single or dual plot &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">xy</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gridspec</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">gridspec</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">_get_column_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">x_col</span><span class="p">,</span> <span class="n">y_col</span><span class="p">,</span> <span class="n">e_col</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extract column data &quot;&quot;&quot;</span>
+    <span class="n">x_val</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">x_col</span><span class="p">]</span>
+    <span class="n">y_val</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">y_col</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">e_val</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">e_col</span><span class="p">]</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="n">e_val</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">x_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">,</span> <span class="n">e_val</span>
+
+
+<span class="k">def</span> <span class="nf">_get_names_and_columns</span><span class="p">(</span><span class="n">idx_plot</span><span class="p">,</span> <span class="n">xy</span><span class="p">,</span> <span class="n">y_col</span><span class="p">,</span> <span class="n">e_col</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Names and columns &quot;&quot;&quot;</span>
+    <span class="n">chromatic</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">xy</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">y_col</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span> <span class="ow">in</span> <span class="n">COMPLEX_NAMES</span><span class="p">:</span>
+            <span class="n">plane_map</span> <span class="o">=</span> <span class="s2">&quot;RI&quot;</span>
+            <span class="n">y_name</span> <span class="o">=</span> <span class="n">plane_map</span><span class="p">[</span><span class="n">idx_plot</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;C&quot;</span> <span class="o">==</span> <span class="n">y_col</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">y_plane_name</span> <span class="o">=</span> <span class="n">y_col</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="n">chromatic</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">y_plane_name</span> <span class="o">=</span> <span class="n">y_col</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plane_map</span> <span class="o">=</span> <span class="s2">&quot;XY&quot;</span>
+            <span class="n">y_name</span> <span class="o">=</span> <span class="n">y_col</span>
+            <span class="n">y_plane_name</span> <span class="o">=</span> <span class="n">plane_map</span><span class="p">[</span><span class="n">idx_plot</span><span class="p">]</span>
+        <span class="n">y_col_full</span> <span class="o">=</span> <span class="n">y_col</span> <span class="o">+</span> <span class="n">plane_map</span><span class="p">[</span><span class="n">idx_plot</span><span class="p">]</span>
+        <span class="n">e_col_full</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">e_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">e_col_full</span> <span class="o">=</span> <span class="n">e_col</span> <span class="o">+</span> <span class="n">plane_map</span><span class="p">[</span><span class="n">idx_plot</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">y_col</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span> <span class="ow">in</span> <span class="n">COMPLEX_NAMES</span><span class="p">:</span>
+            <span class="n">y_name</span> <span class="o">=</span> <span class="n">y_col</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">&quot;C&quot;</span> <span class="o">==</span> <span class="n">y_col</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">y_plane_name</span> <span class="o">=</span> <span class="n">y_col</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">chromatic</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">y_plane_name</span> <span class="o">=</span> <span class="n">y_col</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y_name</span> <span class="o">=</span> <span class="n">y_col</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">y_plane_name</span> <span class="o">=</span> <span class="n">y_col</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">y_col_full</span> <span class="o">=</span> <span class="n">y_col</span>
+        <span class="n">e_col_full</span> <span class="o">=</span> <span class="n">e_col</span>
+    <span class="k">return</span> <span class="n">y_name</span><span class="p">,</span> <span class="n">y_plane_name</span><span class="p">,</span> <span class="n">y_col_full</span><span class="p">,</span> <span class="n">e_col_full</span><span class="p">,</span> <span class="n">chromatic</span>
+
+
+<span class="k">def</span> <span class="nf">_change_ebar_alpha</span><span class="p">(</span><span class="n">ebar</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; loop through bars (ebar[1]) and caps (ebar[2]) and set the alpha value &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">bars_or_caps</span> <span class="ow">in</span> <span class="n">ebar</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="k">for</span> <span class="n">bar_or_cap</span> <span class="ow">in</span> <span class="n">bars_or_caps</span><span class="p">:</span>
+            <span class="n">bar_or_cap</span><span class="o">.</span><span class="n">set_alpha</span><span class="p">(</span><span class="n">ERROR_ALPHA</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_set_ylabel</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">y_label</span><span class="p">,</span> <span class="n">y_plane</span><span class="p">,</span> <span class="n">chromatic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Tries to set a mapped y label, otherwise the default &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ps</span><span class="o">.</span><span class="n">set_yaxis_label</span><span class="p">(</span><span class="n">_map_proper_name</span><span class="p">(</span><span class="n">y_label</span><span class="p">),</span>
+                           <span class="n">y_plane</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">chromcoup</span><span class="o">=</span><span class="n">chromatic</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="n">ps</span><span class="o">.</span><span class="n">ArgumentError</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_map_proper_name</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Maps to a name understood by plotstyle. &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;BET&quot;</span><span class="p">:</span> <span class="s2">&quot;beta&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;BB&quot;</span><span class="p">:</span> <span class="s2">&quot;betabeat&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;D&quot;</span><span class="p">:</span> <span class="s2">&quot;dispersion&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ND&quot;</span><span class="p">:</span> <span class="s2">&quot;norm_dispersion&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;MU&quot;</span><span class="p">:</span> <span class="s2">&quot;phase&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;X&quot;</span><span class="p">:</span> <span class="s2">&quot;co&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Y&quot;</span><span class="p">:</span> <span class="s2">&quot;co&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;PHASE&quot;</span><span class="p">:</span> <span class="s2">&quot;phase&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;I&quot;</span><span class="p">:</span> <span class="s2">&quot;imag&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;R&quot;</span><span class="p">:</span> <span class="s2">&quot;real&quot;</span><span class="p">,</span>
+    <span class="p">}[</span><span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span>
+
+
+<span class="c1"># Script Mode ################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">plot</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

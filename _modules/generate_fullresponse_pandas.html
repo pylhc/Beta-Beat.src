@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>generate_fullresponse_pandas &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>generate_fullresponse_pandas</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for generate_fullresponse_pandas</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provides a response generation wrapper.</span>
+<span class="sd">The response matrices can be either created by response_madx or analytically via TwissResponse.</span>
+
+<span class="sd">:author: Joschua Dillys</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">cPickle</span> <span class="k">as</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">correction.fullresponse</span> <span class="kn">import</span> <span class="n">response_madx</span>
+<span class="kn">from</span> <span class="nn">correction.fullresponse</span> <span class="kn">import</span> <span class="n">response_twiss</span>
+<span class="kn">from</span> <span class="nn">global_correct_iterative</span> <span class="kn">import</span> <span class="n">DEFAULT_ARGS</span>
+<span class="kn">from</span> <span class="nn">model</span> <span class="kn">import</span> <span class="n">manager</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">utils.entrypoint</span> <span class="kn">import</span> <span class="n">EntryPointParameters</span><span class="p">,</span> <span class="n">entrypoint</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">DEFAULT_PATTERNS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;job_content&quot;</span><span class="p">:</span> <span class="s2">&quot;%JOB_CONTENT%&quot;</span><span class="p">,</span>  <span class="c1"># used in lhc_model_creator, sequence_evaluation</span>
+    <span class="s2">&quot;twiss_columns&quot;</span><span class="p">:</span> <span class="s2">&quot;%TWISS_COLUMNS%&quot;</span><span class="p">,</span>  <span class="c1"># used in lhc_model_creator, sequence_evaluation</span>
+    <span class="s2">&quot;element_pattern&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%E</span><span class="s2">LEMENT_PATTERN%&quot;</span><span class="p">,</span>  <span class="c1"># used in lhc_model_creator, sequence_evaluation</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">get_params</span><span class="p">():</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPointParameters</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--creator&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Create either with madx or analytically from twiss file.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;creator&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;madx&quot;</span><span class="p">,</span> <span class="s2">&quot;twiss&quot;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;madx&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--variables&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of the variables classes to use.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;variable_categories&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_ARGS</span><span class="p">[</span><span class="s2">&quot;variables&quot;</span><span class="p">],</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;-m&quot;</span><span class="p">,</span> <span class="s2">&quot;--model_dir&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to the model directory.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;model_dir&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--optics_file&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Path to the optics file to use. If not present will default to &quot;</span>
+              <span class="s2">&quot;model_path/modifiers.madx, if such a file exists.&quot;</span><span class="p">),</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;optics_file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="s2">&quot;--outfile&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of fullresponse file.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;outfile_path&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;-k&quot;</span><span class="p">,</span> <span class="s2">&quot;--deltak&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Delta K1L to be applied to quads for sensitivity matrix (madx-only).&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.00002</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;delta_k&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--optics_params&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of parameters to correct upon (e.g. BBX BBY; twiss-only).&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;optics_params&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--debug&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Print debug information.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;debug&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">params</span>
+
+
+<div class="viewcode-block" id="create_response"><a class="viewcode-back" href="../entrypoints/index.html#generate_fullresponse_pandas.create_response">[docs]</a><span class="nd">@entrypoint</span><span class="p">(</span><span class="n">get_params</span><span class="p">())</span>
+<span class="k">def</span> <span class="nf">create_response</span><span class="p">(</span><span class="n">opt</span><span class="p">,</span> <span class="n">other_opt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Entry point for creating pandas-based response matrices.</span>
+
+<span class="sd">    The response matrices can be either created by response_madx or TwissResponse.</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        Required</span>
+<span class="sd">        model_dir (str): Path to the model directory.</span>
+<span class="sd">                         **Flags**: [&#39;-m&#39;, &#39;--model_dir&#39;]</span>
+<span class="sd">        outfile_path (str): Name of fullresponse file.</span>
+<span class="sd">                            **Flags**: [&#39;-o&#39;, &#39;--outfile&#39;]</span>
+<span class="sd">        Optional</span>
+<span class="sd">        creator (str): Create either with madx or analytically from twiss file.</span>
+<span class="sd">                       **Flags**: --creator</span>
+<span class="sd">                       **Choices**: (&#39;madx&#39;, &#39;twiss&#39;)</span>
+<span class="sd">                       **Default**: ``madx``</span>
+<span class="sd">        debug: Print debug information.</span>
+<span class="sd">               **Flags**: --debug</span>
+<span class="sd">               **Action**: ``store_true``</span>
+<span class="sd">        delta_k (float): Delta K1L to be applied to quads for sensitivity matrix (madx-only).</span>
+<span class="sd">                         **Flags**: [&#39;-k&#39;, &#39;--deltak&#39;]</span>
+<span class="sd">                         **Default**: ``2e-05``</span>
+<span class="sd">        optics_params (str): List of parameters to correct upon (e.g. BBX BBY; twiss-only).</span>
+<span class="sd">                             **Flags**: --optics_params</span>
+<span class="sd">        variable_categories: List of the variables classes to use.</span>
+<span class="sd">                             **Flags**: --variables</span>
+<span class="sd">                             **Default**: ``[&#39;MQM&#39;, &#39;MQT&#39;, &#39;MQTL&#39;, &#39;MQY&#39;]``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">DebugMode</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+                                 <span class="n">log_file</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="s2">&quot;generate_fullresponse.log&quot;</span><span class="p">)):</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Creating response.&quot;</span><span class="p">)</span>
+        <span class="n">accel_cls</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">get_accel_class</span><span class="p">(</span><span class="n">other_opt</span><span class="p">)</span>
+        <span class="n">accel_inst</span> <span class="o">=</span> <span class="n">accel_cls</span><span class="p">(</span><span class="n">model_dir</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">model_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">optics_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">accel_inst</span><span class="o">.</span><span class="n">optics_file</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">optics_file</span>
+
+        <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">creator</span> <span class="o">==</span> <span class="s2">&quot;madx&quot;</span><span class="p">:</span>
+            <span class="n">fullresponse</span> <span class="o">=</span> <span class="n">response_madx</span><span class="o">.</span><span class="n">generate_fullresponse</span><span class="p">(</span>
+                <span class="n">accel_inst</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">variable_categories</span><span class="p">,</span> <span class="n">delta_k</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">delta_k</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">opt</span><span class="o">.</span><span class="n">creator</span> <span class="o">==</span> <span class="s2">&quot;twiss&quot;</span><span class="p">:</span>
+            <span class="n">fullresponse</span> <span class="o">=</span> <span class="n">response_twiss</span><span class="o">.</span><span class="n">create_response</span><span class="p">(</span>
+                <span class="n">accel_inst</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">variable_categories</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">optics_params</span>
+            <span class="p">)</span>
+
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving Response into file &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">outfile_path</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">outfile_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">dump_file</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">Pickler</span><span class="p">(</span><span class="n">dump_file</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">fullresponse</span><span class="p">)</span></div>
+
+
+<span class="c1"># Script Mode ################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">create_response</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

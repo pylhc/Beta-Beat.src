@@ -1,0 +1,468 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>online_model.data_converter &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>online_model.data_converter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for online_model.data_converter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module online_model.data_converter</span>
+<span class="sd">---------------------------------------</span>
+<span class="sd">Functions to convert the online model output files.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pytz</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">online_model.constants</span> <span class="k">as</span> <span class="nn">const</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_pandas</span> <span class="k">as</span> <span class="n">tfs</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">utils.contexts</span> <span class="kn">import</span> <span class="n">suppress_exception</span>
+
+<span class="c1"># Globals for finding data in output file ######################################</span>
+<span class="n">PRE_BEAMPROCESS_STRING</span> <span class="o">=</span> <span class="s2">&quot;beamprocess&quot;</span>  <span class="c1"># word before beamprocess name (line 0)</span>
+<span class="n">PRE_KNOB_STRING</span> <span class="o">=</span> <span class="s2">&quot;knob&quot;</span>                <span class="c1"># word before knobname (line 1)</span>
+<span class="n">PRE_TIME_STRING</span> <span class="o">=</span> <span class="s2">&quot;time&quot;</span>                <span class="c1"># word before time (line 1)</span>
+<span class="n">TRIM_VALUE_NAME</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;bbmext\.knob\d*&quot;</span>    <span class="c1"># matcher for trim value name</span>
+<span class="n">OPTIC_NAME</span> <span class="o">=</span> <span class="s2">&quot;OPTIC_NAME&quot;</span>               <span class="c1"># ID for the optic name</span>
+<span class="n">FILLNUMBER</span> <span class="o">=</span> <span class="s2">&quot;Fillnumber&quot;</span>               <span class="c1"># Header in orbit file</span>
+
+<span class="n">BEAMPROCESS_HEADER</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_beamprocess_header</span><span class="p">()</span>
+<span class="n">TRIM_HEADER</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_trim_header</span><span class="p">()</span>
+<span class="n">TRIMHINT_HEADER</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_trimhint_header</span><span class="p">()</span>
+<span class="n">TIME_HEADER</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_time_header</span><span class="p">()</span>
+<span class="n">KNOB_HEADER</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_knob_header</span><span class="p">()</span>
+
+
+<span class="n">NAME_COLUMN</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_name_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">CIRCUIT_COLUMN</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_circuit_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">VALUE_COLUMN</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_value_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">DELTA_COLUMN</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_delta_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">TRIM_COLUMN</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_trim_column</span><span class="p">(</span><span class="n">with_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">COLUMNS_K</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([</span><span class="n">NAME_COLUMN</span><span class="p">,</span> <span class="n">CIRCUIT_COLUMN</span><span class="p">,</span> <span class="n">VALUE_COLUMN</span><span class="p">,</span> <span class="n">DELTA_COLUMN</span><span class="p">])</span>
+<span class="n">RE_K_LINE</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;\s*(?P&lt;NAME&gt;\S+)\s*=\s*(?P&lt;VALUE&gt;[^;]+)[^:]+:\s*(?P&lt;CIRCUIT&gt;[^/]+/[^.]+)\.[^\d+\-]+(?P&lt;DELTA&gt;[^.]+\.[^.]+)\.&quot;</span>
+<span class="n">RE_TRIM</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;\s*(?P&lt;trimname&gt;&quot;</span> <span class="o">+</span> <span class="n">TRIM_VALUE_NAME</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;)\s*=\s*(?P&lt;trimvalue&gt;[^;]+)\s*;&quot;</span>
+<span class="n">RE_LOG_ALL_KNOBS</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;.+\s*-\s*Knobs\s*\{(.*)\}&quot;</span>  <span class="c1"># matcher for knobs line in logfile</span>
+
+
+<div class="viewcode-block" id="knobs_k_to_tfs"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.knobs_k_to_tfs">[docs]</a><span class="k">def</span> <span class="nf">knobs_k_to_tfs</span><span class="p">(</span><span class="n">knob_file</span><span class="o">=</span><span class="n">const</span><span class="o">.</span><span class="n">get_extractor_knobs_filename</span><span class="p">(),</span> <span class="n">trim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Convert from knobs.madx output file to a proper tfs file.</span>
+
+<span class="sd">    Assumes no one changes the output order. See global variables is this file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        knob_file: path to online model extractor K-Type output file.</span>
+<span class="sd">        trim: trim value if available.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List of TfsDataFrames, one for each knob.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">knob_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+    <span class="n">ls</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="n">beamprocess</span> <span class="o">=</span> <span class="n">ls</span><span class="p">[</span><span class="n">ls</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">PRE_BEAMPROCESS_STRING</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">df_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">tfs</span><span class="o">.</span><span class="n">TfsDataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">COLUMNS_K</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="c1"># headers</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">BEAMPROCESS_HEADER</span><span class="p">]</span> <span class="o">=</span> <span class="n">beamprocess</span>
+
+        <span class="n">ls</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">KNOB_HEADER</span><span class="p">]</span> <span class="o">=</span> <span class="n">ls</span><span class="p">[</span><span class="n">ls</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">PRE_KNOB_STRING</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">time_idx</span> <span class="o">=</span> <span class="n">ls</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">PRE_TIME_STRING</span><span class="p">)</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">TIME_HEADER</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_local_time_to_utc</span><span class="p">(</span>
+            <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ls</span><span class="p">[</span><span class="n">time_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span><span class="n">time_idx</span><span class="o">+</span><span class="mi">3</span><span class="p">])[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">trim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">TRIM_HEADER</span><span class="p">]</span> <span class="o">=</span> <span class="n">trim</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">TRIMHINT_HEADER</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;VALUE = BEFORE_VALUE + DELTA * TRIM&quot;</span>
+
+        <span class="c1"># get data</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">RE_K_LINE</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;!&quot;</span><span class="p">):</span>
+                <span class="k">break</span>  <span class="c1"># next knob, keep last line</span>
+
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">COLUMNS_K</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># no further knob, delete last line</span>
+
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">COLUMNS_K</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">with</span> <span class="n">suppress_exception</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">COLUMNS_K</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
+
+        <span class="n">df_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">content</span><span class="p">[:</span><span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">df_list</span></div>
+
+
+<div class="viewcode-block" id="knobs_kvalues_to_tfs"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.knobs_kvalues_to_tfs">[docs]</a><span class="k">def</span> <span class="nf">knobs_kvalues_to_tfs</span><span class="p">(</span><span class="n">knob_file</span><span class="o">=</span><span class="n">const</span><span class="o">.</span><span class="n">get_extractor_knobs_filename</span><span class="p">()):</span>
+    <span class="sd">&quot;&quot;&quot; Convert data from KNOBVALUES extraction to tfs file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        knob_file: path to online model extractor KNOBVALUE-Type output file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        TfsDataFrame with trimvalues and additional time an beamprocess in headers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">knob_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">tfs</span><span class="o">.</span><span class="n">TfsDataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">NAME_COLUMN</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">TRIM_COLUMN</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+
+    <span class="n">ls</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">BEAMPROCESS_HEADER</span><span class="p">]</span> <span class="o">=</span> <span class="n">ls</span><span class="p">[</span><span class="n">ls</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">PRE_BEAMPROCESS_STRING</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+
+        <span class="c1"># get time</span>
+        <span class="n">ls</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">TIME_HEADER</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">headers</span><span class="p">:</span>
+            <span class="n">time_idx</span> <span class="o">=</span> <span class="n">ls</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">PRE_TIME_STRING</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">TIME_HEADER</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_local_time_to_utc</span><span class="p">(</span>
+                <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ls</span><span class="p">[</span><span class="n">time_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span><span class="n">time_idx</span><span class="o">+</span><span class="mi">3</span><span class="p">])[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="c1"># get knob name</span>
+        <span class="n">knob</span> <span class="o">=</span> <span class="n">ls</span><span class="p">[</span><span class="n">ls</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">PRE_KNOB_STRING</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Error in knob &#39;</span><span class="si">{:s}</span><span class="s2">&#39;:&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">knob</span><span class="p">)</span> <span class="o">+</span>
+                               <span class="s2">&quot;No data found. See log for details.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># get trim</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">RE_TRIM</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Error in knob &#39;</span><span class="si">{:s}</span><span class="s2">&#39;:&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">knob</span><span class="p">)</span> <span class="o">+</span>
+                               <span class="s2">&quot;No trim found. See log for details.&quot;</span><span class="p">)</span>
+        <span class="n">trim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;trimvalue&quot;</span><span class="p">))</span>
+
+        <span class="c1"># add to dataframe</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="n">knob</span><span class="p">,</span> <span class="n">trim</span><span class="p">)</span>  <span class="c1"># do not use append, it deletes headers</span>
+
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">typ</span> <span class="ow">in</span> <span class="p">(</span><span class="n">NAME_COLUMN</span><span class="p">,</span> <span class="n">TRIM_COLUMN</span><span class="p">):</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">typ</span><span class="p">)</span>
+
+        <span class="c1"># clear lines</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;!&quot;</span><span class="p">):</span>
+                <span class="k">break</span>  <span class="c1"># next knob, keep last line</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># no further knob, delete last line</span>
+        <span class="k">del</span> <span class="n">content</span><span class="p">[:</span><span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="get_optics"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.get_optics">[docs]</a><span class="k">def</span> <span class="nf">get_optics</span><span class="p">(</span><span class="n">optics_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extracts Optics from optics file (-e switch in online model extractor). &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">optics_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">ls</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ls</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">OPTIC_NAME</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ls</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No optics found in &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">optics_file</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="get_fill_from_orbitfile"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.get_fill_from_orbitfile">[docs]</a><span class="k">def</span> <span class="nf">get_fill_from_orbitfile</span><span class="p">(</span><span class="n">orbit_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extracts the fill number from orbit file (-oe switch in online model extractor).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        orbit_file: Path to orbit file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">tfs</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">orbit_file</span><span class="p">)</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">FILLNUMBER</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="get_knobs_and_trims_from_log"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.get_knobs_and_trims_from_log">[docs]</a><span class="k">def</span> <span class="nf">get_knobs_and_trims_from_log</span><span class="p">(</span><span class="n">log_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extract the knobs line from the log file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        log_file: Path to log file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">knobs_str</span> <span class="o">=</span> <span class="n">_get_knobs_string_from_log</span><span class="p">(</span><span class="n">log_file</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_get_knobs_and_trims_from_knobs_string</span><span class="p">(</span><span class="n">knobs_str</span><span class="p">)</span></div>
+
+
+<span class="c1"># Time Functions ###############################################################</span>
+
+
+<div class="viewcode-block" id="get_utc_now"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.get_utc_now">[docs]</a><span class="k">def</span> <span class="nf">get_utc_now</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Returns current utc time as timeformat &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">get_time_format</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="convert_utc_time_to_local"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.convert_utc_time_to_local">[docs]</a><span class="k">def</span> <span class="nf">convert_utc_time_to_local</span><span class="p">(</span><span class="n">time</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Converts UTC time in isoformat to local time &quot;&quot;&quot;</span>
+    <span class="n">local</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_experiment_timezone</span><span class="p">()</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="o">.</span><span class="n">localize</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">const</span><span class="o">.</span><span class="n">get_time_format</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">local</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">get_time_format</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="convert_local_time_to_utc"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.convert_local_time_to_utc">[docs]</a><span class="k">def</span> <span class="nf">convert_local_time_to_utc</span><span class="p">(</span><span class="n">time</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Converts local time in isoformat to UTC time &quot;&quot;&quot;</span>
+    <span class="n">local</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_experiment_timezone</span><span class="p">()</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">local</span><span class="o">.</span><span class="n">localize</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">const</span><span class="o">.</span><span class="n">get_time_format</span><span class="p">()))</span>
+    <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">const</span><span class="o">.</span><span class="n">get_time_format</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="post_trim_extract"><a class="viewcode-back" href="../../online_model/index.html#online_model.data_converter.post_trim_extract">[docs]</a><span class="k">def</span> <span class="nf">post_trim_extract</span><span class="p">(</span><span class="n">change_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extract trim value and move file to better filename &quot;&quot;&quot;</span>
+    <span class="n">new_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">change_file</span><span class="p">),</span> <span class="n">const</span><span class="o">.</span><span class="n">get_change_filename_out</span><span class="p">())</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">change_file</span><span class="p">,</span> <span class="n">new_filename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_get_trim_from_changefile</span><span class="p">(</span><span class="n">new_filename</span><span class="p">),</span> <span class="n">new_filename</span></div>
+
+
+<span class="c1"># Private Functions ############################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_get_trim_from_changefile</span><span class="p">(</span><span class="n">change_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Extract the trim value from the change_file &quot;&quot;&quot;</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">RE_TRIM</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">change_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;trimvalue&quot;</span><span class="p">))</span>
+    <span class="k">raise</span> <span class="n">StandardError</span><span class="p">(</span><span class="s2">&quot;Trim Value could not be extracted from &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">change_file</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_get_knobs_string_from_log</span><span class="p">(</span><span class="n">log_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return string of knobs and values from logfile &quot;&quot;&quot;</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">RE_LOG_ALL_KNOBS</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">log</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>  <span class="c1"># should be one of the latter lines</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No knobs found in log &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">log_file</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_get_knobs_and_trims_from_knobs_string</span><span class="p">(</span><span class="n">knobs_string</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Split the knobs string into pieces and get trim values&quot;&quot;&quot;</span>
+    <span class="n">trims</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">pair_str</span> <span class="ow">in</span> <span class="n">knobs_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+        <span class="n">knob</span><span class="p">,</span> <span class="n">value_str</span> <span class="o">=</span> <span class="n">pair_str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
+        <span class="n">trims</span><span class="p">[</span><span class="n">knob</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">value_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="p">))[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">trims</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

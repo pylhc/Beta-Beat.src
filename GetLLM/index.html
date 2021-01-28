@@ -1,0 +1,434 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>GetLLM &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Harmonic Analysis" href="../harmonic_analysis/index.html" />
+    <link rel="prev" title="Correction" href="../correction/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">GetLLM</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#entry-points-getllm">Entry Points GetLLM</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-GetLLM.GetLLM">Module GetLLM.GetLLM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-GetLLM.getsuper">Module GetLLM.getsuper</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>GetLLM</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/GetLLM/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="getllm">
+<h1>GetLLM<a class="headerlink" href="#getllm" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="entry-points-getllm">
+<h2>Entry Points GetLLM<a class="headerlink" href="#entry-points-getllm" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-GetLLM.GetLLM">
+<span id="module-getllm-getllm"></span><h3>Module GetLLM.GetLLM<a class="headerlink" href="#module-GetLLM.GetLLM" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="GetLLM.GetLLM.DepInjector">
+<em class="property">class </em><code class="descclassname">GetLLM.GetLLM.</code><code class="descname">DepInjector</code><a class="reference internal" href="../_modules/GetLLM/GetLLM.html#DepInjector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GetLLM.GetLLM.DepInjector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Small “kind of” dependency injector to handle GetLLM operations.</p>
+<p>This class provides a shared namespace of dependencies between GetLLM
+operations.</p>
+<dl class="exception">
+<dt id="GetLLM.GetLLM.DepInjector.MissingRequirementError">
+<em class="property">exception </em><code class="descname">MissingRequirementError</code><a class="reference internal" href="../_modules/GetLLM/GetLLM.html#DepInjector.MissingRequirementError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GetLLM.GetLLM.DepInjector.MissingRequirementError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="GetLLM.GetLLM.DepInjector.initial">
+<code class="descname">initial</code><span class="sig-paren">(</span><em>provides</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GetLLM/GetLLM.html#DepInjector.initial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GetLLM.GetLLM.DepInjector.initial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a value in the dependency injector namespace.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>provides</strong> -- Name of the value to define.</li>
+<li><strong>value</strong> -- Value of the value to define.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="GetLLM.GetLLM.DepInjector.trigger">
+<code class="descname">trigger</code><span class="sig-paren">(</span><em>funct=None</em>, <em>requires=None</em>, <em>provides=None</em>, <em>critical=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GetLLM/GetLLM.html#DepInjector.trigger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GetLLM.GetLLM.DepInjector.trigger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolves dependecies and runs the function given in “funct”.</p>
+<p>Launches the function given in “funct” defining the return variables
+given in “provides”.
+This function will check that all the names given in “requires” are
+already defined in the injector namespace with a result values,
+otherwise a KeyError will be thrown. If at least one of the requieres
+is marked as unavailable (because its defining computation failed),
+this computation will mark its own “provides” as unavailable as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>funct</strong> -- Callable to run.</li>
+<li><strong>requires</strong> -- Iterable of names that must be availabe for this to run.</li>
+<li><strong>provides</strong> -- Iterable of names that “funct” defines. It must have the
+same length as the values “funct” returns.</li>
+<li><strong>critical</strong> -- If true, if for some reason this function cannot run, an
+exception will be raised.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The same instance of DepInjector to allow method chaining.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="GetLLM.GetLLM.main">
+<code class="descclassname">GetLLM.GetLLM.</code><code class="descname">main</code><span class="sig-paren">(</span><em>outputpath</em>, <em>files_to_analyse</em>, <em>model_filename</em>, <em>dict_file='0'</em>, <em>accel='LHCB1'</em>, <em>lhcphase='0'</em>, <em>bpmu='um'</em>, <em>cocut=4000</em>, <em>nbcpl=2</em>, <em>nonlinear=False</em>, <em>tbtana='SUSSIX'</em>, <em>bbthreshold='0.15'</em>, <em>errthreshold='0.15'</em>, <em>use_only_three_bpms_for_beta_from_phase=0</em>, <em>number_of_bpms=10</em>, <em>range_of_bpms=11</em>, <em>use_average=0</em>, <em>calibration_dir_path=None</em>, <em>errordefspath=None</em>, <em>nprocesses=16</em>, <em>onlycoupling=0</em>, <em>use_error_of_mean=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GetLLM/GetLLM.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GetLLM.GetLLM.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>GetLLM main function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>outputpath</strong> (<em>string</em>) -- The output path to store results</li>
+<li><strong>files_to_analyse</strong> (<em>string</em>) -- List of files, comma separated string.</li>
+<li><strong>model_filename</strong> (<em>string</em>) -- Path and filename of model to be used</li>
+<li><strong>dict_file</strong> (<em>string</em>) -- Name of the script which will be executed. Should store dictionary with
+mappings of BPM names.</li>
+<li><strong>accel</strong> (<em>string</em>) -- Type of accelerator. LHCB1, LHCB2, LHCB4, RHIC, SPS</li>
+<li><strong>lhcphase</strong> (<em>string</em>) -- “0” or “1” -- Compensate phase shifts by tunes for the LHC experiment data,
+off=0(default)/on=1</li>
+<li><strong>BPMU</strong> (<em>string</em>) -- BPMunit: “um”, “mm”, “cm”, “m” (default “um”)</li>
+<li><strong>COcut</strong> (<em>int</em>) -- Cut for closed orbit measurement [um]</li>
+<li><strong>NBcpl</strong> (<em>int</em>) -- For selecting the coupling measurement method 1 bpm or 2 bpms</li>
+<li><strong>TBTana</strong> (<em>string</em>) -- Turn-by-turn data analysis algorithm: SUSSIX, SVD or HA</li>
+<li><strong>bbthreshold</strong> (<em>string</em>) -- Threshold for _calculate_kick for (beta_d-beta_m)/beta_m</li>
+<li><strong>errthreshold</strong> (<em>string</em>) -- Threshold for calculate_kick for sigma(beta_d)/beta_d</li>
+<li><strong>use_only_three_bpms_for_beta_from_phase</strong> (<em>int</em>) -- </li>
+<li><strong>number_of_bpms</strong> (<em>int</em>) -- Number of BPM-combos for beta from phase</li>
+<li><strong>range_of_bpms</strong> (<em>int</em>) -- Range of BPMs for beta from phase</li>
+<li><strong>use_average</strong> (<em>int</em>) -- Uses AVG_MUX and AVG_MUY in _analyse_src_files if 1</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">int  -- 0 if the function run successfully otherwise !=0.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-GetLLM.getsuper">
+<span id="module-getllm-getsuper"></span><h3>Module GetLLM.getsuper<a class="headerlink" href="#module-GetLLM.getsuper" title="Permalink to this headline">¶</a></h3>
+<p>Created sometime 2009-2011</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">maintainer:</th><td class="field-body">Yngve Inntjore Levinsen</td>
+</tr>
+<tr class="field-even field"><th class="field-name">author:</th><td class="field-body">Glenn Vanbavinckhove, Yngve Inntjore Levinsen</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">version:</th><td class="field-body">3.1.3</td>
+</tr>
+</tbody>
+</table>
+<p>Getsuper calculates with the help of GetLLM chromatic beta functions.
+The Montague W and Phi functions are output.</p>
+<p>What getsuper essentially does is run GetLLM on files with different dp/p and then afterwards
+interpolate the results to see how the functions vary with dp/p.</p>
+<p>To run getsuper.py you need several source files(sdds files) with different DPP(delta_p/p).
+At least one of the source files must have DPP=0.0 .
+Hint: You can change DPP in the GUI application in the Analysis panel. Change the entries in the
+column ‘dp/d’ in the table at the top.</p>
+<p>Further you need AC dipole in your model. If your twissfile is ‘Twiss.dat’ you need to provide the
+file ‘Twiss_ac.dat’ in the same directory.</p>
+<p>Usage cmd line:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Usage</span><span class="p">:</span> <span class="n">getsuper</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="n">options</span><span class="p">]</span> <span class="n">sdds</span><span class="o">-</span><span class="n">file1</span> <span class="p">[</span><span class="n">sdds</span><span class="o">-</span><span class="n">file2</span> <span class="o">...</span><span class="p">]</span>
+
+<span class="n">Options</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">-</span><span class="n">f</span> <span class="n">TwissFile</span><span class="p">,</span> <span class="o">--</span><span class="n">files</span><span class="o">=</span><span class="n">TwissFile</span>
+                        <span class="n">Files</span> <span class="kn">from</span> <span class="nn">analysis</span><span class="p">,</span> <span class="n">separated</span> <span class="n">by</span> <span class="n">comma</span>
+  <span class="o">--</span><span class="n">twissfile</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">twiss</span><span class="o">.</span><span class="n">dat</span>
+                        <span class="n">Twiss</span> <span class="n">file</span> <span class="n">to</span> <span class="n">use</span>
+  <span class="o">-</span><span class="n">o</span> <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">--</span><span class="n">output</span><span class="o">=&lt;</span><span class="n">path</span><span class="o">&gt;</span>
+                        <span class="n">Output</span> <span class="n">path</span><span class="p">,</span> <span class="n">where</span> <span class="n">to</span> <span class="n">store</span> <span class="n">the</span> <span class="n">results</span>
+  <span class="o">-</span><span class="n">b</span> <span class="o">&lt;</span><span class="n">path</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">--</span><span class="n">beta</span><span class="o">=&lt;</span><span class="n">path</span><span class="o">&gt;</span>
+                        <span class="n">Path</span> <span class="n">to</span> <span class="n">Beat</span><span class="o">-</span><span class="n">Beat</span><span class="o">.</span><span class="n">src</span> <span class="n">folder</span>
+  <span class="o">-</span><span class="n">t</span> <span class="n">ALGORITHM</span><span class="p">,</span> <span class="o">--</span><span class="n">algorithm</span><span class="o">=</span><span class="n">ALGORITHM</span>
+                        <span class="n">Which</span> <span class="n">algorithm</span> <span class="n">to</span> <span class="n">use</span> <span class="p">(</span><span class="n">SUSSIX</span><span class="o">/</span><span class="n">SVD</span><span class="p">)</span>
+  <span class="o">-</span><span class="n">a</span> <span class="n">ACCEL</span><span class="p">,</span> <span class="o">--</span><span class="n">accel</span><span class="o">=</span><span class="n">ACCEL</span>
+                        <span class="n">Which</span> <span class="n">accelerator</span><span class="p">:</span> <span class="n">LHCB1</span> <span class="n">LHCB2</span> <span class="n">SPS</span> <span class="n">RHIC</span>
+  <span class="o">-</span><span class="n">d</span> <span class="o">&lt;</span><span class="n">deltapScalingFactor</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">--</span><span class="n">deltapScalingFactor</span><span class="o">=&lt;</span><span class="n">deltapScalingFactor</span><span class="o">&gt;</span>
+                        <span class="n">Scaling</span> <span class="n">factor</span> <span class="k">for</span> <span class="n">deltap</span><span class="p">,</span> <span class="n">remember</span> <span class="n">final</span> <span class="n">value</span> <span class="n">must</span>
+                        <span class="n">be</span> <span class="ow">in</span> <span class="n">MAD</span> <span class="n">units</span>
+</pre></div>
+</div>
+<p>Usage in another Python module:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">GetLLM.getsuper</span>
+<span class="o">...</span>
+<span class="n">GetLLM</span><span class="o">.</span><span class="n">getsuper</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="n">my_src_files_list</span><span class="p">,</span> <span class="n">path_to_twiss_file</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="function">
+<dt id="GetLLM.getsuper.check_input">
+<code class="descclassname">GetLLM.getsuper.</code><code class="descname">check_input</code><span class="sig-paren">(</span><em>opt</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GetLLM/getsuper.html#check_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GetLLM.getsuper.check_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Approves the input and sets default</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="GetLLM.getsuper.linreg">
+<code class="descclassname">GetLLM.getsuper.</code><code class="descname">linreg</code><span class="sig-paren">(</span><em>X</em>, <em>Y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GetLLM/getsuper.html#linreg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GetLLM.getsuper.linreg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns coefficients to the regression line “y=ax+b” from x[] and y[], and R^2 Value</p>
+<dl class="docutils">
+<dt>Summary:</dt>
+<dd>Linear regression of y = ax + b</dd>
+<dt>Usage:</dt>
+<dd>real, real, real = linreg(list, list)</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="GetLLM.getsuper.main">
+<code class="descclassname">GetLLM.getsuper.</code><code class="descname">main</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GetLLM/getsuper.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GetLLM.getsuper.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>getsuper main function</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>source_files</strong> (<em>list</em>) -- list of strings with file_paths to TFS files</li>
+<li><strong>twissfile</strong> (<em>str</em>) -- path to TFS model file</li>
+<li><strong>output_path</strong> (<em>str</em>) -- Path to store created files</li>
+<li><strong>algorithm</strong> (<em>str</em>) -- Used Turn-by-turn data analysis algorithm: ‘SUSSIX’, ‘SVD’ or ‘HA’</li>
+<li><strong>accel_cls</strong> (<a class="reference internal" href="../model/index.html#module-model.accelerators.accelerator" title="model.accelerators.accelerator"><em>accelerator</em></a>) -- Accelerator class object</li>
+<li><strong>deltap_scaling_factor</strong> (<em>float</em>) -- Scaling factor for deltap,
+remember final value must be in MAD units</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../harmonic_analysis/index.html" class="btn btn-neutral float-right" title="Harmonic Analysis" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../correction/index.html" class="btn btn-neutral float-left" title="Correction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

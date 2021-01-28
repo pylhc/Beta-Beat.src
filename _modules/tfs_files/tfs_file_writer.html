@@ -1,0 +1,770 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>tfs_files.tfs_file_writer &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>tfs_files.tfs_file_writer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tfs_files.tfs_file_writer</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module tfs_files.tfs_file_writer</span>
+<span class="sd">---------------------------------</span>
+
+<span class="sd">This module contains the class TfsFileWriter which is used to create easily TfsFiles.</span>
+
+<span class="sd">.. moduleauthor:: Viktor Maier &lt;viktor.maier@cern.ch&gt;</span>
+
+<span class="sd">Usage1::</span>
+
+<span class="sd">    import tfs_files.tfs_file_writer as tfs_writer</span>
+<span class="sd">    ...</span>
+<span class="sd">    tfs_file_writer = tfs_writer.TfsFileWriter.open(&quot;my_file.out&quot;)</span>
+<span class="sd">    tfs_file_writer.set_column_width(15) # Specify desired column width</span>
+<span class="sd">    tfs_file_writer.set_outputpath(&quot;/x/y/z/&quot;) # Specify a directory if desired</span>
+
+<span class="sd">    tfs_file_writer.add_string_descriptor(&quot;NAME&quot;, &quot;TWISS&quot;)</span>
+<span class="sd">    tfs_file_writer.add_float_descriptor(&quot;MASS&quot;, 0.938272013)</span>
+<span class="sd">    tfs_file_writer.add_comment(&quot;I am a comment&quot;)</span>
+<span class="sd">    tfs_file_writer.add_column_names(&quot;NAME S BETX ALFX BETY ALFY&quot;.split())</span>
+<span class="sd">    tfs_file_writer.add_column_datatypes(&quot;%s %le %le %le %le %le&quot;.split())</span>
+<span class="sd">    tfs_file_writer.add_table_row(&quot;BTVSS.6L2.B1  1.125  131.58734  -1.8991  67.6178 1.6995&quot;.split())</span>
+
+<span class="sd">    tfs_file_writer.write_to_file()</span>
+
+<span class="sd">Usage2::</span>
+
+<span class="sd">    tfs_file_writer = tfs_writer.TfsFileWriter.open(&quot;/x/y/z/my_file.out&quot;)</span>
+<span class="sd">    #tfs_file_writer.set_outputpath(&quot;/x/y/z/&quot;) # Don&#39;t do this! Outputpath is already in file_name.</span>
+
+<span class="sd">    ... # Add at least column_names, dolumn_datatypes and one table_row</span>
+<span class="sd">    tfs_file_writer.write_to_file()</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">iotools</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">significant_numbers</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">uncertainty</span><span class="p">):</span>
+
+    <span class="n">digits</span> <span class="o">=</span> <span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">uncertainty</span><span class="p">)))</span>
+    <span class="n">sig_uncertainty</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">uncertainty</span><span class="p">,</span> <span class="n">digits</span><span class="p">)</span>
+    <span class="n">sig_value</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">digits</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">uncertainty</span> <span class="o">/</span> <span class="mi">10</span> <span class="o">**</span> <span class="n">numpy</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">sig_uncertainty</span><span class="p">)))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">digits</span> <span class="o">=</span> <span class="n">digits</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">sig_uncertainty</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">uncertainty</span><span class="p">,</span> <span class="n">digits</span><span class="p">)</span>
+        <span class="n">sig_value</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">digits</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">digits</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">format</span><span class="p">(</span><span class="n">sig_value</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">digits</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;f&#39;</span><span class="p">),</span> <span class="nb">format</span><span class="p">(</span><span class="n">sig_uncertainty</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">digits</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">format</span><span class="p">(</span><span class="n">sig_value</span><span class="p">,</span> <span class="s1">&#39;.0f&#39;</span><span class="p">),</span> <span class="nb">format</span><span class="p">(</span><span class="n">sig_uncertainty</span><span class="p">,</span> <span class="s1">&#39;.0f&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">digits</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">format</span><span class="p">(</span><span class="n">sig_value</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">digits</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;f&#39;</span><span class="p">),</span> <span class="nb">format</span><span class="p">(</span><span class="n">sig_uncertainty</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">digits</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">format</span><span class="p">(</span><span class="n">sig_value</span><span class="p">,</span> <span class="s1">&#39;.0f&#39;</span><span class="p">),</span> <span class="nb">format</span><span class="p">(</span><span class="n">sig_uncertainty</span><span class="p">,</span> <span class="s1">&#39;.0f&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TfsFileWriter"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter">[docs]</a><span class="k">class</span> <span class="nc">TfsFileWriter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents a TFS file. It stores all header lines and the table and write</span>
+<span class="sd">    all the content formatted at once by calling the write function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">DEFAULT_COLUMN_WIDTH</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="c1"># Indicates width of columns in output file.</span>
+    <span class="n">MIN_COLUMN_WIDTH</span> <span class="o">=</span> <span class="mi">10</span>
+
+<div class="viewcode-block" id="TfsFileWriter.open"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.open">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; This function will create and return a TfsFileWriter object with the given filename.</span>
+<span class="sd">            No file will be opened on the file system yet. An actual file will first be created</span>
+<span class="sd">            after adding at least column_names, dolumn_datatypes and one table_row and the method</span>
+<span class="sd">            call write_to_file().</span>
+<span class="sd">         &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">TfsFileWriter</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">outputpath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">column_width</span><span class="o">=</span><span class="n">DEFAULT_COLUMN_WIDTH</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_name (str): The file name without path where the file will be written</span>
+<span class="sd">            outputpath (str): Folder to write the file into. Default: None == current folder)</span>
+<span class="sd">            column_width (int): Indicates the width of each column in the file. Default: 17</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__file_name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__outputpath</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__column_width</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_header_lines</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Holds instances of subclasses of _TfsHeaderLine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span> <span class="o">=</span> <span class="n">_TfsTable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_file_name</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_outputpath</span><span class="p">(</span><span class="n">outputpath</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_column_width</span><span class="p">(</span><span class="n">column_width</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_file_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;File name is not valid: &quot;</span> <span class="o">+</span> <span class="n">file_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__file_name</span> <span class="o">=</span> <span class="n">file_name</span>
+
+    <span class="k">def</span> <span class="nf">set_outputpath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputpath</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">outputpath</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outputpath</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">outputpath</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">outputpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;./&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">iotools</span><span class="o">.</span><span class="n">not_exists_directory</span><span class="p">(</span><span class="n">outputpath</span><span class="p">):</span>
+            <span class="n">iotools</span><span class="o">.</span><span class="n">create_dirs</span><span class="p">(</span><span class="n">outputpath</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__outputpath</span> <span class="o">=</span> <span class="n">outputpath</span>
+
+    <span class="k">def</span> <span class="nf">set_column_width</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_width</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">column_width</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">))</span> <span class="ow">or</span> <span class="n">column_width</span> <span class="o">&lt;</span> <span class="n">TfsFileWriter</span><span class="o">.</span><span class="n">MIN_COLUMN_WIDTH</span><span class="p">:</span>
+            <span class="n">column_width</span> <span class="o">=</span> <span class="n">TfsFileWriter</span><span class="o">.</span><span class="n">DEFAULT_COLUMN_WIDTH</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__column_width</span> <span class="o">=</span> <span class="n">column_width</span>
+
+    <span class="k">def</span> <span class="nf">get_file_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file_name</span>
+
+    <span class="k">def</span> <span class="nf">get_tfs_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span>
+
+<div class="viewcode-block" id="TfsFileWriter.add_string_descriptor"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.add_string_descriptor">[docs]</a>    <span class="k">def</span> <span class="nf">add_string_descriptor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">str_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Adds the string &quot;@ &lt;name&gt; %s &lt;data&gt;&quot; to the tfs header. &quot;&quot;&quot;</span>
+        <span class="n">tfs_descriptor</span> <span class="o">=</span> <span class="n">_TfsDescriptor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">str_value</span><span class="p">,</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">get_new_string_instance</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_header_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tfs_descriptor</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TfsFileWriter.add_float_descriptor"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.add_float_descriptor">[docs]</a>    <span class="k">def</span> <span class="nf">add_float_descriptor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">float_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Adds the string &quot;@ &lt;name&gt; %le &lt;data&gt;&quot; to the tfs header. &quot;&quot;&quot;</span>
+        <span class="n">tfs_descriptor</span> <span class="o">=</span> <span class="n">_TfsDescriptor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">float_value</span><span class="p">,</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">get_new_float_instance</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_header_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tfs_descriptor</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TfsFileWriter.add_int_descriptor"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.add_int_descriptor">[docs]</a>    <span class="k">def</span> <span class="nf">add_int_descriptor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">int_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Adds the string &quot;@ &lt;name&gt; %d &lt;data&gt;&quot; to the tfs header. &quot;&quot;&quot;</span>
+        <span class="n">tfs_descriptor</span> <span class="o">=</span> <span class="n">_TfsDescriptor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">int_value</span><span class="p">,</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">get_new_int_instance</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_header_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tfs_descriptor</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TfsFileWriter.add_header_line"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.add_header_line">[docs]</a>    <span class="k">def</span> <span class="nf">add_header_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Adds the line to the tfs header. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_header_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_TfsLine</span><span class="p">(</span><span class="n">str_value</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TfsFileWriter.add_comment"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.add_comment">[docs]</a>    <span class="k">def</span> <span class="nf">add_comment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comment</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the string &quot;# &lt;comment&gt;&quot; to the tfs header.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_header_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_TfsComment</span><span class="p">(</span><span class="n">comment</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TfsFileWriter.add_column_names"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.add_column_names">[docs]</a>    <span class="k">def</span> <span class="nf">add_column_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_names</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the list of column names to the table header.</span>
+<span class="sd">        If the number of columns is determined already(e.g. by adding column data types) and the</span>
+<span class="sd">        length of list_names does not match the number of columns a TypeError will be raised.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            list_names (list): Containing the names of the columns. Without prefix &#39;*&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">add_column_names</span><span class="p">(</span><span class="n">list_names</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TfsFileWriter.add_column_datatypes"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.add_column_datatypes">[docs]</a>    <span class="k">def</span> <span class="nf">add_column_datatypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_datatypes</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the list of column data types to the table header.</span>
+<span class="sd">        If the number of columns is determined already(e.g. by adding column names) and the</span>
+<span class="sd">        length of list_datatypes does not match the number of columns a TypeError will be raised.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            list_datatypes (list): Containing the data type(%s, %le) of the columns.</span>
+<span class="sd">                                   Without prefix &#39;$&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">add_column_datatypes</span><span class="p">(</span><span class="n">list_datatypes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TfsFileWriter.add_table_row"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.add_table_row">[docs]</a>    <span class="k">def</span> <span class="nf">add_table_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_row_entries</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the entries of one row to the table data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            list_row_entries (list): Values of one row. Datatypes will not be checked. Only length</span>
+<span class="sd">                                     will be checked with the length of column names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">add_table_row</span><span class="p">(</span><span class="n">list_row_entries</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">get_absolute_file_name_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__outputpath</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__file_name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TfsFileWriter.order_rows"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.order_rows">[docs]</a>    <span class="k">def</span> <span class="nf">order_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_name</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Orders the rows according to one of the column names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">order_rows</span><span class="p">(</span><span class="n">column_name</span><span class="p">,</span> <span class="n">reverse</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TfsFileWriter.write_to_file"><a class="viewcode-back" href="../../tfs_files/index.html#tfs_files.tfs_file_writer.TfsFileWriter.write_to_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">formatted</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Writes the stored data to the file with the given filename. &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">are_column_names_and_types_are_set</span><span class="p">():</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__file_name</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span>
+                      <span class="s2">&quot;Abort writing file. Cannot write file until column names and types are set.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__file_name</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span>
+                      <span class="s2">&quot;Abort writing file. No rows in table.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_absolute_file_name_path</span><span class="p">()</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Header</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">get_line_as_string</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_header_lines</span><span class="p">)</span>
+
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> lines in tfs table&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_row_count</span><span class="p">()))</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> rows in tfs table: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_column_names</span><span class="p">()),</span>
+                                                    <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_column_names</span><span class="p">())))</span>
+        <span class="c1"># Table</span>
+        <span class="k">if</span> <span class="n">formatted</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__write_formatted_table</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__write_unformatted_table</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tfs_file</span><span class="p">:</span>
+            <span class="n">tfs_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">__write_formatted_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Writes the table of this object formatted to file. &quot;&quot;&quot;</span>
+        <span class="n">list_column_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_column_data_types</span><span class="p">()</span>
+        <span class="n">list_column_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_column_names</span><span class="p">()</span>
+
+        <span class="n">format_for_titles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_column_formatter</span><span class="p">(</span><span class="n">list_column_names</span><span class="p">,</span> <span class="n">with_type</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">format_for_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_column_formatter</span><span class="p">(</span><span class="n">list_column_types</span><span class="p">,</span> <span class="n">with_type</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Write column names</span>
+        <span class="n">str_column_names</span> <span class="o">=</span> <span class="s2">&quot;* &quot;</span> <span class="o">+</span> <span class="n">format_for_titles</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">list_column_names</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">str_column_names</span><span class="p">)</span>
+
+        <span class="c1"># Write column types</span>
+        <span class="n">str_column_types</span> <span class="o">=</span> <span class="s2">&quot;$ &quot;</span> <span class="o">+</span> <span class="n">format_for_titles</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">list_column_types</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">str_column_types</span><span class="p">)</span>
+
+        <span class="c1"># Write table lines</span>
+        <span class="k">for</span> <span class="n">table_line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_data_rows</span><span class="p">():</span>
+            <span class="n">formatted_line</span> <span class="o">=</span> <span class="s2">&quot;  &quot;</span> <span class="o">+</span> <span class="n">format_for_data</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">table_line</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">formatted_line</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__write_unformatted_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;* &quot;</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_column_names</span><span class="p">()))</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;$ &quot;</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_column_data_types</span><span class="p">()))</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_table</span><span class="o">.</span><span class="n">get_data_rows</span><span class="p">():</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">row</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__get_column_formatter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_of_names</span><span class="p">,</span> <span class="n">with_type</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">type_fmt</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">with_type</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">get_type_from_string</span><span class="p">(</span>
+                    <span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">get_type_as_python_format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__column_width</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__column_width</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;{&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">:&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">indx</span><span class="p">)</span> <span class="o">+</span> <span class="n">type_fmt</span><span class="p">(</span><span class="n">ctype</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;}&quot;</span>
+                        <span class="k">for</span> <span class="n">indx</span><span class="p">,</span> <span class="n">ctype</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">list_of_names</span><span class="p">)</span>
+                        <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">_TfsHeaderLine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Abstract class which represents a header line.</span>
+
+<span class="sd">        Subclasses: _TfsDescriptor, _TfsComment, _TfsLine</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">get_line_as_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">_TfsDescriptor</span><span class="p">(</span><span class="n">_TfsHeaderLine</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Represents a descriptor in a TFS file. E.g.: &#39;@ SomeText %s &quot;Some Text&quot;&#39; &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tfs_data_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_TfsDescriptor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">tfs_data_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tfs_data_type</span> <span class="o">=</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">get_new_string_instance</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_data_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__value</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_tfs_data_type</span><span class="p">(</span><span class="n">tfs_data_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name_of_descriptor_as_string</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name_of_descriptor_as_string</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__name</span> <span class="o">=</span> <span class="n">name_of_descriptor_as_string</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">name_of_descriptor_as_string</span> <span class="o">+</span> <span class="s2">&quot;is not a string&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value_of_descriptor</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tfs_data_type</span><span class="p">()</span><span class="o">.</span><span class="n">is_value_valid</span><span class="p">(</span><span class="n">value_of_descriptor</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_STRING</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tfs_data_type_as_string</span><span class="p">():</span>
+                <span class="n">value_of_descriptor</span> <span class="o">=</span> <span class="s1">&#39;&quot;&#39;</span><span class="o">+</span><span class="n">value_of_descriptor</span><span class="o">+</span><span class="s1">&#39;&quot;&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value_of_descriptor</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value_of_descriptor</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; does not correspond to tfs_data_type: &quot;</span> <span class="o">+</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">get_tfs_data_type_as_string</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">set_tfs_data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tfs_data_type</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tfs_data_type</span><span class="p">,</span> <span class="n">_TfsDataType</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_data_type</span> <span class="o">=</span> <span class="n">tfs_data_type</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">tfs_data_type</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; is not an instance of _TfsDataType&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name</span>
+
+    <span class="k">def</span> <span class="nf">get_tfs_data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_data_type</span>
+
+    <span class="k">def</span> <span class="nf">get_tfs_data_type_as_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tfs_data_type</span><span class="p">()</span><span class="o">.</span><span class="n">get_type_as_string</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__value</span>
+
+    <span class="k">def</span> <span class="nf">get_line_as_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;@ </span><span class="si">{0}</span><span class="s1"> </span><span class="si">{1}</span><span class="s1"> </span><span class="si">{2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_name</span><span class="p">(),</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">get_tfs_data_type_as_string</span><span class="p">(),</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">get_value</span><span class="p">())</span>
+
+
+<span class="k">class</span> <span class="nc">_TfsComment</span><span class="p">(</span><span class="n">_TfsHeaderLine</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comment</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_TfsComment</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__comment</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__set_comment</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__set_comment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comment_as_string</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">comment_as_string</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__comment</span> <span class="o">=</span> <span class="n">comment_as_string</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">comment_as_string</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; is not a string&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_line_as_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;# &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__comment</span>
+
+
+<span class="k">class</span> <span class="nc">_TfsLine</span><span class="p">(</span><span class="n">_TfsHeaderLine</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_TfsLine</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__line</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__set_line</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__set_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line_as_string</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">line_as_string</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__line</span> <span class="o">=</span> <span class="n">line_as_string</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">line_as_string</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; is not a string&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_line_as_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__line</span>
+
+
+<span class="k">class</span> <span class="nc">_TfsDataType</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; This class represents a data type for the descritpors and columns of the table of a TFS file.</span>
+<span class="sd">        The following types are implemented: String, Float</span>
+<span class="sd">        Usage::</span>
+<span class="sd">            corresponding_type = _TfsDataType.get_type_from_string(type_as_string)</span>
+<span class="sd">            string_type = _TfsDataType.get_new_string_instance()</span>
+<span class="sd">            float_type = _TfsDataType.get_new_float_instance()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TYPE_STRING</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span>
+    <span class="n">TYPE_FLOAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%le</span><span class="s2">&quot;</span>
+    <span class="n">TYPE_INT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span>
+    <span class="n">TYPE_INVALID</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">DEFAULT_PRECISION</span> <span class="o">=</span> <span class="s2">&quot;13&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__type</span> <span class="o">=</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_INVALID</span>
+
+    <span class="k">def</span> <span class="nf">set_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tfs_type</span><span class="p">):</span>
+        <span class="n">all_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_STRING</span><span class="p">,</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_FLOAT</span><span class="p">,</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_INT</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">tfs_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_types</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid type&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tfs_type</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__type</span> <span class="o">=</span> <span class="n">tfs_type</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_type_from_string</span><span class="p">(</span><span class="n">type_as_string</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_STRING</span><span class="p">:</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">get_new_string_instance</span><span class="p">,</span>
+                <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_FLOAT</span><span class="p">:</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">get_new_float_instance</span><span class="p">,</span>
+                <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_INT</span><span class="p">:</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">get_new_int_instance</span><span class="p">,</span>
+            <span class="p">}[</span><span class="n">type_as_string</span><span class="p">]()</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Type in string not recognized: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">type_as_string</span><span class="p">))</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_new_string_instance</span><span class="p">():</span>
+        <span class="n">tfs_type</span> <span class="o">=</span> <span class="n">_TfsDataType</span><span class="p">()</span>
+        <span class="n">tfs_type</span><span class="o">.</span><span class="n">set_type</span><span class="p">(</span><span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_STRING</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tfs_type</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_new_float_instance</span><span class="p">():</span>
+        <span class="n">tfs_type</span> <span class="o">=</span> <span class="n">_TfsDataType</span><span class="p">()</span>
+        <span class="n">tfs_type</span><span class="o">.</span><span class="n">set_type</span><span class="p">(</span><span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_FLOAT</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tfs_type</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_new_int_instance</span><span class="p">():</span>
+        <span class="n">tfs_type</span> <span class="o">=</span> <span class="n">_TfsDataType</span><span class="p">()</span>
+        <span class="n">tfs_type</span><span class="o">.</span><span class="n">set_type</span><span class="p">(</span><span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_INT</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tfs_type</span>
+
+    <span class="k">def</span> <span class="nf">get_type_as_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type</span>
+
+    <span class="k">def</span> <span class="nf">get_type_as_python_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; http://mad.web.cern.ch/mad/madx.old/Introduction/tfs_columns.html#table &quot;&quot;&quot;</span>
+        <span class="n">width_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">width</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
+        <span class="c1"># precision needs usually 7 digits less then total length, e.g. &quot;-0.&#39;precision&#39;e-000&quot;</span>
+
+        <span class="n">precision_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_PRECISION</span> <span class="k">if</span> <span class="n">width</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">width</span><span class="o">-</span><span class="mi">7</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_FLOAT</span><span class="p">:</span> <span class="s2">&quot; </span><span class="si">{:s}</span><span class="s2">.</span><span class="si">{:s}</span><span class="s2">g&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">width_str</span><span class="p">,</span> <span class="n">precision_str</span><span class="p">),</span>
+            <span class="c1"># _TfsDataType.TYPE_FLOAT: &quot; #{:s}.{:s}g&quot;.format(width_str, precision_str),  #TODO: python3</span>
+            <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_INT</span><span class="p">:</span> <span class="s2">&quot; </span><span class="si">{:s}</span><span class="s2">.</span><span class="si">{:s}</span><span class="s2">g&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">width_str</span><span class="p">,</span> <span class="n">precision_str</span><span class="p">),</span>  <span class="c1">#TODO: proper int?</span>
+            <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_STRING</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">width_str</span><span class="p">),</span>
+        <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">__type</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">is_value_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_STRING</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_FLOAT</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">_TfsDataType</span><span class="o">.</span><span class="n">TYPE_INT</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Type of _TfsDataType is unknown: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__type</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__type</span>
+
+    <span class="k">def</span> <span class="nf">__get_type_as_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">_TfsTable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Represents the table in a TFS file. &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tfs_file_writer</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_file_writer</span> <span class="o">=</span> <span class="n">tfs_file_writer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__num_of_columns</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_data_types</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_table_rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">add_column_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_names</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            list_names (list): List of strings representing the names of the TFS columns.</span>
+<span class="sd">                               Without &#39;*&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__column_data_types_are_set</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__length_is_not_equal_to_already_set_length</span><span class="p">(</span><span class="n">list_names</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Column number is set already but the length of the given list&quot;</span>
+                                     <span class="o">+</span> <span class="s2">&quot; does not match.(&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_file_writer</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span>
+                                     <span class="o">+</span> <span class="s2">&quot;)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__num_of_columns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_names</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_names</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">list_names</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__length_is_not_equal_to_already_set_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a_list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__num_of_columns</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">a_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__column_data_types_are_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_data_types</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">are_column_names_and_types_are_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__column_names_are_set</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__column_data_types_are_set</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">is_empty</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__list_of_table_rows</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_column_datatypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_datatypes</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the list of column data types to the table header.</span>
+<span class="sd">        If the number of columns is determined already(e.g. by adding column names) and the</span>
+<span class="sd">        length of list_datatypes does not match the number of columns a TypeError will be raised.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            list_datatypes (list): Containing the data type(%s, %le) of the columns.</span>
+<span class="sd">                                   Without prefix &#39;$&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__column_names_are_set</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__length_is_not_equal_to_already_set_length</span><span class="p">(</span><span class="n">list_datatypes</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Column number is set already but the length of the given list&quot;</span>
+                                     <span class="o">+</span> <span class="s2">&quot; does not match.(&quot;</span> <span class="o">+</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_file_writer</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__num_of_columns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_datatypes</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_data_types</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">list_datatypes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__column_names_are_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_names</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_table_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">list_row_entries</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds the entries of one row to the table data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__column_names_are_set</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__column_data_types_are_set</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Before filling the table, set the names and datatypes(&quot;</span> <span class="o">+</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_file_writer</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;).&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__num_of_columns</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_row_entries</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Number of entries does not match the column number of the table.(&quot;</span>
+                                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__tfs_file_writer</span><span class="o">.</span><span class="n">get_file_name</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_table_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_row_entries</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_column_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_names</span>
+
+    <span class="k">def</span> <span class="nf">get_column_data_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_data_types</span>
+
+    <span class="k">def</span> <span class="nf">get_data_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_table_rows</span>
+    
+    <span class="k">def</span> <span class="nf">get_row_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__list_of_table_rows</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">order_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_name</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Orders the rows according to one of the column names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">are_column_names_and_types_are_set</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Column names and types have to be set to order the entries.&quot;</span><span class="p">)</span>
+        <span class="n">column_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_column_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">column_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__list_of_table_rows</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">elem</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">elem</span><span class="p">[</span><span class="n">column_index</span><span class="p">]),</span>
+            <span class="n">reverse</span><span class="o">=</span><span class="n">reverse</span>
+        <span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

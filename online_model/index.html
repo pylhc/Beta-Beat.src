@@ -1,0 +1,493 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Online Model Tools &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Plotting Tools" href="../plotshop/index.html" />
+    <link rel="prev" title="Model" href="../model/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Online Model Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-online_model.extractor_wrapper">Online Model Extractor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-online-model-extractor-wrapper">Module online_model.extractor_wrapper</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-online_model.data_converter">Helper Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-online-model-data-converter">Module online_model.data_converter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-online-model-constants">Module online_model.constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Online Model Tools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/online_model/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="online-model-tools">
+<h1>Online Model Tools<a class="headerlink" href="#online-model-tools" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-online_model.extractor_wrapper">
+<span id="online-model-extractor"></span><h2>Online Model Extractor<a class="headerlink" href="#module-online_model.extractor_wrapper" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-online-model-extractor-wrapper">
+<h3>Module online_model.extractor_wrapper<a class="headerlink" href="#module-online-model-extractor-wrapper" title="Permalink to this headline">¶</a></h3>
+<p>Python wrapper to use the online model extractor with some conversion functionality.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Needs to be run from the technical network or using a cwd with server and local access.</p>
+</div>
+<dl class="function">
+<dt id="online_model.extractor_wrapper.extract_all_knob_names">
+<code class="descclassname">online_model.extractor_wrapper.</code><code class="descname">extract_all_knob_names</code><span class="sig-paren">(</span><em>time=None</em>, <em>only_active=True</em>, <em>cwd='./'</em>, <em>server=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/extractor_wrapper.html#extract_all_knob_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.extractor_wrapper.extract_all_knob_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>DOES NOT WORK BECAUSE OF ONLINE-MODEL-EXTRACTOR BUGS….
+Extract all knobs present at given time.</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>Args:</dt>
+<dd>time: UTC time in ISO format (default: now)
+only_active (bool): If set, returns only knobs with non-zero value.
+cwd: output directory for results and log (default: current directory)
+server: server to run on (default: runs local)</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.extractor_wrapper.extract_knob_value_and_definition">
+<code class="descclassname">online_model.extractor_wrapper.</code><code class="descname">extract_knob_value_and_definition</code><span class="sig-paren">(</span><em>knob_names</em>, <em>time</em>, <em>cwd='./'</em>, <em>server=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/extractor_wrapper.html#extract_knob_value_and_definition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.extractor_wrapper.extract_knob_value_and_definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract knob values from online model using the knob name and the time.</p>
+<p>Example Call:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">extract_knob_values</span><span class="p">(</span><span class="s2">&quot;LHCBEAM/2018_global_ats_flat_b1_for_ip5_waist&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;2018-10-30 15:00:00.0&quot;</span><span class="p">,</span>
+                    <span class="n">cwd</span><span class="o">=</span><span class="s2">&quot;/afs/cern.ch/user/j/jdilly/extractor/&quot;</span><span class="p">,</span>
+                    <span class="n">server</span><span class="o">=</span><span class="s2">&quot;cs-ccr-dev3&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>knob_names</strong> (<em>list</em>) -- List of knob names to extract</li>
+<li><strong>time</strong> -- UTC time in ISOformat to extract</li>
+<li><strong>cwd</strong> -- output directory for results and log (default: current directory)</li>
+<li><strong>server</strong> -- server to run on (default: runs local)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.extractor_wrapper.extract_overview">
+<code class="descclassname">online_model.extractor_wrapper.</code><code class="descname">extract_overview</code><span class="sig-paren">(</span><em>knob_names</em>, <em>time=None</em>, <em>cwd='./'</em>, <em>server=None</em>, <em>show_plot=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/extractor_wrapper.html#extract_overview"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.extractor_wrapper.extract_overview" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract overview-data consisting of
+- beamprocess
+- optics used
+- values of given Knobs
+- orbit plot</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>knob_names</strong> (<em>list</em>) -- List of knob names to extract</li>
+<li><strong>time</strong> -- UTC time in ISO format (default: now)</li>
+<li><strong>cwd</strong> -- output directory for results and log (default: current directory)</li>
+<li><strong>server</strong> -- server to run on (default: runs local)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-online_model.data_converter">
+<span id="helper-modules"></span><h2>Helper Modules<a class="headerlink" href="#module-online_model.data_converter" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-online-model-data-converter">
+<h3>Module online_model.data_converter<a class="headerlink" href="#module-online-model-data-converter" title="Permalink to this headline">¶</a></h3>
+<p>Functions to convert the online model output files.</p>
+<dl class="function">
+<dt id="online_model.data_converter.convert_local_time_to_utc">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">convert_local_time_to_utc</code><span class="sig-paren">(</span><em>time</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#convert_local_time_to_utc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.convert_local_time_to_utc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts local time in isoformat to UTC time</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.data_converter.convert_utc_time_to_local">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">convert_utc_time_to_local</code><span class="sig-paren">(</span><em>time</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#convert_utc_time_to_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.convert_utc_time_to_local" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts UTC time in isoformat to local time</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.data_converter.get_fill_from_orbitfile">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">get_fill_from_orbitfile</code><span class="sig-paren">(</span><em>orbit_file</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#get_fill_from_orbitfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.get_fill_from_orbitfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the fill number from orbit file (-oe switch in online model extractor).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>orbit_file</strong> -- Path to orbit file.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.data_converter.get_knobs_and_trims_from_log">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">get_knobs_and_trims_from_log</code><span class="sig-paren">(</span><em>log_file</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#get_knobs_and_trims_from_log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.get_knobs_and_trims_from_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the knobs line from the log file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>log_file</strong> -- Path to log file.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.data_converter.get_optics">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">get_optics</code><span class="sig-paren">(</span><em>optics_file</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#get_optics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.get_optics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts Optics from optics file (-e switch in online model extractor).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.data_converter.get_utc_now">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">get_utc_now</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#get_utc_now"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.get_utc_now" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns current utc time as timeformat</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.data_converter.knobs_k_to_tfs">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">knobs_k_to_tfs</code><span class="sig-paren">(</span><em>knob_file='knobs.madx'</em>, <em>trim=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#knobs_k_to_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.knobs_k_to_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert from knobs.madx output file to a proper tfs file.</p>
+<p>Assumes no one changes the output order. See global variables is this file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>knob_file</strong> -- path to online model extractor K-Type output file.</li>
+<li><strong>trim</strong> -- trim value if available.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">List of TfsDataFrames, one for each knob.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.data_converter.knobs_kvalues_to_tfs">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">knobs_kvalues_to_tfs</code><span class="sig-paren">(</span><em>knob_file='knobs.madx'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#knobs_kvalues_to_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.knobs_kvalues_to_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert data from KNOBVALUES extraction to tfs file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>knob_file</strong> -- path to online model extractor KNOBVALUE-Type output file.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">TfsDataFrame with trimvalues and additional time an beamprocess in headers.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.data_converter.post_trim_extract">
+<code class="descclassname">online_model.data_converter.</code><code class="descname">post_trim_extract</code><span class="sig-paren">(</span><em>change_file</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/data_converter.html#post_trim_extract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.data_converter.post_trim_extract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract trim value and move file to better filename</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-online_model.constants"></span><div class="section" id="module-online-model-constants">
+<h3>Module online_model.constants<a class="headerlink" href="#module-online-model-constants" title="Permalink to this headline">¶</a></h3>
+<p>Functions to retrieve constants in online model extractor.</p>
+<dl class="function">
+<dt id="online_model.constants.get_change_filename_out">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_change_filename_out</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_change_filename_out"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_change_filename_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default changeparameters filename</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_default_knob_summary_filename">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_default_knob_summary_filename</code><span class="sig-paren">(</span><em>idx</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_default_knob_summary_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_default_knob_summary_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default knob summary filename (output of extractor)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_default_orbit_filename">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_default_orbit_filename</code><span class="sig-paren">(</span><em>beam</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_default_orbit_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_default_orbit_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default orbit filename (output of extractor</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_experiment_timezone">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_experiment_timezone</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_experiment_timezone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_experiment_timezone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get time zone for measurement data.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_extractor_knobs_filename">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_extractor_knobs_filename</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_extractor_knobs_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_extractor_knobs_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default knob filename (output of extractor)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_extractor_log_filename">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_extractor_log_filename</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_extractor_log_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_extractor_log_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default log filename (output of extractor)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_extractor_output_filename">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_extractor_output_filename</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_extractor_output_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_extractor_output_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default output filename of extractor</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_knob_tfs_filename">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_knob_tfs_filename</code><span class="sig-paren">(</span><em>knob</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_knob_tfs_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_knob_tfs_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default changeparameters filename</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_ktype">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_ktype</code><span class="sig-paren">(</span><em>ktype</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_ktype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_ktype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps from more understandable names to modelextractor names.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_om_extractor">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_om_extractor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_om_extractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_om_extractor" title="Permalink to this definition">¶</a></dt>
+<dd><p>AFS-path to online model extractor</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_overview_filename">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_overview_filename</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_overview_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_overview_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default changeparameters filename</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="online_model.constants.get_time_format">
+<code class="descclassname">online_model.constants.</code><code class="descname">get_time_format</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/online_model/constants.html#get_time_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#online_model.constants.get_time_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default time format</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../plotshop/index.html" class="btn btn-neutral float-right" title="Plotting Tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../model/index.html" class="btn btn-neutral float-left" title="Model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,340 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>utils.bpm &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>utils.bpm</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for utils.bpm</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">.. module: utils.bpm</span>
+
+<span class="sd">Created on 3 Jun 2013</span>
+
+<span class="sd">This module contains helper functions concerning bpms. It contains functions to filter BPMs or to</span>
+<span class="sd">intersect BPMs in multiple files or with a given model file.</span>
+
+<span class="sd">.. moduleauthor:: gvanbavi, vimaier</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<div class="viewcode-block" id="filterbpm"><a class="viewcode-back" href="../../utils/index.html#utils.bpm.filterbpm">[docs]</a><span class="k">def</span> <span class="nf">filterbpm</span><span class="p">(</span><span class="n">list_of_bpms</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Filter non-arc BPM.</span>
+<span class="sd">       :returns: list -- a list with those bpms which start with name &quot;BPM.&quot;</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_of_bpms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s2">&quot;Nothing to filter!!!!&quot;</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">list_of_bpms</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;BPM.&#39;</span> <span class="ow">in</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()):</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="model_intersect"><a class="viewcode-back" href="../../utils/index.html#utils.bpm.model_intersect">[docs]</a><span class="k">def</span> <span class="nf">model_intersect</span><span class="p">(</span><span class="n">exp_bpms</span><span class="p">,</span> <span class="n">model_twiss</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Intersects BPMs from</span>
+
+<span class="sd">    :param list exp_bpms: list with tuples (&lt;S_value_i&gt;,&lt;bpm_i&gt;)</span>
+<span class="sd">    :param metaclass.Twiss model_twiss: Should be a Twiss object from model</span>
+
+<span class="sd">    :returns: list with tuples: (&lt;S_value_i&gt;,&lt;bpm_i&gt;) -- A list with BPMs which are both in exp_bpms and model_twiss.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># pandas way</span>
+        <span class="k">return</span> <span class="n">model_twiss</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">exp_bpms</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="c1"># old way</span>
+        <span class="n">bpmsin</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1">#print &quot;start Intersect, exp_bpms #:&quot;, len(exp_bpms)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exp_bpms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s2">&quot;Zero exp BPMs sent to model_intersect&quot;</span>
+            <span class="k">return</span> <span class="n">bpmsin</span>
+
+        <span class="k">for</span> <span class="n">bpm</span> <span class="ow">in</span> <span class="n">exp_bpms</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">model_twiss</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bpm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span>  <span class="c1"># Check if bpm is in the model</span>
+                <span class="n">bpmsin</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bpm</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">bpm</span><span class="p">,</span> <span class="s2">&quot;Not in Model&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bpmsin</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s2">&quot;Zero intersection of Exp and Model&quot;</span>
+            <span class="nb">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s2">&quot;Please, provide a good Dictionary or correct data&quot;</span>
+            <span class="nb">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s2">&quot;Now we better leave!&quot;</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">bpmsin</span></div>
+
+
+<div class="viewcode-block" id="intersect"><a class="viewcode-back" href="../../utils/index.html#utils.bpm.intersect">[docs]</a><span class="k">def</span> <span class="nf">intersect</span><span class="p">(</span><span class="n">list_of_twiss_files</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Pure intersection of all bpm names in all files.</span>
+
+<span class="sd">    :param list list_of_twiss_files: List of metaclass.Twiss objects with columns NAME and S.</span>
+
+<span class="sd">    :returns: list with tuples: (&lt;S_value_i&gt;,&lt;bpm_i&gt;) -- bpm_i is in every twiss of list_of_twiss_files.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_of_twiss_files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s2">&quot;Nothing to intersect!!!!&quot;</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">names_list</span> <span class="o">=</span> <span class="n">list_of_twiss_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">index</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="c1"># metaclass way</span>
+        <span class="n">names_list</span> <span class="o">=</span> <span class="n">list_of_twiss_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">NAME</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="o">&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s2">&quot;No exp BPMs...&quot;</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">twiss_file</span> <span class="ow">in</span> <span class="n">list_of_twiss_files</span><span class="p">:</span>
+            <span class="c1">#TODO: have to use a set probably, does not detect duplicates! (vimaier)</span>
+            <span class="n">names_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">twiss_file</span><span class="o">.</span><span class="n">NAME</span> <span class="k">if</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">names_list</span><span class="p">]</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># list of tupels (S, bpm_name)</span>
+        <span class="n">twiss_0</span> <span class="o">=</span> <span class="n">list_of_twiss_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">bpm</span> <span class="ow">in</span> <span class="n">names_list</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">twiss_0</span><span class="o">.</span><span class="n">S</span><span class="p">[</span><span class="n">twiss_0</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bpm</span><span class="p">]],</span> <span class="n">bpm</span><span class="p">))</span>
+
+        <span class="c1">#SORT by S</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">twiss_file</span> <span class="ow">in</span> <span class="n">list_of_twiss_files</span><span class="p">:</span>
+            <span class="n">names_list</span> <span class="o">=</span> <span class="n">twiss_file</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">names_list</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">list_of_twiss_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">names_list</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="get_list_of_tuples"><a class="viewcode-back" href="../../utils/index.html#utils.bpm.get_list_of_tuples">[docs]</a><span class="k">def</span> <span class="nf">get_list_of_tuples</span><span class="p">(</span><span class="n">bpms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;transforms the DataFrame bpms to a list of tuples to fake the old usage.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="n">bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">bpms</span><span class="o">.</span><span class="n">index</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="intersect_with_bpm_list"><a class="viewcode-back" href="../../utils/index.html#utils.bpm.intersect_with_bpm_list">[docs]</a><span class="k">def</span> <span class="nf">intersect_with_bpm_list</span><span class="p">(</span><span class="n">exp_bpms</span><span class="p">,</span> <span class="n">bpm_list</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Intersects BPMs from</span>
+
+<span class="sd">    :param list exp_bpms&#39; list with tuples: (&lt;S_value_i&gt;,&lt;bpm_i&gt;)</span>
+<span class="sd">    :param list bpm_list: List of bpm names</span>
+
+<span class="sd">    :returns: list with tuples: (&lt;S_value_i&gt;,&lt;bpm_i&gt;) -- A list with BPMs which are both in exp_bpms and bpm_list.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">s_bpm_tupel</span> <span class="ow">in</span> <span class="n">exp_bpms</span><span class="p">:</span>
+        <span class="n">bpm_name</span> <span class="o">=</span> <span class="n">s_bpm_tupel</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">bpm_name</span> <span class="ow">in</span> <span class="n">bpm_list</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s_bpm_tupel</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,450 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Harmonic Analysis &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Model" href="../model/index.html" />
+    <link rel="prev" title="GetLLM" href="../GetLLM/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Harmonic Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#io-handlers">IO Handlers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-harmonic_analysis.io_handlers.input_handler">Input Handler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-harmonic_analysis.io_handlers.output_handler">Output Handler</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-harmonic_analysis.clean">Clean</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-harmonic_analysis.harpy">Harpy</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#helpers">Helpers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-harmonic_analysis.chroma">Chroma</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-harmonic_analysis.get_optics_3D">Get Optics 3D</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-harmonic_analysis.tune_clean">Tune Clean</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Harmonic Analysis</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/harmonic_analysis/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="harmonic-analysis">
+<h1>Harmonic Analysis<a class="headerlink" href="#harmonic-analysis" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="io-handlers">
+<h2>IO Handlers<a class="headerlink" href="#io-handlers" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-harmonic_analysis.io_handlers.input_handler">
+<span id="input-handler"></span><h3>Input Handler<a class="headerlink" href="#module-harmonic_analysis.io_handlers.input_handler" title="Permalink to this headline">¶</a></h3>
+<dl class="exception">
+<dt id="harmonic_analysis.io_handlers.input_handler.ArgumentError">
+<em class="property">exception </em><code class="descclassname">harmonic_analysis.io_handlers.input_handler.</code><code class="descname">ArgumentError</code><a class="reference internal" href="../_modules/harmonic_analysis/io_handlers/input_handler.html#ArgumentError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.io_handlers.input_handler.ArgumentError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-harmonic_analysis.io_handlers.output_handler">
+<span id="output-handler"></span><h3>Output Handler<a class="headerlink" href="#module-harmonic_analysis.io_handlers.output_handler" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="main-functions">
+<h2>Main Functions<a class="headerlink" href="#main-functions" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-harmonic_analysis.clean">
+<span id="clean"></span><h3>Clean<a class="headerlink" href="#module-harmonic_analysis.clean" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="harmonic_analysis.clean.detect_bpms_with_exact_zeros">
+<code class="descclassname">harmonic_analysis.clean.</code><code class="descname">detect_bpms_with_exact_zeros</code><span class="sig-paren">(</span><em>bpm_data</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/clean.html#detect_bpms_with_exact_zeros"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.clean.detect_bpms_with_exact_zeros" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detects BPMs with exact zeros due to OP workaround</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.clean.detect_bpms_with_spikes">
+<code class="descclassname">harmonic_analysis.clean.</code><code class="descname">detect_bpms_with_spikes</code><span class="sig-paren">(</span><em>bpm_data</em>, <em>max_peak_cut</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/clean.html#detect_bpms_with_spikes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.clean.detect_bpms_with_spikes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detects BPMs with spikes &gt; max_peak_cut</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.clean.detect_flat_bpms">
+<code class="descclassname">harmonic_analysis.clean.</code><code class="descname">detect_flat_bpms</code><span class="sig-paren">(</span><em>bpm_data</em>, <em>min_peak_to_peak</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/clean.html#detect_flat_bpms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.clean.detect_flat_bpms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detects BPMs with the same values for all turns</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.clean.detect_known_bad_bpms">
+<code class="descclassname">harmonic_analysis.clean.</code><code class="descname">detect_known_bad_bpms</code><span class="sig-paren">(</span><em>bpm_data</em>, <em>list_of_bad_bpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/clean.html#detect_known_bad_bpms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.clean.detect_known_bad_bpms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Searches for known bad BPMs</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.clean.fix_polarity">
+<code class="descclassname">harmonic_analysis.clean.</code><code class="descname">fix_polarity</code><span class="sig-paren">(</span><em>wrong_polarity_names</em>, <em>bpm_data</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/clean.html#fix_polarity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.clean.fix_polarity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fixes wrong polarity</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.clean.resync_bpms">
+<code class="descclassname">harmonic_analysis.clean.</code><code class="descname">resync_bpms</code><span class="sig-paren">(</span><em>bpm_data</em>, <em>file_date</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/clean.html#resync_bpms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.clean.resync_bpms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resynchronizes BPMs between the injection point and start of the lattice if
+the acquisition date is after 2016-04-01.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-harmonic_analysis.harpy">
+<span id="harpy"></span><h3>Harpy<a class="headerlink" href="#module-harmonic_analysis.harpy" title="Permalink to this headline">¶</a></h3>
+<p>This module is the actual implementation of the resonance search for
+turn-by-turn data.
+It uses a combination of the laskar method with SVD decomposition to speed up
+the search of resonances.</p>
+<dl class="function">
+<dt id="harmonic_analysis.harpy.clean_by_tune">
+<code class="descclassname">harmonic_analysis.harpy.</code><code class="descname">clean_by_tune</code><span class="sig-paren">(</span><em>tunes</em>, <em>tune_clean_limit</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/harpy.html#clean_by_tune"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.harpy.clean_by_tune" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function looks for outliers in the tunes pandas Series and returns
+their indices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tunes</strong> -- Pandas series with the tunes per BPM and the BPM names as
+index.</li>
+<li><strong>tune_clean_limit</strong> -- No BPM will find as oulier if its distance to the
+average is lower than this limit.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.harpy.harmonic_analysis">
+<code class="descclassname">harmonic_analysis.harpy.</code><code class="descname">harmonic_analysis</code><span class="sig-paren">(</span><em>bpm_matrix=None</em>, <em>usv=None</em>, <em>mode='bpm'</em>, <em>sequential=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/harpy.html#harmonic_analysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.harpy.harmonic_analysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the laskar method on every of the BPMs signals contained in each
+row of the bpm_matrix pandas DataFame.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>bpm_matrix</strong> -- Pandas DataFrame containing the signals of each bpm in
+each row. In bpm mode this parameter is obligatory.</li>
+<li><strong>usv</strong> -- Truncated SVD decomposition of the bpm matrix. It must contain a
+tuple (U, S, V), where U must be a DataFrame with the bpm names as index.</li>
+<li><strong>mode</strong> -- one of ‘bpm’, ‘svd’, or ‘fast’. Check ‘harmonic_analysis_bpm’
+documentation for ‘bpm’ mode and ‘harmonic_analysis_svd” for ‘svd’ and ‘fast’.</li>
+<li><strong>sequential</strong> -- If true, it will run all the computations in a single core.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A numpy array with the frequencies found per BPM.
+bpm_coefficients: A numpy array containing the complex coefficients found per BPM.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">frequencies</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.harpy.harmonic_analysis_bpm">
+<code class="descclassname">harmonic_analysis.harpy.</code><code class="descname">harmonic_analysis_bpm</code><span class="sig-paren">(</span><em>bpm_matrix</em>, <em>sequential=False</em>, <em>num_harms=300</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/harpy.html#harmonic_analysis_bpm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.harpy.harmonic_analysis_bpm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the laskar method on every of the BPMs signals contained in each
+row of the bpm_matrix pandas DataFame. This method will run the full
+laskar analysis in each BPM in parallel (slow).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>bpm_matrix</strong> -- Pandas DataFrame containing the signals of each bpm in
+each row. In bpm mode this parameter is obligatory.</li>
+<li><strong>sequential</strong> -- If true, it will run all the computations in a single core.</li>
+<li><strong>num_harms</strong> -- Number of harmonics to compute per BPM.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A numpy array with the frequencies found per BPM.
+bpm_coefficients: A numpy array containing the complex coefficients found per BPM.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">frequencies</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.harpy.harmonic_analysis_svd">
+<code class="descclassname">harmonic_analysis.harpy.</code><code class="descname">harmonic_analysis_svd</code><span class="sig-paren">(</span><em>usv</em>, <em>fast=False</em>, <em>sequential=False</em>, <em>num_harms=300</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/harpy.html#harmonic_analysis_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.harpy.harmonic_analysis_svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the laskar method on every of the BPMs signals contained in each
+row of the bpm_matrix pandas DataFame. It takes advantage of the
+truncation of the V matrix in the SVD decomposition to speed up the
+calculations. Mode ‘svd’ is slower but more precise, ‘bpm’ mode is the
+fastest but makes more assumptions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>usv</strong> -- Truncated SVD decomposition of the bpm matrix. It must contain a
+tuple (U, S, V), where U must be a DataFrame with the bpm names
+as index.</li>
+<li><strong>fast</strong> -- If true, it will use the ‘fast’ calculation mode (‘svd’
+otherwise)</li>
+<li><strong>sequential</strong> -- If true, it will run all the computations in a single core.</li>
+<li><strong>num_harms</strong> -- Number of harmonics to compute per BPM.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A numpy array with the frequencies found per BPM.
+bpm_coefficients: A numpy array containing the complex coefficients found per BPM.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">frequencies</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="harmonic_analysis.harpy.harpy">
+<code class="descclassname">harmonic_analysis.harpy.</code><code class="descname">harpy</code><span class="sig-paren">(</span><em>harpy_input</em>, <em>bpm_matrix_x</em>, <em>usv_x</em>, <em>bpm_matrix_y</em>, <em>usv_y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/harmonic_analysis/harpy.html#harpy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#harmonic_analysis.harpy.harpy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+<div class="section" id="helpers">
+<h2>Helpers<a class="headerlink" href="#helpers" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-harmonic_analysis.chroma">
+<span id="chroma"></span><h3>Chroma<a class="headerlink" href="#module-harmonic_analysis.chroma" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="module-harmonic_analysis.get_optics_3D">
+<span id="get-optics-3d"></span><h3>Get Optics 3D<a class="headerlink" href="#module-harmonic_analysis.get_optics_3D" title="Permalink to this headline">¶</a></h3>
+<p>Created on 31/07/17</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Lukas Malina</td>
+</tr>
+</tbody>
+</table>
+<p>It computes horizontal normalised dispersion from 3D kicks, together with the phase advance
+it uses the model with AC-Dipole element in, i. e. there is no compensation for AC-Dipole.</p>
+</div>
+<div class="section" id="module-harmonic_analysis.tune_clean">
+<span id="tune-clean"></span><h3>Tune Clean<a class="headerlink" href="#module-harmonic_analysis.tune_clean" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../model/index.html" class="btn btn-neutral float-right" title="Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../GetLLM/index.html" class="btn btn-neutral float-left" title="GetLLM" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

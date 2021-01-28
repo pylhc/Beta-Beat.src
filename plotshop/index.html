@@ -1,0 +1,761 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Plotting Tools &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Segment by Segment" href="../segment_by_segment/index.html" />
+    <link rel="prev" title="Online Model Tools" href="../online_model/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Plotting Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-plotshop.plot_style">Plotshop Package Content</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-plotshop-plot-style">Module plotshop.plot_style</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-plotshop-plot-tfs">Module plotshop.plot_tfs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-plotshop-post-processing">Module plotshop.post_processing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-plotshop.fig_editor.main_window">Figure Editor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-plotshop-fig-editor-main-window-qt-based-figure-editor">Module plotshop.fig_editor.main_window: QT-based Figure Editor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Plotting Tools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/plotshop/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="plotting-tools">
+<h1>Plotting Tools<a class="headerlink" href="#plotting-tools" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-plotshop.plot_style">
+<span id="plotshop-package-content"></span><h2>Plotshop Package Content<a class="headerlink" href="#module-plotshop.plot_style" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-plotshop-plot-style">
+<h3>Module plotshop.plot_style<a class="headerlink" href="#module-plotshop-plot-style" title="Permalink to this headline">¶</a></h3>
+<p>Helper functions to make the most awesome* plots out there.</p>
+<ul class="simple">
+<li>please feel free to add more stuff</li>
+</ul>
+<dl class="exception">
+<dt id="plotshop.plot_style.ArgumentError">
+<em class="property">exception </em><code class="descclassname">plotshop.plot_style.</code><code class="descname">ArgumentError</code><a class="reference internal" href="../_modules/plotshop/plot_style.html#ArgumentError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.ArgumentError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="plotshop.plot_style.MarkerList">
+<em class="property">class </em><code class="descclassname">plotshop.plot_style.</code><code class="descname">MarkerList</code><a class="reference internal" href="../_modules/plotshop/plot_style.html#MarkerList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.MarkerList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a list of predefined markers</p>
+<dl class="classmethod">
+<dt id="plotshop.plot_style.MarkerList.get_marker">
+<em class="property">classmethod </em><code class="descname">get_marker</code><span class="sig-paren">(</span><em>marker_num</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#MarkerList.get_marker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.MarkerList.get_marker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return marker of index marker_num</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>marker_num</strong> (<em>int</em>) -- return maker at this position in list (mod len(list))</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="plotshop.plot_style.MarkerList.get_next_marker">
+<code class="descname">get_next_marker</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#MarkerList.get_next_marker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.MarkerList.get_next_marker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the next marker in the list (circularly wrapped)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="plotshop.plot_style.OOMFormatter">
+<em class="property">class </em><code class="descclassname">plotshop.plot_style.</code><code class="descname">OOMFormatter</code><span class="sig-paren">(</span><em>order=0</em>, <em>fformat='%1.1f'</em>, <em>offset=True</em>, <em>mathText=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#OOMFormatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.OOMFormatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Order of Magnitude Formatter.</p>
+<p>To set a fixed order of magnitude and fixed significant numbers.
+As seen on: <a class="reference external" href="https://stackoverflow.com/a/42658124/5609590">https://stackoverflow.com/a/42658124/5609590</a></p>
+<p>See: set_sci_magnitude</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.change_color_brightness">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">change_color_brightness</code><span class="sig-paren">(</span><em>color</em>, <em>amount=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#change_color_brightness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.change_color_brightness" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lightens the given color by multiplying (1-luminosity) by the given amount.
+Input can be matplotlib color string, hex string, or RGB tuple.
+An amount of 1 equals to no change. 0 is very bright (white) and 2 is very dark.
+By Ian Hincks
+Source: <a class="reference external" href="https://stackoverflow.com/questions/37765197/darken-or-lighten-a-color-in-matplotlib">https://stackoverflow.com/questions/37765197/darken-or-lighten-a-color-in-matplotlib</a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.change_ebar_alpha_for_axes">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">change_ebar_alpha_for_axes</code><span class="sig-paren">(</span><em>ax</em>, <em>alpha</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#change_ebar_alpha_for_axes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.change_ebar_alpha_for_axes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for change_ebar_alpha_for_line</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.change_ebar_alpha_for_line">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">change_ebar_alpha_for_line</code><span class="sig-paren">(</span><em>ebar</em>, <em>alpha</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#change_ebar_alpha_for_line"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.change_ebar_alpha_for_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>loop through bars (ebar[1]) and caps (ebar[2]) and set the alpha value</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.get_annotation">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">get_annotation</code><span class="sig-paren">(</span><em>ax=None</em>, <em>by_reference=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#get_annotation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.get_annotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the annotation set by set_annotation()</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ax</strong> -- Axes to get annotation from. If ‘None’ takes current Axes. (Default: None)</li>
+<li><strong>by_reference</strong> (<em>bool</em>) -- If true returns the reference to the annotation,
+otherwise the text as string. (Default: False)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.get_ip_positions">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">get_ip_positions</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#get_ip_positions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.get_ip_positions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dict of IP positions from tfs-file of path.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> (<em>str</em>) -- Path to the tfs-file containing IP-positions</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.get_legend_ncols">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">get_legend_ncols</code><span class="sig-paren">(</span><em>labels</em>, <em>max_length=78</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#get_legend_ncols"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.get_legend_ncols" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calulate the number of columns in legend dynamically</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.get_name">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">get_name</code><span class="sig-paren">(</span><em>fig_or_ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#get_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.get_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the name of the figure or axes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fig_or_ax</strong> -- Figure or Axes to to use.
+If ‘None’ takes current figure. (Default: None)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.make_top_legend">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">make_top_legend</code><span class="sig-paren">(</span><em>ax</em>, <em>ncol</em>, <em>frame=False</em>, <em>handles=None</em>, <em>labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#make_top_legend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.make_top_legend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a legend on top of the plot.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.move_ip_labels">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">move_ip_labels</code><span class="sig-paren">(</span><em>ax</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#move_ip_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.move_ip_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Moves IP labels according to max y * value.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.set_annotation">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">set_annotation</code><span class="sig-paren">(</span><em>text</em>, <em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#set_annotation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.set_annotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes an annotation on the top right of the axes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>text</strong> -- The annotation</li>
+<li><strong>ax</strong> -- Axes to set annotation on. If ‘None’ takes current Axes. (Default: None)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.set_name">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">set_name</code><span class="sig-paren">(</span><em>name</em>, <em>fig_or_ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#set_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.set_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the name of the figure or axes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<em>str</em>) -- Sting to set as name.</li>
+<li><strong>fig_or_ax</strong> -- Figure or Axes to to use.
+If ‘None’ takes current figure. (Default: None)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.set_sci_magnitude">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">set_sci_magnitude</code><span class="sig-paren">(</span><em>ax</em>, <em>axis='both'</em>, <em>order=0</em>, <em>fformat='%1.1f'</em>, <em>offset=True</em>, <em>math_text=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#set_sci_magnitude"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.set_sci_magnitude" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses the OMMFormatter to set the scientific limits on axes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ax</strong> -- Plotting axes</li>
+<li><strong>axis</strong> (<em>str</em>) -- “x”, “y” or “both”</li>
+<li><strong>order</strong> (<em>int</em>) -- Magnitude Order</li>
+<li><strong>fformat</strong> (<em>str</em>) -- Format to use</li>
+<li><strong>offset</strong> (<em>bool</em>) -- Formatter offset</li>
+<li><strong>math_text</strong> (<em>bool</em>) -- Whether to use mathText</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.set_style">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">set_style</code><span class="sig-paren">(</span><em>style='standard'</em>, <em>manual=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#set_style"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.set_style" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the style for all following plots.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>style</strong> -- Choose Style, either ‘standard’ or ‘presentation’</li>
+<li><strong>manual</strong> -- Dict of manual parameters to update. Convention: “REMOVE_ENTRY” removes entry</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.set_xLimits">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">set_xLimits</code><span class="sig-paren">(</span><em>accel</em>, <em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#set_xLimits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.set_xLimits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the x-limits to the regularly used ones</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>accel</strong> -- Name of the Accelerator</li>
+<li><strong>ax</strong> -- Axes to put the label on (default: gca())</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.set_xaxis_label">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">set_xaxis_label</code><span class="sig-paren">(</span><em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#set_xaxis_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.set_xaxis_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the standard x-axis label</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ax</strong> -- Axes to put the label on (default: gca())</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.set_yaxis_label">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">set_yaxis_label</code><span class="sig-paren">(</span><em>param</em>, <em>plane</em>, <em>ax=None</em>, <em>delta=False</em>, <em>chromcoup=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#set_yaxis_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.set_yaxis_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set y-axis labels.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>param</strong> -- One of the ylabels above</li>
+<li><strong>plane</strong> -- Usually x or y, but can be any string actually to be placed into the label ({0})</li>
+<li><strong>ax</strong> -- Axes to put the label on (default: gca())</li>
+<li><strong>delta</strong> -- If True adds a Delta before the label (default: False)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.show_ir">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">show_ir</code><span class="sig-paren">(</span><em>ip_dict</em>, <em>ax=None</em>, <em>mode='inside'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#show_ir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.show_ir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the interaction regions into the background of the plot.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ip_dict</strong> -- dict, dataframe or series containing “IPLABEL” : IP_POSITION</li>
+<li><strong>ax</strong> -- Axes to put the irs on (default: gca())</li>
+<li><strong>mode</strong> -- ‘inside’, ‘outside’ + ‘nolines’ or just ‘lines’</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.small_title">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">small_title</code><span class="sig-paren">(</span><em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#small_title"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.small_title" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alternative to annotation, which lets you use the title-functions</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ax</strong> -- Axes to use. If ‘None’ takes current Axes. (Default: None)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_style.sync2d">
+<code class="descclassname">plotshop.plot_style.</code><code class="descname">sync2d</code><span class="sig-paren">(</span><em>axs</em>, <em>ax_str='xy'</em>, <em>ax_lim=()</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_style.html#sync2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_style.sync2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Synchronizes the limits for the given axes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>axs</strong> -- list of axes or figures, or figure with multiple axes</li>
+<li><strong>ax_lim</strong> -- predefined limits (list or list of lists)</li>
+<li><strong>ax_str</strong> -- string ‘x’,’y’ or ‘xy’ defining the axes to sync</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<span class="target" id="module-plotshop.plot_tfs"></span><div class="section" id="module-plotshop-plot-tfs">
+<h3>Module plotshop.plot_tfs<a class="headerlink" href="#module-plotshop-plot-tfs" title="Permalink to this headline">¶</a></h3>
+<p>Wrapper to easily plot tfs-files. With entrypoint functionality.</p>
+<dl class="function">
+<dt id="plotshop.plot_tfs.export_plots">
+<code class="descclassname">plotshop.plot_tfs.</code><code class="descname">export_plots</code><span class="sig-paren">(</span><em>figs</em>, <em>output</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_tfs.html#export_plots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_tfs.export_plots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export all created figures to PDF</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_tfs.get_marker">
+<code class="descclassname">plotshop.plot_tfs.</code><code class="descname">get_marker</code><span class="sig-paren">(</span><em>idx</em>, <em>change</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_tfs.html#get_marker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_tfs.get_marker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the marker used</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.plot_tfs.plot">
+<code class="descclassname">plotshop.plot_tfs.</code><code class="descname">plot</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/plot_tfs.html#plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.plot_tfs.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots data from different twiss-input files into one plot.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>Required</strong> -- </li>
+<li><strong>files</strong> (<em>basestring</em>) -- Twiss files to plot
+<strong>Flags</strong>: --files</li>
+<li><strong>y_cols</strong> (<em>basestring</em>) -- List of column names to plot (e.g. BETX, BETY)
+<strong>Flags</strong>: [‘-y’, ‘--y_cols’]</li>
+<li><strong>Optional</strong> -- </li>
+<li><strong>auto_scale</strong> (<em>float</em>) -- Scales the plot, so that this percentage of
+points is inside the picture.
+<strong>Flags</strong>: --autoscale</li>
+<li><strong>change_marker</strong> -- Changes marker for each line in the plot.
+<strong>Flags</strong>: --changemarker
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>e_cols</strong> (<em>basestring</em>) -- List of parameters to get error values from.
+<strong>Flags</strong>: [‘-e’, ‘--e_cols’]</li>
+<li><strong>labels</strong> (<em>basestring</em>) -- Y-Lables for the plots, default: y_col.
+<strong>Flags</strong>: --labels</li>
+<li><strong>no_legend</strong> -- Deactivates the legend.
+<strong>Flags</strong>: --nolegend
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>no_show</strong> -- Suppresses opening plotting windows.
+<strong>Flags</strong>: --noshow
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>output</strong> (<em>basestring</em>) -- Base-Name of the output files. _’y_col’.pdf will be attached.
+<strong>Flags</strong>: --output</li>
+<li><strong>figure_per_file</strong> (<em>bool</em>) -- Plots  all colimns into one figure. (Works only with one file so far).
+<strong>Flags</strong>: --figperfile
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>file_labels</strong> (<em>basestring</em>) -- Names for the sources for the plots, default: filenames.
+<strong>Flags</strong>: --file_labels</li>
+<li><strong>x_cols</strong> (<em>basestring</em>) -- List of column names to use as x-values.
+<strong>Flags</strong>: [‘-x’, ‘--x_cols’]</li>
+<li><strong>xy</strong> (<em>bool</em>) -- Plots X and Y for the give parameters into one figure (two axes).
+<strong>Flags</strong>: --xy
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<span class="target" id="module-plotshop.post_processing"></span><div class="section" id="module-plotshop-post-processing">
+<h3>Module plotshop.post_processing<a class="headerlink" href="#module-plotshop-post-processing" title="Permalink to this headline">¶</a></h3>
+<p>Functions for plot post-processing.</p>
+<dl class="function">
+<dt id="plotshop.post_processing.get_errorbar_data">
+<code class="descclassname">plotshop.post_processing.</code><code class="descname">get_errorbar_data</code><span class="sig-paren">(</span><em>ax</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/post_processing.html#get_errorbar_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.post_processing.get_errorbar_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract data from all errorbars in axes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ax</strong> -- axes handle to axes to extract data from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of dictionaries of extracted data with keys as follows:<div class="line-block">
+<div class="line">label: Line label</div>
+<div class="line">x: x-position data of the points</div>
+<div class="line">y: y-position data of the points</div>
+<div class="line">xerr: tupel with arrays corresponding to lower and upper x-error values</div>
+<div class="line">yerr: tupel with arrays corresponding to lower and upper y-error values</div>
+<div class="line">with: Linewidth</div>
+<div class="line">style: Linestyle</div>
+<div class="line">color: Linecolor</div>
+</div>
+<p>For <code class="docutils literal notranslate"><span class="pre">&quot;_nolegend_&quot;</span></code> entries an index is added to avoid collision.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="docutils literal notranslate"><span class="pre">get_line_data()</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.post_processing.get_line_data">
+<code class="descclassname">plotshop.post_processing.</code><code class="descname">get_line_data</code><span class="sig-paren">(</span><em>ax</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/post_processing.html#get_line_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.post_processing.get_line_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract data from all lines in axes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ax</strong> -- axes handle to axes to extract data from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of dictionaries of extracted data with keys as follows:<div class="line-block">
+<div class="line">label: Line label</div>
+<div class="line">x: x-position data of the points</div>
+<div class="line">y: y-position data of the points</div>
+<div class="line">with: Linewidth</div>
+<div class="line">style: Linestyle</div>
+<div class="line">color: Linecolor</div>
+</div>
+<p>If a line is found to be an error-bar-line it is ignored!
+For <code class="docutils literal notranslate"><span class="pre">&quot;_nolegend_&quot;</span></code> entries an index is added to avoid collision.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="docutils literal notranslate"><span class="pre">get_errorbar_data()</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.post_processing.merge_two_plots">
+<code class="descclassname">plotshop.post_processing.</code><code class="descname">merge_two_plots</code><span class="sig-paren">(</span><em>axes</em>, <em>keep_style=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/post_processing.html#merge_two_plots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.post_processing.merge_two_plots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges two plots into one.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>axes</strong> (<em>list</em>) -- list of axes to merge.</li>
+<li><strong>keep_style</strong> (<em>bool</em>) -- if <code class="docutils literal notranslate"><span class="pre">true</span></code>, it keeps the lines styles.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plotshop.post_processing.transpose_legend">
+<code class="descclassname">plotshop.post_processing.</code><code class="descname">transpose_legend</code><span class="sig-paren">(</span><em>leg</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/post_processing.html#transpose_legend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.post_processing.transpose_legend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transposes the legend. Has some problems with the markers.</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-plotshop.fig_editor.main_window">
+<span id="figure-editor"></span><h2>Figure Editor<a class="headerlink" href="#module-plotshop.fig_editor.main_window" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-plotshop-fig-editor-main-window-qt-based-figure-editor">
+<h3>Module plotshop.fig_editor.main_window: QT-based Figure Editor<a class="headerlink" href="#module-plotshop-fig-editor-main-window-qt-based-figure-editor" title="Permalink to this headline">¶</a></h3>
+<p>This is an extended figure editor based on the PyQT5 backend of matplotlib.</p>
+<dl class="docutils">
+<dt>Functionality:</dt>
+<dd><ul class="first last simple">
+<li>easily plot from tfs files</li>
+<li>change plot attributes by douple click on element</li>
+<li>change plot attributes via icon in navigation bar</li>
+<li>drag text around</li>
+<li>move the legend to predefined positions</li>
+</ul>
+</dd>
+<dt>Planned:</dt>
+<dd><ul class="first last simple">
+<li>copy paste between plots</li>
+<li>have a “draggable” switch for text objects</li>
+<li>add texts to options_figure to find invisible texts again</li>
+</ul>
+</dd>
+</dl>
+<p>WARNING: Pre-Alpha version.</p>
+<dl class="class">
+<dt id="plotshop.fig_editor.main_window.MainWindow">
+<em class="property">class </em><code class="descclassname">plotshop.fig_editor.main_window.</code><code class="descname">MainWindow</code><span class="sig-paren">(</span><em>fig=None</em>, <em>parent=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/fig_editor/main_window.html#MainWindow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.fig_editor.main_window.MainWindow" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="plotshop.fig_editor.main_window.MainWindow.get_figure">
+<code class="descname">get_figure</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/fig_editor/main_window.html#MainWindow.get_figure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.fig_editor.main_window.MainWindow.get_figure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the currently used figure.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="plotshop.fig_editor.main_window.MainWindow.show_log">
+<code class="descname">show_log</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/fig_editor/main_window.html#MainWindow.show_log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.fig_editor.main_window.MainWindow.show_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show the logging window.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="plotshop.fig_editor.main_window.MainWindow.update_figure">
+<code class="descname">update_figure</code><span class="sig-paren">(</span><em>figure=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/plotshop/fig_editor/main_window.html#MainWindow.update_figure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#plotshop.fig_editor.main_window.MainWindow.update_figure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Redraw current figure or provide new one.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../segment_by_segment/index.html" class="btn btn-neutral float-right" title="Segment by Segment" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../online_model/index.html" class="btn btn-neutral float-left" title="Online Model Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

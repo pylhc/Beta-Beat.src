@@ -1,0 +1,818 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Main Entrypoints &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Correction" href="../correction/index.html" />
+    <link rel="prev" title="Welcome to Beta-Beat’s documentation!" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Main Entrypoints</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#harmonic-analysis">Harmonic Analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-hole_in_one">Entrypoint Hole in One</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-measure_optics">Entrypoint Measure Optics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-amplitude_detuning_analysis">Amplitude Detuning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#entrypoint-amplitude-detuning-analysis">Entrypoint Amplitude Detuning Analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#fullresponse-creation">Fullresponse Creation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-generate_fullresponse_pandas">Entrypoint Fullresponse Pandas</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#correction">Correction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-global_correct_iterative">Entrypoint Correct Iterative</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#cleaning">Cleaning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-iforest_for_bpms">Entrypoint Isolation Forest</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#madx">MADX</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-madx_wrapper">Entrypoint Madx Wrapper</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#jws">JWS</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-jws_wrapper">Entrypoint JWS</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Main Entrypoints</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/entrypoints/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="main-entrypoints">
+<h1>Main Entrypoints<a class="headerlink" href="#main-entrypoints" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="harmonic-analysis">
+<h2>Harmonic Analysis<a class="headerlink" href="#harmonic-analysis" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-hole_in_one">
+<span id="entrypoint-hole-in-one"></span><h3>Entrypoint Hole in One<a class="headerlink" href="#module-hole_in_one" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="module-measure_optics">
+<span id="entrypoint-measure-optics"></span><h3>Entrypoint Measure Optics<a class="headerlink" href="#module-measure_optics" title="Permalink to this headline">¶</a></h3>
+<p>Created on 11/07/18</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Lukas Malina</td>
+</tr>
+</tbody>
+</table>
+<p>Top-level script, which computes various lattice optics parameters from frequency spectra</p>
+<dl class="class">
+<dt id="measure_optics.InputFiles">
+<em class="property">class </em><code class="descclassname">measure_optics.</code><code class="descname">InputFiles</code><span class="sig-paren">(</span><em>files_to_analyse</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/measure_optics.html#InputFiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#measure_optics.InputFiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the input files, provides methods to gather quantity specific data</p>
+<dl class="docutils">
+<dt>Public methods:</dt>
+<dd>get_dpps(plane)
+get_joined_frame(plane, columns, zero_dpp=False, how=’inner’)
+get_columns(frame, column)
+get_data(frame, column)</dd>
+</dl>
+<dl class="method">
+<dt id="measure_optics.InputFiles.dpps">
+<code class="descname">dpps</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/measure_optics.html#InputFiles.dpps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#measure_optics.InputFiles.dpps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gathers measured DPPs from input files corresponding to given plane
+:param plane: “X” or “Y”</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">numpy array of DPPs</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="measure_optics.InputFiles.get_columns">
+<em class="property">static </em><code class="descname">get_columns</code><span class="sig-paren">(</span><em>frame</em>, <em>column</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/measure_optics.html#InputFiles.get_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#measure_optics.InputFiles.get_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns list of columns of frame corresponding to column in original files
+:param frame: joined frame
+:param column: name of column in original files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of columns</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="measure_optics.InputFiles.get_data">
+<code class="descname">get_data</code><span class="sig-paren">(</span><em>frame</em>, <em>column</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/measure_optics.html#InputFiles.get_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#measure_optics.InputFiles.get_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns data in columns of frame corresponding to column in original files
+:param frame: joined frame
+:param column: name of column in original files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">data in numpy array corresponding to column in original files</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="measure_optics.InputFiles.joined_frame">
+<code class="descname">joined_frame</code><span class="sig-paren">(</span><em>plane</em>, <em>columns</em>, <em>zero_dpp=False</em>, <em>how='inner'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/measure_optics.html#InputFiles.joined_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#measure_optics.InputFiles.joined_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs merged DataFrame from InputFiles
+:param plane: “X” or “Y”
+:param columns: list of columns from input files
+:param zero_dpp: if True merges only zero-dpp files, default is False
+:param how: way of merging:  ‘inner’ (intersection) or ‘outer’ (union), default is ‘inner’</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">merged DataFrame from InputFiles</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="measure_optics.measure_optics">
+<code class="descclassname">measure_optics.</code><code class="descname">measure_optics</code><span class="sig-paren">(</span><em>input_files</em>, <em>measure_input</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/measure_optics.html#measure_optics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#measure_optics.measure_optics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main function to compute various lattice optics parameters from frequency spectra
+:param input_files: InputFiles object containing frequency spectra files (linx/y)
+:param measure_input: OpticsInput object containing analysis settings</p>
+<p>Returns:</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-amplitude_detuning_analysis">
+<span id="amplitude-detuning"></span><h2>Amplitude Detuning<a class="headerlink" href="#module-amplitude_detuning_analysis" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="entrypoint-amplitude-detuning-analysis">
+<h3>Entrypoint Amplitude Detuning Analysis<a class="headerlink" href="#entrypoint-amplitude-detuning-analysis" title="Permalink to this headline">¶</a></h3>
+<p>Entrypoint for amplitude detuning analysis.</p>
+<p>This module provides functionality to run amplitude detuning analysis with
+additionally getting BBQ data from timber, averaging and filtering this data and
+subtracting it from the measurement data.</p>
+<p>Furthermore, the orthogonal distance regression is utilized to get a
+linear fit from the measurements.</p>
+<p>Also, plotting functionality is integrated, for the amplitude detuning as well as for the bbq data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Joschua Dilly</td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="amplitude_detuning_analysis.analyse_with_bbq_corrections">
+<code class="descclassname">amplitude_detuning_analysis.</code><code class="descname">analyse_with_bbq_corrections</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/amplitude_detuning_analysis.html#analyse_with_bbq_corrections"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#amplitude_detuning_analysis.analyse_with_bbq_corrections" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create amplitude detuning analysis with BBQ correction from timber data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>Required</strong> -- </li>
+<li><strong>beam</strong> (<em>int</em>) -- Which beam to use.
+<strong>Flags</strong>: --beam</li>
+<li><strong>kickac_path</strong> (<em>str</em>) -- Location of the kickac file
+<strong>Flags</strong>: --kickac</li>
+<li><strong>plane</strong> (<em>str</em>) -- Plane of the kicks. ‘X’ or ‘Y’.
+<strong>Flags</strong>: --plane
+<strong>Choices</strong>: XY</li>
+<li><strong>Optional</strong> -- </li>
+<li><strong>ampdet_plot_out</strong> (<em>str</em>) -- Save the amplitude detuning plot here.
+<strong>Flags</strong>: --ampdetplot</li>
+<li><strong>ampdet_plot_show</strong> -- Show the amplitude detuning plot.
+<strong>Flags</strong>: --ampdetplotshow
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>ampdet_plot_xmax</strong> (<em>float</em>) -- Maximum action (x-axis) in amplitude detuning plot.
+<strong>Flags</strong>: --ampdetplotxmax</li>
+<li><strong>ampdet_plot_xmin</strong> (<em>float</em>) -- Minimum action (x-axis) in amplitude detuning plot.
+<strong>Flags</strong>: --ampdetplotxmin</li>
+<li><strong>ampdet_plot_ymax</strong> (<em>float</em>) -- Maximum tune (y-axis) in amplitude detuning plot.
+<strong>Flags</strong>: --ampdetplotymax</li>
+<li><strong>ampdet_plot_ymin</strong> (<em>float</em>) -- Minimum tune (y-axis) in amplitude detuning plot.
+<strong>Flags</strong>: --ampdetplotymin</li>
+<li><strong>bbq_out</strong> (<em>str</em>) -- Output location to save bbq data as tfs-file
+<strong>Flags</strong>: --bbqout</li>
+<li><strong>bbq_plot_full</strong> -- Plot the full bqq data with interval as lines.
+<strong>Flags</strong>: --bbqplotfull
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>bbq_plot_out</strong> (<em>str</em>) -- Save the bbq plot here.
+<strong>Flags</strong>: --bbqplot</li>
+<li><strong>bbq_plot_show</strong> -- Show the bbq plot.
+<strong>Flags</strong>: --bbqplotshow
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>bbq_plot_two</strong> -- Two plots for the bbq plot.
+<strong>Flags</strong>: --bbqplottwo
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>debug</strong> -- Activates Debug mode
+<strong>Flags</strong>: --debug
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>fine_cut</strong> (<em>float</em>) -- Cut (i.e. tolerance) of the tune for the fine cleaning.
+<strong>Flags</strong>: --finecut</li>
+<li><strong>fine_window</strong> (<em>int</em>) -- Length of the moving average window. (# data points)
+<strong>Flags</strong>: --finewindow</li>
+<li><strong>kickac_out</strong> (<em>str</em>) -- If given, writes out the modified kickac file
+<strong>Flags</strong>: --kickacout</li>
+<li><strong>label</strong> (<em>str</em>) -- Label to identify this run.
+<strong>Flags</strong>: --label</li>
+<li><strong>logfile</strong> (<em>str</em>) -- Logfile if debug mode is active.
+<strong>Flags</strong>: --logfile</li>
+<li><strong>timber_in</strong> -- Fill number of desired data or path to presaved tfs-file
+<strong>Flags</strong>: --timberin</li>
+<li><strong>timber_out</strong> (<em>str</em>) -- Output location to save fill as tfs-file
+<strong>Flags</strong>: --timberout</li>
+<li><strong>tune_cut</strong> (<em>float</em>) -- Cuts for the tune. For BBQ cleaning.
+<strong>Flags</strong>: --tunecut</li>
+<li><strong>tune_x</strong> (<em>float</em>) -- Horizontal Tune. For BBQ cleaning.
+<strong>Flags</strong>: --tunex</li>
+<li><strong>tune_x_max</strong> (<em>float</em>) -- Horizontal Tune minimum. For BBQ cleaning.
+<strong>Flags</strong>: --tunexmax</li>
+<li><strong>tune_x_min</strong> (<em>float</em>) -- Horizontal Tune minimum. For BBQ cleaning.
+<strong>Flags</strong>: --tunexmin</li>
+<li><strong>tune_y</strong> (<em>float</em>) -- Vertical Tune. For BBQ cleaning.
+<strong>Flags</strong>: --tuney</li>
+<li><strong>tune_y_max</strong> (<em>float</em>) -- Vertical Tune minimum. For BBQ cleaning.
+<strong>Flags</strong>: --tuneymax</li>
+<li><strong>tune_y_min</strong> (<em>float</em>) -- Vertical  Tune minimum. For BBQ cleaning.
+<strong>Flags</strong>: --tuneymin</li>
+<li><strong>window_length</strong> (<em>int</em>) -- Length of the moving average window. (# data points)
+<strong>Flags</strong>: --window
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">20</span></code></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="amplitude_detuning_analysis.plot_bbq_data">
+<code class="descclassname">amplitude_detuning_analysis.</code><code class="descname">plot_bbq_data</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/amplitude_detuning_analysis.html#plot_bbq_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#amplitude_detuning_analysis.plot_bbq_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot BBQ wrapper.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>Required</strong> -- </li>
+<li><strong>input</strong> -- BBQ data as data frame or tfs file.
+<strong>Flags</strong>: --in</li>
+<li><strong>Optional</strong> -- </li>
+<li><strong>interval</strong> (<em>str</em>) -- x_axis interval that was used in calculations.
+<strong>Flags</strong>: --interval</li>
+<li><strong>output</strong> (<em>str</em>) -- Save figure to this location.
+<strong>Flags</strong>: --out</li>
+<li><strong>show</strong> -- Show plot.
+<strong>Flags</strong>: --show
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>two_plots</strong> -- Plot two axis into the figure.
+<strong>Flags</strong>: --two
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>xmax</strong> (<em>str</em>) -- Upper x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)
+<strong>Flags</strong>: --xmax</li>
+<li><strong>xmin</strong> (<em>str</em>) -- Lower x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)
+<strong>Flags</strong>: --xmin</li>
+<li><strong>ymax</strong> (<em>float</em>) -- Upper y-axis limit.
+<strong>Flags</strong>: --ymax</li>
+<li><strong>ymin</strong> (<em>float</em>) -- Lower y-axis limit.
+<strong>Flags</strong>: --ymin</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="fullresponse-creation">
+<h2>Fullresponse Creation<a class="headerlink" href="#fullresponse-creation" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-generate_fullresponse_pandas">
+<span id="entrypoint-fullresponse-pandas"></span><h3>Entrypoint Fullresponse Pandas<a class="headerlink" href="#module-generate_fullresponse_pandas" title="Permalink to this headline">¶</a></h3>
+<p>Provides a response generation wrapper.
+The response matrices can be either created by response_madx or analytically via TwissResponse.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Joschua Dillys</td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="generate_fullresponse_pandas.create_response">
+<code class="descclassname">generate_fullresponse_pandas.</code><code class="descname">create_response</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/generate_fullresponse_pandas.html#create_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#generate_fullresponse_pandas.create_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Entry point for creating pandas-based response matrices.</p>
+<p>The response matrices can be either created by response_madx or TwissResponse.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>Required</strong> -- </li>
+<li><strong>model_dir</strong> (<em>str</em>) -- Path to the model directory.
+<strong>Flags</strong>: [‘-m’, ‘--model_dir’]</li>
+<li><strong>outfile_path</strong> (<em>str</em>) -- Name of fullresponse file.
+<strong>Flags</strong>: [‘-o’, ‘--outfile’]</li>
+<li><strong>Optional</strong> -- </li>
+<li><strong>creator</strong> (<em>str</em>) -- Create either with madx or analytically from twiss file.
+<strong>Flags</strong>: --creator
+<strong>Choices</strong>: (‘madx’, ‘twiss’)
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">madx</span></code></li>
+<li><strong>debug</strong> -- Print debug information.
+<strong>Flags</strong>: --debug
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>delta_k</strong> (<em>float</em>) -- Delta K1L to be applied to quads for sensitivity matrix (madx-only).
+<strong>Flags</strong>: [‘-k’, ‘--deltak’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">2e-05</span></code></li>
+<li><strong>optics_params</strong> (<em>str</em>) -- List of parameters to correct upon (e.g. BBX BBY; twiss-only).
+<strong>Flags</strong>: --optics_params</li>
+<li><strong>variable_categories</strong> -- List of the variables classes to use.
+<strong>Flags</strong>: --variables
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">['MQM',</span> <span class="pre">'MQT',</span> <span class="pre">'MQTL',</span> <span class="pre">'MQY']</span></code></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="correction">
+<h2>Correction<a class="headerlink" href="#correction" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-global_correct_iterative">
+<span id="entrypoint-correct-iterative"></span><h3>Entrypoint Correct Iterative<a class="headerlink" href="#module-global_correct_iterative" title="Permalink to this headline">¶</a></h3>
+<p>Iterative Correction Scheme.</p>
+<p>The response matrices <span class="math notranslate nohighlight">\(R_{O}\)</span> for the observables <span class="math notranslate nohighlight">\(O\)</span> (e.g. BBX, MUX, …)
+are loaded from a file and then the equation</p>
+<div class="math notranslate nohighlight" id="equation-eq1">
+<span class="eqno">(1)<a class="headerlink" href="#equation-eq1" title="Permalink to this equation">¶</a></span>\[R_{O} \cdot \delta var = O_{meas} - O_{model}\]</div>
+<p>is being solved for <span class="math notranslate nohighlight">\(\delta var\)</span> via a chosen method (at the moment only numpys pinv,
+which creates a pseudo-inverse via svd is used).</p>
+<p>The response matrices are hereby merged into one matrix for all observables to solve vor all
+<span class="math notranslate nohighlight">\(\delta var\)</span> at the same time.</p>
+<p>To normalize the observables to another <code class="docutils literal notranslate"><span class="pre">weigths</span></code> (W) can be applied.</p>
+<p>Furthermore, an <code class="docutils literal notranslate"><span class="pre">errorcut</span></code>, specifying the maximum errorbar for a BPM to be used, and
+<code class="docutils literal notranslate"><span class="pre">modelcut</span></code>, specifying the maximum distance between measurement and model for a BPM to be used,
+can be defined. Data from BPMs outside of those cut-values will be discarded.
+These cuts are defined for each observable separately.</p>
+<p>After each iteration the model variables are changed by <span class="math notranslate nohighlight">\(-\delta var\)</span> and the
+observables are recalculated by Mad-X.
+<a class="reference internal" href="#equation-eq1">(1)</a> is then solved again.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Lukas Malina, Joschua Dilly</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Possible problems and notes:</dt>
+<dd><ul class="first last simple">
+<li>do we need error cut, when we use error-based weights? probably not anymore</li>
+<li>error-based weights default? likely - but be carefull with low tune errors vs</li>
+</ul>
+</dd>
+<dt>svd cut in pseudoinverse</dt>
+<dd><ul class="first last simple">
+<li>manual creation of pd.DataFrame varslist, deltas? maybe</li>
+</ul>
+</dd>
+<dt>tunes in tfs_pandas single value or a column?</dt>
+<dd><ul class="first last simple">
+<li>Minimal strength removed</li>
+<li>Check the output files and when they are written</li>
+<li>There should be some summation/renaming for iterations</li>
+<li>For two beam correction</li>
+<li>The two beams can be treated separately until the calcultation of correction</li>
+<li>Values missing in the response (i.e. correctors of the other beam) shall be</li>
+</ul>
+</dd>
+<dt>treated as zeros</dt>
+<dd><ul class="first last simple">
+<li>Missing a part that treats the output from LSA</li>
+</ul>
+</dd>
+</dl>
+<dl class="function">
+<dt id="global_correct_iterative.global_correction">
+<code class="descclassname">global_correct_iterative.</code><code class="descname">global_correction</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/global_correct_iterative.html#global_correction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#global_correct_iterative.global_correction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do the global correction. Iteratively.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><ul class="first last simple">
+<li><strong>Required</strong> -- </li>
+<li><strong>meas_dir</strong> -- Path to the directory containing the measurement files.
+<strong>Flags</strong>: --meas_dir</li>
+<li><strong>model_dir</strong> -- Path to the dir containing the model (twiss.dat or twiss_elements.dat) to use.
+<strong>Flags</strong>: --model_dir</li>
+<li><strong>Optional</strong> -- </li>
+<li><strong>beta_file_name</strong> -- Prefix of the beta file to use. E.g.: getkmodbeta
+<strong>Flags</strong>: --beta_file_name
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">getbeta</span></code></li>
+<li><strong>debug</strong> -- Print debug information.
+<strong>Flags</strong>: --debug
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>eps</strong> (<em>float</em>) -- (Not implemented yet) Convergence criterion.
+If <span class="math notranslate nohighlight">\(&lt;|\Delta(PARAM \cdot WEIGHT)|&gt; &lt; \epsilon\)</span>, stop iteration.
+<strong>Flags</strong>: --eps
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">None</span></code></li>
+<li><strong>errorcut</strong> (<em>float</em>) -- Reject BPMs whose error bar is higher than the corresponding input.
+Input in order of optics_params.
+<strong>Flags</strong>: --error_cut</li>
+<li><strong>fullresponse_path</strong> -- Path to the fullresponse binary file.
+If not given, calculates the response analytically.
+<strong>Flags</strong>: --fullresponse</li>
+<li><strong>max_iter</strong> (<em>int</em>) -- Maximum number of correction re-iterations to perform.
+A value of <cite>0</cite> means the correction is calculated once
+(like in the old days).
+<strong>Flags</strong>: --max_iter
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">3</span></code></li>
+<li><strong>method</strong> (<em>str</em>) -- Optimization method to use.
+<strong>Flags</strong>: --method
+<strong>Choices</strong>: [‘pinv’, ‘omp’]
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">pinv</span></code></li>
+<li><strong>min_corrector_strength</strong> (<em>float</em>) -- Minimum (absolute) strength of correctors.
+<strong>Flags</strong>: --min_corrector_strength
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">0.</span></code></li>
+<li><strong>modelcut</strong> (<em>float</em>) -- Reject BPMs whose deviation to the model is higher than the
+correspoding input. Input in order of optics_params.
+<strong>Flags</strong>: --model_cut</li>
+<li><strong>n_correctors</strong> (<em>int</em>) -- Maximum number of correctors to use. (Method: ‘omp’)
+<strong>Flags</strong>: --n_correctors</li>
+<li><strong>optics_file</strong> -- Path to the optics file to use, usually modifiers.madx.
+If not present will default to model_path/modifiers.madx
+<strong>Flags</strong>: --optics_file</li>
+<li><strong>optics_params</strong> (<em>str</em>) -- List of parameters to correct upon (e.g. BBX BBY)
+<strong>Flags</strong>: --optics_params
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">['MUX',</span> <span class="pre">'MUY',</span> <span class="pre">'BBX',</span> <span class="pre">'BBY',</span> <span class="pre">'NDX',</span> <span class="pre">'Q']</span></code></li>
+<li><strong>output_path</strong> -- Path to the directory where to write the output files,
+will default to the --meas input path.
+<strong>Flags</strong>: --output_dir
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">None</span></code></li>
+<li><strong>svd_cut</strong> (<em>float</em>) -- Cutoff for small singular values of the pseudo inverse. (Method: ‘pinv’)
+Singular values smaller than
+<span class="math notranslate nohighlight">\(rcond \cdot largest_singular_value\)</span> are set to zero
+<strong>Flags</strong>: --svd_cut
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">0.01</span></code></li>
+<li><strong>use_errorbars</strong> -- If True, it will take into account the measured errorbars in the correction.
+<strong>Flags</strong>: --use_errorbars
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>variable_categories</strong> -- List of names of the variables classes to use.
+<strong>Flags</strong>: --variables
+<strong>Default</strong>: <code class="docutils literal notranslate"><span class="pre">['MQM',</span> <span class="pre">'MQT',</span> <span class="pre">'MQTL',</span> <span class="pre">'MQY']</span></code></li>
+<li><strong>virt_flag</strong> -- If true, it will use virtual correctors.
+<strong>Flags</strong>: --virt_flag
+<strong>Action</strong>: <code class="docutils literal notranslate"><span class="pre">store_true</span></code></li>
+<li><strong>weights</strong> (<em>float</em>) -- Weights to apply to each measured quantity. Input in order of optics_params.
+<strong>Flags</strong>: --weights</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="cleaning">
+<h2>Cleaning<a class="headerlink" href="#cleaning" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-iforest_for_bpms">
+<span id="entrypoint-isolation-forest"></span><h3>Entrypoint Isolation Forest<a class="headerlink" href="#module-iforest_for_bpms" title="Permalink to this headline">¶</a></h3>
+<p>Created on May 4, 2018
+Application of Isolation Forest algorithm for the diagnostics of BPM signal.
+Original paper: Liu, Fei Tony, Ting, Kai Ming and Zhou, Zhi-Hua. “Isolation forest.” Data Mining, 2008. ICDM‘08. Eighth IEEE International Conference.</p>
+<p>&#64;author: Elena Fol</p>
+<dl class="function">
+<dt id="iforest_for_bpms.remove_bpms_from_file">
+<code class="descclassname">iforest_for_bpms.</code><code class="descname">remove_bpms_from_file</code><span class="sig-paren">(</span><em>paths</em>, <em>bad_bpm_names</em>, <em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iforest_for_bpms.html#remove_bpms_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iforest_for_bpms.remove_bpms_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes a backup of the original .lin files (e.g .linx --&gt; .linx.notcleaned)
+and removes the BPNs identified by iForest as bad.
+:param paths: original lin files
+:param bad_bpm_names: list of the names of bad BPMs identified by iForest</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="iforest_for_bpms.revert_forest_cleaning">
+<code class="descclassname">iforest_for_bpms.</code><code class="descname">revert_forest_cleaning</code><span class="sig-paren">(</span><em>files</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iforest_for_bpms.html#revert_forest_cleaning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iforest_for_bpms.revert_forest_cleaning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reverts the cleaning. The backup files are renamed back to the original names (e.g .linx.notcleaned --&gt; .linx)
+:param paths: list of files, where bad bpms identified by iForest are removed</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="madx">
+<h2>MADX<a class="headerlink" href="#madx" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-madx_wrapper">
+<span id="entrypoint-madx-wrapper"></span><h3>Entrypoint Madx Wrapper<a class="headerlink" href="#module-madx_wrapper" title="Permalink to this headline">¶</a></h3>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">module:</th><td class="field-body">madx.madx_wrapper</td>
+</tr>
+</tbody>
+</table>
+<p>Runs MADX with a file or a string as an input, it processes &#64;required macros.
+If defined, writes the processed MADX script and logging output into files.
+TODO: write tests</p>
+<dl class="exception">
+<dt id="madx_wrapper.MadxError">
+<em class="property">exception </em><code class="descclassname">madx_wrapper.</code><code class="descname">MadxError</code><a class="reference internal" href="../_modules/madx_wrapper.html#MadxError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madx_wrapper.MadxError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="madx_wrapper.resolve_and_run_file">
+<code class="descclassname">madx_wrapper.</code><code class="descname">resolve_and_run_file</code><span class="sig-paren">(</span><em>input_file</em>, <em>output_file=None</em>, <em>log_file=None</em>, <em>madx_path='/home/travis/build/pylhc/Beta-Beat.src/madx/bin/madx-linux64-gnu'</em>, <em>cwd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/madx_wrapper.html#resolve_and_run_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madx_wrapper.resolve_and_run_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs MADX in a subprocess.</p>
+<dl class="attribute">
+<dt id="madx_wrapper.input_file">
+<code class="descclassname">madx_wrapper.</code><code class="descname">input_file</code><a class="headerlink" href="#madx_wrapper.input_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>MADX input file</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="madx_wrapper.output_file">
+<code class="descclassname">madx_wrapper.</code><code class="descname">output_file</code><a class="headerlink" href="#madx_wrapper.output_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>If given writes resolved MADX script.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="madx_wrapper.log_file">
+<code class="descclassname">madx_wrapper.</code><code class="descname">log_file</code><a class="headerlink" href="#madx_wrapper.log_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>If given writes MADX logging output.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="madx_wrapper.madx_path">
+<code class="descclassname">madx_wrapper.</code><code class="descname">madx_path</code><a class="headerlink" href="#madx_wrapper.madx_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path to MADX executable</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="madx_wrapper.resolve_and_run_string">
+<code class="descclassname">madx_wrapper.</code><code class="descname">resolve_and_run_string</code><span class="sig-paren">(</span><em>input_string</em>, <em>output_file=None</em>, <em>log_file=None</em>, <em>madx_path='/home/travis/build/pylhc/Beta-Beat.src/madx/bin/madx-linux64-gnu'</em>, <em>cwd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/madx_wrapper.html#resolve_and_run_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madx_wrapper.resolve_and_run_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs MADX in a subprocess.</p>
+<dl class="attribute">
+<dt id="madx_wrapper.input_string">
+<code class="descclassname">madx_wrapper.</code><code class="descname">input_string</code><a class="headerlink" href="#madx_wrapper.input_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>MADX input string</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descclassname">madx_wrapper.</code><code class="descname">output_file</code></dt>
+<dd><p>If given writes resolved MADX script.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descclassname">madx_wrapper.</code><code class="descname">log_file</code></dt>
+<dd><p>If given writes MADX logging output.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descclassname">madx_wrapper.</code><code class="descname">madx_path</code></dt>
+<dd><p>Path to MADX executable</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="jws">
+<h2>JWS<a class="headerlink" href="#jws" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-jws_wrapper">
+<span id="entrypoint-jws"></span><h3>Entrypoint JWS<a class="headerlink" href="#module-jws_wrapper" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../correction/index.html" class="btn btn-neutral float-right" title="Correction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to Beta-Beat’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

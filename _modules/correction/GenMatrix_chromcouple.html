@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>correction.GenMatrix_chromcouple &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>correction.GenMatrix_chromcouple</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for correction.GenMatrix_chromcouple</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">.. module: PythonClasses4MAD.GenMatrix_chromcouple</span>
+
+<span class="sd">Created on ??</span>
+
+<span class="sd">TODO: description</span>
+
+
+<span class="sd">.. moduleauthor:: Unknown</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="kn">import</span> <span class="n">pinv</span> <span class="k">as</span> <span class="n">generalized_inverse</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">dot</span> <span class="k">as</span> <span class="n">matrixmultiply</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="make_list"><a class="viewcode-back" href="../../correction/index.html#correction.GenMatrix_chromcouple.make_list">[docs]</a><span class="k">def</span> <span class="nf">make_list</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">modelcut</span><span class="p">,</span> <span class="n">errorcut</span><span class="p">,</span> <span class="n">CorD</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Makes list in coupling correction &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="p">[]:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">result_names_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">NAME</span><span class="p">)):</span>
+        <span class="n">bn</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">NAME</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">bn</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">indx</span><span class="p">:</span>
+            <span class="n">i_x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bn</span><span class="p">]</span>
+            <span class="n">i_m</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bn</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">((</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">Cf1001r</span><span class="p">[</span><span class="n">i_x</span><span class="p">]</span><span class="o">-</span><span class="n">m</span><span class="o">.</span><span class="n">Cf1001r</span><span class="p">[</span><span class="n">i_m</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">modelcut</span><span class="p">)</span>
+                        <span class="ow">and</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">Cf1001i</span><span class="p">[</span><span class="n">i_x</span><span class="p">]</span><span class="o">-</span><span class="n">m</span><span class="o">.</span><span class="n">Cf1001i</span><span class="p">[</span><span class="n">i_m</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">modelcut</span><span class="p">)</span>
+                        <span class="ow">and</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">Cf1001iERR</span><span class="p">[</span><span class="n">i_x</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">errorcut</span><span class="p">)</span>
+                        <span class="ow">and</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">Cf1001rERR</span><span class="p">[</span><span class="n">i_x</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">errorcut</span><span class="p">)):</span>
+                <span class="n">result_names_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">NAME</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s2">&quot;Not in Response:&quot;</span><span class="p">,</span> <span class="n">bn</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+    <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s2">&quot;Warning: &quot;</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="s2">&quot;BPMs removed from data for not beeing in the model&quot;</span>
+    
+    <span class="k">return</span> <span class="n">result_names_list</span></div>
+
+
+<span class="k">def</span> <span class="nf">write_params</span><span class="p">(</span><span class="n">deltafamilie</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">app</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;./&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">app</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">mode</span> <span class="o">=</span><span class="s1">&#39;w&#39;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">app</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;a&#39;</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+    <span class="n">knobs_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;changeparameters_chromcouple&quot;</span><span class="p">),</span> <span class="n">mode</span><span class="p">)</span>
+    <span class="n">tfs_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;changeparameters_chromcouple.tfs&quot;</span><span class="p">),</span> <span class="n">mode</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="o">&gt;&gt;</span><span class="n">tfs_file</span><span class="p">,</span> <span class="s2">&quot;@&quot;</span><span class="p">,</span> <span class="s2">&quot;APP&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%le</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">app</span>
+    <span class="nb">print</span> <span class="o">&gt;&gt;</span><span class="n">tfs_file</span><span class="p">,</span> <span class="s2">&quot;@&quot;</span><span class="p">,</span> <span class="s2">&quot;PATH&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">path</span>
+    <span class="nb">print</span> <span class="o">&gt;&gt;</span><span class="n">tfs_file</span><span class="p">,</span> <span class="s2">&quot;@&quot;</span><span class="p">,</span> <span class="s2">&quot;DATE&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">timestamp</span><span class="o">.</span><span class="n">ctime</span><span class="p">()</span>
+    <span class="nb">print</span> <span class="o">&gt;&gt;</span><span class="n">tfs_file</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="s2">&quot;NAME&quot;</span><span class="p">,</span> <span class="s2">&quot;DELTA&quot;</span>
+    <span class="nb">print</span> <span class="o">&gt;&gt;</span><span class="n">tfs_file</span><span class="p">,</span> <span class="s2">&quot;$&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%le</span><span class="s2">&quot;</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">variables</span><span class="p">):</span>
+        <span class="n">knobs_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">var</span><span class="o">+</span><span class="s1">&#39; = &#39;</span><span class="o">+</span> <span class="n">var</span><span class="o">+</span><span class="s1">&#39; + ( &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">deltafamilie</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39; );</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">tfs_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">var</span><span class="o">+</span><span class="s1">&#39;   &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">deltafamilie</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">knobs_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">tfs_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">correctcouple</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">chromcouple_input</span><span class="p">,</span> <span class="n">cut</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">app</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;./&quot;</span><span class="p">):</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">chromcouple_input</span><span class="o">.</span><span class="n">sensitivity_matrix</span><span class="p">)</span>
+    <span class="n">vector</span> <span class="o">=</span> <span class="n">chromcouple_input</span><span class="o">.</span><span class="n">compute_vector</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">wg</span> <span class="o">=</span> <span class="n">chromcouple_input</span><span class="o">.</span><span class="n">wg</span>
+    
+    <span class="n">len_couplelist</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chromcouple_input</span><span class="o">.</span><span class="n">couplelist</span><span class="p">)</span>
+    <span class="n">weisvec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                                      <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">wg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">len_couplelist</span><span class="p">),</span>
+                                      <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">wg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">len_couplelist</span><span class="p">),</span>
+                                      <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">wg</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">len_couplelist</span><span class="p">),</span>
+                                      <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">wg</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">len_couplelist</span><span class="p">)]</span>
+                                      <span class="p">)</span>
+                      <span class="p">)</span>
+    
+    <span class="n">Rnew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">*</span><span class="n">weisvec</span><span class="p">)</span>
+    
+    <span class="n">delta</span> <span class="o">=</span> <span class="o">-</span><span class="n">matrixmultiply</span><span class="p">(</span><span class="n">generalized_inverse</span><span class="p">(</span><span class="n">Rnew</span><span class="p">,</span><span class="n">cut</span><span class="p">),</span> <span class="p">(</span><span class="n">vector</span><span class="o">-</span><span class="n">chromcouple_input</span><span class="o">.</span><span class="n">zerovector</span><span class="p">)</span><span class="o">/</span><span class="n">chromcouple_input</span><span class="o">.</span><span class="n">normvector</span><span class="p">)</span>
+    
+    <span class="n">write_params</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="n">chromcouple_input</span><span class="o">.</span><span class="n">varslist</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span>  <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="p">[</span><span class="n">delta</span><span class="p">,</span> <span class="n">chromcouple_input</span><span class="o">.</span><span class="n">varslist</span><span class="p">]</span>
+
+
+
+<span class="k">class</span> <span class="nc">ChromCoupleInput</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">varslist</span><span class="p">,</span> <span class="n">couplelist</span><span class="o">=</span><span class="p">[],</span> <span class="n">wg</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">varslist</span> <span class="o">=</span> <span class="n">varslist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">couplelist</span> <span class="o">=</span> <span class="n">couplelist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wg</span> <span class="o">=</span> <span class="n">wg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensitivity_matrix</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zerovector</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+    <span class="k">def</span> <span class="nf">compute_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">a</span><span class="p">):</span>
+        <span class="n">Cf1001r</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">Cf1001i</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">Cf1010r</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">Cf1010i</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">bpm_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">couplelist</span><span class="p">:</span>
+            <span class="n">Cf1001r</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Cf1001r</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bpm_name</span><span class="p">]])</span>
+            <span class="n">Cf1001i</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Cf1001i</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bpm_name</span><span class="p">]])</span>
+            <span class="n">Cf1010r</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Cf1010r</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bpm_name</span><span class="p">]])</span>
+            <span class="n">Cf1010i</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">Cf1010i</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">indx</span><span class="p">[</span><span class="n">bpm_name</span><span class="p">]])</span>
+        
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">Cf1001r</span><span class="p">,</span><span class="n">Cf1001i</span><span class="p">,</span><span class="n">Cf1010r</span><span class="p">,</span><span class="n">Cf1010i</span><span class="p">]))</span>
+
+
+    <span class="k">def</span> <span class="nf">computeSensitivityMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">):</span>
+        <span class="c1">#global zerovector, normvector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zerovector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_vector</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">])</span>
+        <span class="n">incr</span><span class="o">=</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;incr&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># BUG! need to read it from FullResponse!</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">normvector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">couplelist</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">varslist</span><span class="p">:</span>
+            <span class="n">vector</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compute_vector</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">var</span><span class="p">])</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">sensitivity_matrix</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">vector</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">zerovector</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">normvector</span><span class="o">/</span><span class="n">incr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensitivity_matrix</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sensitivity_matrix</span><span class="p">)</span>
+    
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensitivity_matrix</span>
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

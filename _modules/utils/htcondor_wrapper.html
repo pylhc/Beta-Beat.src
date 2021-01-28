@@ -1,0 +1,393 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>utils.htcondor_wrapper &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>utils.htcondor_wrapper</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for utils.htcondor_wrapper</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Tools to use htcondor via python.</span>
+<span class="sd">Requires you to be on a computer where htcondor is set up.</span>
+<span class="sd">For local machines see: https://twiki.cern.ch/twiki/bin/view/ABPComputing/LxbatchHTCondor</span>
+
+<span class="sd">Hint: I had to add the path of the newly installed modules to the batch_Krb5_credential script to</span>
+<span class="sd">be able to find the Authen::Krb5 package:</span>
+<span class="sd">(use lib &quot;/home/jdilly/perl5/lib/perl5/x86_64-linux-gnu-thread-multi/&quot;;)</span>
+
+<span class="sd">Also, make sure the SCHEDD_NAME is set properly in the config file mentioned above.</span>
+<span class="sd">(i.e. go to lxplus, run condor_q and see which scheduler was assigned to you)</span>
+
+<span class="sd">If you run jobs that take longer than 25h, make sure you are using a renewable Kerberos ticket:</span>
+<span class="sd">kinit -r 604800  (i.e. renewable  by &quot;kinit -R&quot; for 1 week)</span>
+
+<span class="sd">Python Readme:</span>
+<span class="sd">https://htcondor-python.readthedocs.io/en/latest</span>
+
+<span class="sd">IMPORTANT: This functionality relies on shared-space of all files between htcondor and the user.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="kn">import</span> <span class="nn">madx_wrapper</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">htcondor</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">utils.contexts</span> <span class="kn">import</span> <span class="n">suppress_exception</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">SHEBANG</span> <span class="o">=</span> <span class="s2">&quot;#!/bin/bash&quot;</span>
+<span class="n">BASHFILE_MASK</span> <span class="o">=</span> <span class="s2">&quot;htcbash</span><span class="si">{:s}</span><span class="s2">.sh&quot;</span>
+<span class="n">SUBFILE</span> <span class="o">=</span> <span class="s2">&quot;queuehtc.sub&quot;</span>
+<span class="n">MADX_PATH</span> <span class="o">=</span> <span class="n">madx_wrapper</span><span class="o">.</span><span class="n">MADX_AFS_PATH</span>  <span class="c1"># always use afs</span>
+
+<span class="n">CMD_SUBMIT</span> <span class="o">=</span> <span class="s2">&quot;condor_submit&quot;</span>
+<span class="n">CMD_VIEW</span> <span class="o">=</span> <span class="s2">&quot;condor_q&quot;</span>
+<span class="n">CMD_RM</span> <span class="o">=</span> <span class="s2">&quot;condor_rm&quot;</span>
+
+
+<span class="c1"># HTCondor Python Methods ######################################################</span>
+
+
+<div class="viewcode-block" id="submit_job"><a class="viewcode-back" href="../../utils/index.html#utils.htcondor_wrapper.submit_job">[docs]</a><span class="k">def</span> <span class="nf">submit_job</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Submits the job to the scheduler</span>
+<span class="sd">    This would be the nicer way, BUT: the python bindings do currently not forward the</span>
+<span class="sd">    keberos token.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Submitting via python not implemented because of kerberos&quot;</span><span class="p">)</span>
+    <span class="n">schedd</span> <span class="o">=</span> <span class="n">htcondor</span><span class="o">.</span><span class="n">Schedd</span><span class="p">()</span>  <span class="c1"># works if schedd_name is set up</span>
+    <span class="k">with</span> <span class="n">schedd</span><span class="o">.</span><span class="n">transaction</span><span class="p">()</span> <span class="k">as</span> <span class="n">txn</span><span class="p">:</span>
+        <span class="n">clusterId</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">queue</span><span class="p">(</span><span class="n">txn</span><span class="p">)</span>  <span class="c1"># assuming queue args are set in job, or 1</span>
+    <span class="k">return</span> <span class="n">clusterId</span></div>
+
+
+<span class="k">def</span> <span class="nf">view_history</span><span class="p">():</span>
+    <span class="n">schedd</span> <span class="o">=</span> <span class="n">htcondor</span><span class="o">.</span><span class="n">Schedd</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">ad</span> <span class="ow">in</span> <span class="n">schedd</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;Owner&#39;</span><span class="p">,</span> <span class="s1">&#39;ProcId&#39;</span><span class="p">,</span> <span class="s1">&#39;ClusterId&#39;</span><span class="p">,</span> <span class="s1">&#39;JobStatus&#39;</span><span class="p">,</span> <span class="s1">&#39;WallDuration&#39;</span><span class="p">],</span> <span class="mi">2</span><span class="p">):</span>
+       <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">ad</span><span class="p">)</span>
+
+
+<span class="c1"># Subprocess Methods ###########################################################</span>
+
+
+<div class="viewcode-block" id="create_subfile_from_job"><a class="viewcode-back" href="../../utils/index.html#utils.htcondor_wrapper.create_subfile_from_job">[docs]</a><span class="k">def</span> <span class="nf">create_subfile_from_job</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Write file to submit to htcondor &quot;&quot;&quot;</span>
+    <span class="n">subfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">SUBFILE</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">subfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">job</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">subfile</span></div>
+
+
+<div class="viewcode-block" id="submit_jobfile"><a class="viewcode-back" href="../../utils/index.html#utils.htcondor_wrapper.submit_jobfile">[docs]</a><span class="k">def</span> <span class="nf">submit_jobfile</span><span class="p">(</span><span class="n">jobfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Submit subfile to htcondor via subprocess &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Sending </span><span class="si">{:s}</span><span class="s2"> to htcondor.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">jobfile</span><span class="p">))</span>
+    <span class="n">_start_subprocess_with_logger</span><span class="p">([</span><span class="n">CMD_SUBMIT</span><span class="p">,</span> <span class="n">jobfile</span><span class="p">])</span></div>
+
+
+<span class="k">def</span> <span class="nf">log_current_jobs_subprocess</span><span class="p">():</span>
+    <span class="n">_start_subprocess_with_logger</span><span class="p">(</span><span class="n">CMD_VIEW</span><span class="p">)</span>
+
+
+<span class="c1"># Job Creation #################################################################</span>
+
+
+<div class="viewcode-block" id="create_multijob_for_bashfiles"><a class="viewcode-back" href="../../utils/index.html#utils.htcondor_wrapper.create_multijob_for_bashfiles">[docs]</a><span class="k">def</span> <span class="nf">create_multijob_for_bashfiles</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">n_files</span><span class="p">,</span> <span class="n">duration</span><span class="o">=</span><span class="s2">&quot;longlunch&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Function to create a HTCondor job assuming n_files bash-files. &quot;&quot;&quot;</span>
+    <span class="n">dura_key</span><span class="p">,</span> <span class="n">dura_val</span> <span class="o">=</span> <span class="n">_get_duration</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span>
+
+    <span class="n">job</span> <span class="o">=</span> <span class="n">htcondor</span><span class="o">.</span><span class="n">Submit</span><span class="p">({</span>
+        <span class="s2">&quot;MyId&quot;</span><span class="p">:</span> <span class="s2">&quot;htcondor&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;executable&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">BASHFILE_MASK</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;.$(ProcId)&quot;</span><span class="p">)),</span>
+        <span class="s2">&quot;arguments&quot;</span><span class="p">:</span> <span class="s2">&quot;$(ClusterId) $(ProcId)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;initialdir&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">),</span>
+        <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;$(initialdir)&quot;</span><span class="p">,</span> <span class="s2">&quot;$(MyId).$(ClusterId).$(ProcId).out&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;$(initialdir)&quot;</span><span class="p">,</span> <span class="s2">&quot;$(MyId).$(ClusterId).$(ProcId).err&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;log&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;$(initialdir)&quot;</span><span class="p">,</span> <span class="s2">&quot;$(MyId).$(ClusterId).$(ProcId).log&quot;</span><span class="p">),</span>
+        <span class="n">dura_key</span><span class="p">:</span> <span class="n">dura_val</span><span class="p">,</span>
+    <span class="p">})</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">setQArgs</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_files</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">job</span></div>
+
+
+<div class="viewcode-block" id="create_job_for_bashfile"><a class="viewcode-back" href="../../utils/index.html#utils.htcondor_wrapper.create_job_for_bashfile">[docs]</a><span class="k">def</span> <span class="nf">create_job_for_bashfile</span><span class="p">(</span><span class="n">bashfile</span><span class="p">,</span> <span class="n">duration</span><span class="o">=</span><span class="s2">&quot;longlunch&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns a simple Submit() object for the bashfile. &quot;&quot;&quot;</span>
+    <span class="n">dura_key</span><span class="p">,</span> <span class="n">dura_val</span> <span class="o">=</span> <span class="n">_get_duration</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span>
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">bashfile</span><span class="p">)</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">htcondor</span><span class="o">.</span><span class="n">Submit</span><span class="p">({</span>
+        <span class="s2">&quot;MyId&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">bashfile</span><span class="p">))[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s2">&quot;executable&quot;</span><span class="p">:</span> <span class="n">bashfile</span><span class="p">,</span>
+        <span class="s2">&quot;arguments&quot;</span><span class="p">:</span> <span class="s2">&quot;$(ClusterId)&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;initialdir&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">),</span>
+        <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;$(initialdir)&quot;</span><span class="p">,</span> <span class="s2">&quot;$(MyId).$(ClusterId).out&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;$(initialdir)&quot;</span><span class="p">,</span> <span class="s2">&quot;$(MyId).$(ClusterId).err&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;log&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;$(initialdir)&quot;</span><span class="p">,</span> <span class="s2">&quot;$(MyId).$(ClusterId).log&quot;</span><span class="p">),</span>
+        <span class="n">dura_key</span><span class="p">:</span> <span class="n">dura_val</span><span class="p">,</span>
+    <span class="p">})</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">setQArgs</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">job</span></div>
+
+
+<span class="c1"># For MADX #####################################################################</span>
+
+
+<div class="viewcode-block" id="write_madx_bash"><a class="viewcode-back" href="../../utils/index.html#utils.htcondor_wrapper.write_madx_bash">[docs]</a><span class="k">def</span> <span class="nf">write_madx_bash</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">madx_files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Write bash file to call madx files</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        folder: Folder to write file into</span>
+<span class="sd">        id: id for current bash_file</span>
+<span class="sd">        madx_files: List of madx-files to run in this job.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Path to current madx file</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">suppress_exception</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>  <span class="c1"># in case it&#39;s an int</span>
+
+    <span class="k">if</span> <span class="nb">id</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">id</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="s2">&quot;.</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">BASHFILE_MASK</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="p">))</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">SHEBANG</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">madx_file</span> <span class="ow">in</span> <span class="n">madx_files</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2"> &lt; </span><span class="si">{:s}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">MADX_PATH</span><span class="p">,</span> <span class="n">madx_file</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">filename</span></div>
+
+
+<span class="c1"># Helper #######################################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_get_duration</span><span class="p">(</span><span class="n">duration</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">duration</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+        <span class="c1"># espresso 20min, microcentury 1h, longlunch 2h, workday 8h,</span>
+        <span class="c1"># tomorrow 1d, testmatch 3d, nextweek 1w</span>
+        <span class="k">return</span> <span class="s2">&quot;+JobFlavour&quot;</span><span class="p">,</span> <span class="s1">&#39;&quot;</span><span class="si">{:s}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;+MaxRuntime&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span>  <span class="c1"># runtime in seconds</span>
+
+
+<span class="k">def</span> <span class="nf">_start_subprocess_with_logger</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
+    <span class="n">process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                               <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">STDOUT</span><span class="p">,)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">readline</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">status</span>
+
+
+<span class="c1"># Script Mode ##################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">EnvironmentError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2"> is not supposed to run as main.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

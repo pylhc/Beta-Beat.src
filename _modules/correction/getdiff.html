@@ -1,0 +1,566 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>correction.getdiff &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>correction.getdiff</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for correction.getdiff</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">:module: correction.getdiff</span>
+
+<span class="sd">Created on 24/02/18</span>
+
+<span class="sd">:author: Lukas Malina</span>
+
+<span class="sd">Calculates the difference between GetLLM output and correction plugged in the model.</span>
+<span class="sd">Provide as first argument the path to the output files of GetLLM.</span>
+
+<span class="sd">model inputs:</span>
+<span class="sd">    twiss_cor.dat and twiss_no.dat</span>
+
+<span class="sd">outputs in measurement directory:</span>
+<span class="sd">    phasex.out and phasey.out</span>
+<span class="sd">    bbx.out and bby.out</span>
+<span class="sd">    dx.out, dy.out and ndx.out</span>
+<span class="sd">    couple.out and chromatic_coupling.out</span>
+
+<span class="sd">TODOs and Notes:</span>
+<span class="sd">    OpticsMeasurement: possibly extend and use with measurement filters from global correction</span>
+<span class="sd">                        to be used in sbs, new corrections, getdiff, plot_export</span>
+
+<span class="sd">    Expected values after correction to be put in, little tricky with phase column names</span>
+<span class="sd">    No coupling in twiss_no.dat? not used</span>
+
+<span class="sd">Some hints:</span>
+<span class="sd">    MEA, MODEL, EXPECT are usually the names for the differences between the values and the model.</span>
+<span class="sd">    Apart from phase, where these differences are called DIFF and DIFF_MDL (EXPECT is still the</span>
+<span class="sd">    same) while MEA and MODEL are the actual measurement and model values respectively.</span>
+
+<span class="sd">    Don&#39;t look into the coupling and chromatic coupling namings.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">abspath</span><span class="p">,</span> <span class="n">join</span><span class="p">,</span> <span class="n">dirname</span><span class="p">,</span> <span class="n">isdir</span><span class="p">,</span> <span class="n">exists</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">pardir</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="n">new_path</span> <span class="o">=</span> <span class="n">abspath</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span> <span class="n">pardir</span><span class="p">))</span>
+<span class="k">if</span> <span class="n">new_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_path</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">optics_measurements.io_filehandler</span> <span class="kn">import</span> <span class="n">OpticsMeasurement</span>
+<span class="kn">from</span> <span class="nn">twiss_optics.optics_class</span> <span class="kn">import</span> <span class="n">TwissOptics</span>
+<span class="kn">from</span> <span class="nn">tfs_files.tfs_pandas</span> <span class="kn">import</span> <span class="n">read_tfs</span><span class="p">,</span> <span class="n">write_tfs</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span><span class="p">,</span> <span class="n">beta_star_from_twiss</span> <span class="k">as</span> <span class="n">bsft</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">TWISS_CORRECTED</span> <span class="o">=</span> <span class="s2">&quot;twiss_cor.dat&quot;</span>
+<span class="n">TWISS_NOT_CORRECTED</span> <span class="o">=</span> <span class="s2">&quot;twiss_no.dat&quot;</span>
+<span class="n">TWISS_CORRECTED_PLUS</span> <span class="o">=</span> <span class="s2">&quot;twiss_cor_dpp.dat&quot;</span>  <span class="c1"># positive dpp</span>
+<span class="n">TWISS_CORRECTED_MINUS</span> <span class="o">=</span> <span class="s2">&quot;twiss_cor_dpm.dat&quot;</span>  <span class="c1"># negative dpp</span>
+
+
+<span class="c1"># Main invocation ############################################################</span>
+
+
+<span class="k">def</span> <span class="nf">get_diff_filename</span><span class="p">(</span><span class="nb">id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;diff_</span><span class="si">{:s}</span><span class="s2">.out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="getdiff"><a class="viewcode-back" href="../../correction/index.html#correction.getdiff.getdiff">[docs]</a><span class="k">def</span> <span class="nf">getdiff</span><span class="p">(</span><span class="n">meas_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">beta_file_name</span><span class="o">=</span><span class="s2">&quot;getbeta&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Calculates the differences between measurement, corrected and uncorrected model.</span>
+
+<span class="sd">    After running madx and creating the model with (twiss_cor) and without (twiss_no)</span>
+<span class="sd">    corrections, run this functions to get tfs-files with the differences between measurements</span>
+<span class="sd">    and models.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        meas_path (str): Path to the measurement folder.</span>
+<span class="sd">        Needs to contain twiss_cor.dat and twiss_no.dat.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">meas_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">meas_path</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Started &#39;getdiff&#39; for measurment dir &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">meas_path</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">isdir</span><span class="p">(</span><span class="n">meas_path</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;No valid measurement directory:&quot;</span> <span class="o">+</span> <span class="n">meas_path</span><span class="p">)</span>
+    <span class="n">corrected_model_path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">TWISS_CORRECTED</span><span class="p">)</span>
+    <span class="n">uncorrected_model_path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">TWISS_NOT_CORRECTED</span><span class="p">)</span>
+
+    <span class="n">meas</span> <span class="o">=</span> <span class="n">OpticsMeasurement</span><span class="p">(</span><span class="n">meas_path</span><span class="p">)</span>
+    <span class="n">twiss_cor</span> <span class="o">=</span> <span class="n">read_tfs</span><span class="p">(</span><span class="n">corrected_model_path</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">twiss_no</span> <span class="o">=</span> <span class="n">read_tfs</span><span class="p">(</span><span class="n">uncorrected_model_path</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">coup_cor</span> <span class="o">=</span> <span class="n">TwissOptics</span><span class="p">(</span><span class="n">twiss_cor</span><span class="p">,</span> <span class="n">quick_init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">get_coupling</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;cmatrix&#39;</span><span class="p">)</span>
+    <span class="n">coup_no</span> <span class="o">=</span> <span class="n">TwissOptics</span><span class="p">(</span><span class="n">twiss_no</span><span class="p">,</span> <span class="n">quick_init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">get_coupling</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;cmatrix&#39;</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">twiss_cor</span><span class="p">,</span> <span class="n">twiss_no</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_c&#39;</span><span class="p">,</span> <span class="s1">&#39;_n&#39;</span><span class="p">))</span>
+    <span class="n">coupling_model</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">coup_cor</span><span class="p">,</span> <span class="n">coup_no</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">left_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                              <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_c&#39;</span><span class="p">,</span> <span class="s1">&#39;_n&#39;</span><span class="p">))</span>
+    <span class="n">coupling_model</span><span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coupling_model</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">]:</span>
+        <span class="n">_write_betabeat_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">beta_file_name</span><span class="p">)</span>
+        <span class="n">_write_phase_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+        <span class="n">_write_disp_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+        <span class="n">_write_closed_orbit_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+    <span class="n">_write_coupling_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">coupling_model</span><span class="p">)</span>
+    <span class="n">_write_norm_disp_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+    <span class="n">_write_chromatic_coupling_files</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">corrected_model_path</span><span class="p">)</span>
+    <span class="n">_write_betastar_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">twiss_cor</span><span class="p">,</span> <span class="n">twiss_no</span><span class="p">)</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Finished &#39;getdiff&#39;.&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># Writing Functions ##########################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_write_betabeat_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">betafile</span><span class="p">):</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating beta diff.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">betafile</span> <span class="o">==</span> <span class="s2">&quot;getbeta&quot;</span><span class="p">:</span>
+        <span class="n">meas_beta</span> <span class="o">=</span> <span class="n">meas</span><span class="o">.</span><span class="n">beta</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">betafile</span> <span class="o">==</span> <span class="s2">&quot;getampbeta&quot;</span><span class="p">:</span>
+        <span class="n">meas_beta</span> <span class="o">=</span> <span class="n">meas</span><span class="o">.</span><span class="n">amp_beta</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">betafile</span> <span class="o">==</span> <span class="s2">&quot;getkmodbeta&quot;</span><span class="p">:</span>
+        <span class="n">meas_beta</span> <span class="o">=</span> <span class="n">meas</span><span class="o">.</span><span class="n">kmod_beta</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Unknown beta file name &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">betafile</span><span class="p">))</span>
+
+    <span class="n">up</span> <span class="o">=</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="n">tw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">meas_beta</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BET&#39;</span> <span class="o">+</span> <span class="n">up</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BET&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;MDL&#39;</span><span class="p">])</span>
+                 <span class="o">/</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BET&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;MDL&#39;</span><span class="p">])</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;ERROR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;ERRBET&#39;</span> <span class="o">+</span> <span class="n">up</span><span class="p">]</span> <span class="o">/</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BET&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;MDL&#39;</span><span class="p">]</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BET&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;_c&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BET&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;_n&#39;</span><span class="p">])</span>
+                   <span class="o">/</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BET&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;_n&#39;</span><span class="p">])</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;EXPECT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span>
+    <span class="n">write_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">get_diff_filename</span><span class="p">(</span><span class="s1">&#39;bb&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">)),</span>
+              <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;MEA&#39;</span><span class="p">,</span> <span class="s1">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s1">&#39;MODEL&#39;</span><span class="p">,</span> <span class="s1">&#39;EXPECT&#39;</span><span class="p">]])</span>
+
+
+<span class="k">def</span> <span class="nf">_write_phase_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating phase diff.&quot;</span><span class="p">)</span>
+    <span class="n">up</span> <span class="o">=</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="n">tw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">meas</span><span class="o">.</span><span class="n">phase</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span> <span class="n">model</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;PHASE&#39;</span> <span class="o">+</span> <span class="n">up</span><span class="p">]</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;ERROR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;STDPH&#39;</span> <span class="o">+</span> <span class="n">up</span><span class="p">]</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;MU&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;_c&#39;</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">])))</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;DIFF&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;PHASE&#39;</span> <span class="o">+</span> <span class="n">up</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;PH&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;MDL&#39;</span><span class="p">]</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;DIFF_MDL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;MODEL&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;PH&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;MDL&#39;</span><span class="p">]</span>
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;EXPECT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;DIFF&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;DIFF_MDL&#39;</span><span class="p">]</span>
+    <span class="n">write_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">get_diff_filename</span><span class="p">(</span><span class="s1">&#39;phase&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">)),</span>
+              <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">tw</span><span class="o">.</span><span class="n">index</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                     <span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;MEA&#39;</span><span class="p">,</span> <span class="s1">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s1">&#39;MODEL&#39;</span><span class="p">,</span> <span class="s1">&#39;DIFF&#39;</span><span class="p">,</span> <span class="s1">&#39;DIFF_MDL&#39;</span><span class="p">,</span> <span class="s1">&#39;EXPECT&#39;</span><span class="p">]])</span>
+
+
+<span class="k">def</span> <span class="nf">_write_disp_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating dispersion diff.&quot;</span><span class="p">)</span>
+    <span class="n">up</span> <span class="o">=</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">meas</span><span class="o">.</span><span class="n">disp</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span> <span class="n">model</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Dispersion measurements not found. Skipped.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;D&#39;</span> <span class="o">+</span> <span class="n">up</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;D&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;MDL&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;ERROR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;STDD&#39;</span> <span class="o">+</span> <span class="n">up</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;D&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;_c&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;D&#39;</span> <span class="o">+</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;_n&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;EXPECT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span>
+        <span class="n">write_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">get_diff_filename</span><span class="p">(</span><span class="s1">&#39;d&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">)),</span>
+                  <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;MEA&#39;</span><span class="p">,</span> <span class="s1">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s1">&#39;MODEL&#39;</span><span class="p">,</span> <span class="s1">&#39;EXPECT&#39;</span><span class="p">]])</span>
+
+
+<span class="k">def</span> <span class="nf">_write_closed_orbit_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating orbit diff.&quot;</span><span class="p">)</span>
+    <span class="n">up</span> <span class="o">=</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">meas</span><span class="o">.</span><span class="n">orbit</span><span class="p">[</span><span class="n">plane</span><span class="p">],</span> <span class="n">model</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Orbit measurements not found. Skipped.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">up</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;MDL&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;ERROR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;STD&#39;</span> <span class="o">+</span> <span class="n">up</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;_c&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">up</span> <span class="o">+</span> <span class="s1">&#39;_n&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="mi">1000</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;EXPECT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1000</span>
+        <span class="n">write_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">get_diff_filename</span><span class="p">(</span><span class="s1">&#39;co&#39;</span> <span class="o">+</span> <span class="n">plane</span><span class="p">)),</span>
+                  <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;MEA&#39;</span><span class="p">,</span> <span class="s1">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s1">&#39;MODEL&#39;</span><span class="p">,</span> <span class="s1">&#39;EXPECT&#39;</span><span class="p">]])</span>
+
+
+<span class="k">def</span> <span class="nf">_write_norm_disp_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating normalized dispersion diff.&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">meas</span><span class="o">.</span><span class="n">norm_disp</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Normalized dispersion measurements not found. Skipped.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;NDX&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;NDXMDL&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;ERROR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;STDNDX&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;DX_c&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BETX_c&#39;</span><span class="p">])</span>
+                       <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;DX_n&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;BETX_n&#39;</span><span class="p">]))</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;EXPECT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MEA&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span>
+        <span class="n">write_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">get_diff_filename</span><span class="p">(</span><span class="s1">&#39;ndx&#39;</span><span class="p">)),</span>
+                  <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;MEA&#39;</span><span class="p">,</span> <span class="s1">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s1">&#39;MODEL&#39;</span><span class="p">,</span> <span class="s1">&#39;EXPECT&#39;</span><span class="p">]])</span>
+
+
+<span class="k">def</span> <span class="nf">_write_coupling_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating coupling diff.&quot;</span><span class="p">)</span>
+    <span class="n">tw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">meas</span><span class="o">.</span><span class="n">coupling</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+    <span class="n">out_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">rdt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s1">&#39;F1001&#39;</span><span class="p">,</span> <span class="s1">&#39;F1010&#39;</span><span class="p">]):</span>
+        <span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;R&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;I&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;e&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;FWSTD</span><span class="si">{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re_m&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;_c&#39;</span><span class="p">])</span>
+        <span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im_m&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;_c&#39;</span><span class="p">])</span>
+        <span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re_prediction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re_m&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im_prediction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im_m&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;W_prediction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re_prediction&#39;</span><span class="p">])</span>
+                                         <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">tw</span><span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im_prediction&#39;</span><span class="p">]))</span>
+
+        <span class="n">out_columns</span> <span class="o">+=</span> <span class="p">[</span><span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re&#39;</span><span class="p">,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im&#39;</span><span class="p">,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;e&#39;</span><span class="p">,</span>
+                        <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re_m&#39;</span><span class="p">,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im_m&#39;</span><span class="p">,</span>
+                        <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;W&#39;</span><span class="p">,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;W_prediction&#39;</span><span class="p">,</span>
+                        <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;re_prediction&#39;</span><span class="p">,</span> <span class="n">rdt</span><span class="o">+</span><span class="s1">&#39;im_prediction&#39;</span><span class="p">]</span>
+        
+    <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;in_use&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">out_columns</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;in_use&#39;</span><span class="p">]</span>
+    <span class="n">write_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">get_diff_filename</span><span class="p">(</span><span class="s1">&#39;couple&#39;</span><span class="p">)),</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">out_columns</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">_write_chromatic_coupling_files</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">cor_path</span><span class="p">):</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating chromatic coupling diff.&quot;</span><span class="p">)</span>
+    <span class="c1"># TODO: Add Cf1010</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">twiss_plus</span> <span class="o">=</span> <span class="n">read_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">cor_path</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">TWISS_CORRECTED_PLUS</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+        <span class="n">twiss_min</span> <span class="o">=</span> <span class="n">read_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">cor_path</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">TWISS_CORRECTED_MINUS</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Chromatic coupling measurements not found. Skipped.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">deltap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">twiss_plus</span><span class="o">.</span><span class="n">DELTAP</span> <span class="o">-</span> <span class="n">twiss_min</span><span class="o">.</span><span class="n">DELTAP</span><span class="p">)</span>
+        <span class="n">plus</span> <span class="o">=</span> <span class="n">TwissOptics</span><span class="p">(</span><span class="n">twiss_plus</span><span class="p">,</span> <span class="n">quick_init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">get_coupling</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;cmatrix&#39;</span><span class="p">)</span>
+        <span class="n">minus</span> <span class="o">=</span> <span class="n">TwissOptics</span><span class="p">(</span><span class="n">twiss_min</span><span class="p">,</span> <span class="n">quick_init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">get_coupling</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;cmatrix&#39;</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">plus</span><span class="p">,</span> <span class="n">minus</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">left_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                         <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;_p&#39;</span><span class="p">,</span> <span class="s1">&#39;_m&#39;</span><span class="p">))</span>
+        <span class="n">model</span><span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">if</span> <span class="n">exists</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="s2">&quot;chromcoupling_free.out&quot;</span><span class="p">)):</span>
+            <span class="n">meas</span> <span class="o">=</span> <span class="n">read_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="s2">&quot;chromcoupling_free.out&quot;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">meas</span> <span class="o">=</span> <span class="n">read_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="s2">&quot;chromcoupling.out&quot;</span><span class="p">))</span>
+        <span class="n">tw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">meas</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;NAME&#39;</span><span class="p">)</span>
+        <span class="n">cf1001</span> <span class="o">=</span> <span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;F1001_p&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;F1001_m&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">deltap</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;Cf1001r_model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">cf1001</span><span class="p">)</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;Cf1001i_model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">cf1001</span><span class="p">)</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;Cf1001r_prediction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;Cf1001r&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;Cf1001r_model&#39;</span><span class="p">]</span>
+        <span class="n">tw</span><span class="p">[</span><span class="s1">&#39;Cf1001i_prediction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;Cf1001i&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;Cf1001i_model&#39;</span><span class="p">]</span>
+        <span class="n">write_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">get_diff_filename</span><span class="p">(</span><span class="s1">&#39;chromatic_coupling&#39;</span><span class="p">)),</span>
+                  <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s1">&#39;NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;Cf1001r&#39;</span><span class="p">,</span> <span class="s1">&#39;Cf1001rERR&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;Cf1001i&#39;</span><span class="p">,</span> <span class="s1">&#39;Cf1001iERR&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;Cf1001r_model&#39;</span><span class="p">,</span> <span class="s1">&#39;Cf1001i_model&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;Cf1001r_prediction&#39;</span><span class="p">,</span> <span class="s1">&#39;Cf1001i_prediction&#39;</span><span class="p">]])</span>
+
+
+<span class="k">def</span> <span class="nf">_write_betastar_diff_file</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">twiss_cor</span><span class="p">,</span> <span class="n">twiss_no</span><span class="p">):</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating betastar diff at the IPs.&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">meas</span> <span class="o">=</span> <span class="n">meas</span><span class="o">.</span><span class="n">kmod_betastar</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">bsft</span><span class="o">.</span><span class="n">RES_COLUMNS</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Beta* measurements not found. Skipped.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># get all IPs</span>
+        <span class="n">ip_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">beam</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">meas</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="n">ip</span><span class="p">,</span> <span class="n">beam</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\d&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>  <span class="c1"># beam should be the same for all</span>
+            <span class="k">if</span> <span class="n">ip</span> <span class="ow">not</span> <span class="ow">in</span> <span class="s2">&quot;1258&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s2">&quot;Beta-Star comparison is not yet implemented for measurements in IP&quot;</span> <span class="o">+</span> <span class="n">ip</span><span class="p">)</span>
+            <span class="n">ip_label</span> <span class="o">=</span> <span class="s2">&quot;IP&quot;</span> <span class="o">+</span> <span class="n">ip</span>
+            <span class="n">ip_map</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">ip_label</span>
+
+        <span class="n">beam</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">beam</span><span class="p">)</span>
+        <span class="n">all_ips</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ip_map</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># calculate waist and so on</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">bsft</span><span class="o">.</span><span class="n">get_beta_star_and_waist_from_ip</span><span class="p">(</span><span class="n">twiss_cor</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">all_ips</span><span class="p">)</span>
+            <span class="n">design</span> <span class="o">=</span> <span class="n">bsft</span><span class="o">.</span><span class="n">get_beta_star_and_waist_from_ip</span><span class="p">(</span><span class="n">twiss_no</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">all_ips</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Can&#39;t find all IPs in twiss files. Skipped beta* calculations.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># extract data</span>
+            <span class="n">tw</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">meas</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+                <span class="n">plane</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">ip_name</span> <span class="o">=</span> <span class="n">bsft</span><span class="o">.</span><span class="n">get_full_label</span><span class="p">(</span><span class="n">ip_map</span><span class="p">[</span><span class="n">label</span><span class="p">],</span> <span class="n">beam</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+                <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">]</span>
+
+                <span class="c1"># calculate alpha* but with s-oriented waist definition</span>
+                <span class="n">meas</span><span class="p">[</span><span class="s2">&quot;ALPHASTAR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">meas</span><span class="p">[</span><span class="s2">&quot;WAIST&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">meas</span><span class="p">[</span><span class="s2">&quot;BETAWAIST&quot;</span><span class="p">]</span>
+                <span class="n">meas</span><span class="p">[</span><span class="s2">&quot;ALPHASTAR_ERR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">meas</span><span class="p">[</span><span class="s2">&quot;WAIST_ERR&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">meas</span><span class="p">[</span><span class="s2">&quot;WAIST&quot;</span><span class="p">]</span> <span class="o">+</span>
+                                          <span class="n">meas</span><span class="p">[</span><span class="s2">&quot;BETAWAIST_ERR&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">meas</span><span class="p">[</span><span class="s2">&quot;BETAWAIST&quot;</span><span class="p">])</span> <span class="o">*</span>
+                                         <span class="n">meas</span><span class="p">[</span><span class="s2">&quot;ALPHASTAR&quot;</span><span class="p">]</span>
+                                         <span class="p">)</span>
+                <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">bsft</span><span class="o">.</span><span class="n">RES_COLUMNS</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
+                    <span class="c1"># default diff parameter</span>
+                    <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_MEA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">meas</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span><span class="p">]</span>
+                                                    <span class="o">-</span> <span class="n">design</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">])</span>
+                    <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_ERROR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">meas</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_ERR&quot;</span><span class="p">]</span>
+                    <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_MODEL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">]</span>
+                                                      <span class="o">-</span> <span class="n">design</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">])</span>
+
+                    <span class="c1"># additional for checks (e.g. for betastar* panel)</span>
+                    <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_MEAVAL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">meas</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span><span class="p">]</span>
+                    <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_DESIGNVAL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">design</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">]</span>
+                    <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_MODELVAL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">]</span>
+
+                    <span class="c1"># and the beatings</span>
+                    <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;B</span><span class="si">{}</span><span class="s2">_MEA&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_MEA&quot;</span><span class="p">]</span>
+                                                             <span class="o">/</span> <span class="n">design</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">])</span>
+                    <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;B</span><span class="si">{}</span><span class="s2">_MODEL&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_MODEL&quot;</span><span class="p">]</span>
+                                                               <span class="o">/</span> <span class="n">design</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">])</span>
+
+                    <span class="c1"># special handling for the expectation values, as waist and betawaist</span>
+                    <span class="c1"># should be derived directly from alpha* and beta*</span>
+                    <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">bsft</span><span class="o">.</span><span class="n">RES_COLUMNS</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]:</span>
+                        <span class="c1"># beta* and alpha*: as usual</span>
+                        <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_EXPECT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_MEA&quot;</span><span class="p">]</span>
+                                                           <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_MODEL&quot;</span><span class="p">])</span>
+                        <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_EXPECTVAL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">design</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">]</span>
+                                                              <span class="o">+</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_EXPECT&quot;</span><span class="p">])</span>
+                        <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;B</span><span class="si">{}</span><span class="s2">_EXPECT&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;B</span><span class="si">{}</span><span class="s2">_MEA&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)]</span>
+                                <span class="o">-</span> <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;B</span><span class="si">{}</span><span class="s2">_MODEL&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)])</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># waist and betawaist: calculate expected value directly and go from there</span>
+                        <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_EXPECTVAL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">bsft</span><span class="o">.</span><span class="n">get_waist_wrapper</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span>
+                                                   <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;BETASTAR_EXPECTVAL&quot;</span><span class="p">],</span>
+                                                   <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;ALPHASTAR_EXPECTVAL&quot;</span><span class="p">],</span>
+                                                   <span class="p">)</span>
+                        <span class="p">)</span>
+
+                        <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_EXPECT&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_EXPECTVAL&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">design</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">])</span>
+
+                        <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;B</span><span class="si">{}</span><span class="s2">_EXPECT&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="n">tw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">,</span> <span class="n">attr</span> <span class="o">+</span> <span class="s2">&quot;_EXPECTVAL&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">design</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ip_name</span><span class="p">,</span> <span class="n">attr</span><span class="p">])</span>
+
+            <span class="n">write_tfs</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">meas_path</span><span class="p">,</span> <span class="n">get_diff_filename</span><span class="p">(</span><span class="s1">&#39;betastar&#39;</span><span class="p">)),</span> <span class="n">tw</span><span class="p">,</span>
+                      <span class="n">save_index</span><span class="o">=</span><span class="n">bsft</span><span class="o">.</span><span class="n">RES_COLUMNS</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+
+<span class="c1"># Script Mode ################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">getdiff</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,583 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Twiss Optics &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Utils" href="../utils/index.html" />
+    <link rel="prev" title="Tune Analysis" href="../tune_analysis/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Twiss Optics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#main-classes-twiss-optics">Main Classes Twiss Optics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-twiss_optics.optics_class">Module twiss_optics.optics_class</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#helpers-twiss-optics">Helpers Twiss Optics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-twiss_optics.twiss_functions">Module twiss_optics.twiss_functions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Twiss Optics</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/twiss_optics/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="twiss-optics">
+<h1>Twiss Optics<a class="headerlink" href="#twiss-optics" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="main-classes-twiss-optics">
+<h2>Main Classes Twiss Optics<a class="headerlink" href="#main-classes-twiss-optics" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-twiss_optics.optics_class">
+<span id="module-twiss-optics-optics-class"></span><h3>Module twiss_optics.optics_class<a class="headerlink" href="#module-twiss_optics.optics_class" title="Permalink to this headline">¶</a></h3>
+<p>Provides Classes to calculate optics from twiss parameters.</p>
+<p>The calculation is based on formulas in <a class="footnote-reference" href="#aibafirstbetabeatingmeasurement2009" id="id1">[1]</a> and
+<a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id2">[2]</a>.</p>
+<p>Only works properly for on-orbit twiss files.</p>
+<blockquote>
+<div><ul class="simple">
+<li>Resonance Driving Terms: Eq. A8 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id3">[2]</a></li>
+<li>Linear Dispersion: Eq. 24 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id4">[2]</a></li>
+<li>Linear Chromaticity: Eq. 31 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id5">[2]</a></li>
+<li>Chromatic Beating: Eq. 36 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id6">[2]</a></li>
+</ul>
+</div></blockquote>
+<p class="rubric">References</p>
+<table class="docutils footnote" frame="void" id="aibafirstbetabeatingmeasurement2009" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>M. Aiba et al.,
+First simultaneous measurement of sextupolar and octupolar resonance driving
+terms in a circular accelerator from turn-by-turn beam position monitor data,
+Phys. Rev. ST Accel. Beams 17, 074001 (2014).
+<a class="reference external" href="https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.17.074001">https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.17.074001</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="franchianalyticformulasrapid2017" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id2">1</a>, <a class="fn-backref" href="#id3">2</a>, <a class="fn-backref" href="#id4">3</a>, <a class="fn-backref" href="#id5">4</a>, <a class="fn-backref" href="#id6">5</a>, <a class="fn-backref" href="#id7">6</a>, <a class="fn-backref" href="#id8">7</a>, <a class="fn-backref" href="#id10">8</a>, <a class="fn-backref" href="#id11">9</a>, <a class="fn-backref" href="#id12">10</a>, <a class="fn-backref" href="#id13">11</a>, <a class="fn-backref" href="#id14">12</a>, <a class="fn-backref" href="#id16">13</a>, <a class="fn-backref" href="#id17">14</a>)</em> A. Franchi et al.,
+Analytic formulas for the rapid evaluation of the orbit response matrix
+and chromatic functions from lattice parameters in circular accelerators
+<a class="reference external" href="https://arxiv.org/abs/1711.06589">https://arxiv.org/abs/1711.06589</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="calagabetatroncouplingmerging2005" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[3]</td><td><em>(<a class="fn-backref" href="#id9">1</a>, <a class="fn-backref" href="#id15">2</a>)</em> R. Calaga et al.,
+‘Betatron coupling: Merging Hamiltonian and matrix approaches’
+Phys. Rev. ST Accel. Beams, vol. 8, no. 3, p. 034001, Mar. 2005.</td></tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="twiss_optics.optics_class.TwissOptics">
+<em class="property">class </em><code class="descclassname">twiss_optics.optics_class.</code><code class="descname">TwissOptics</code><span class="sig-paren">(</span><em>model_path_or_df</em>, <em>quick_init=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for calculating optics parameters from twiss-model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>model_path_or_df</strong> -- Path to twissfile of model or DataFrame of model.</li>
+<li><strong>quick_init</strong> -- Initializes without calculating phase advances. Default: False</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.calc_ac_dipole_driving_terms">
+<code class="descname">calc_ac_dipole_driving_terms</code><span class="sig-paren">(</span><em>order_or_terms</em>, <em>spectral_line</em>, <em>plane</em>, <em>ac_tunes</em>, <em>acd_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.calc_ac_dipole_driving_terms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.calc_ac_dipole_driving_terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Hamiltonian Terms under Forced Motion.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>order_or_terms</strong> -- int, string or list of strings
+If an int is given all Resonance Driving Terms up to this order
+will be calculated.
+The strings are assumed to be the desired driving term names, e.g. “F1001”</li>
+<li><strong>spectral_line</strong> -- tuple
+Needed to determine what phase advance is needed before and
+after AC dipole location, depends on detal+ and delta-.
+Sample input: (2,-1)</li>
+<li><strong>plane</strong> -- string
+Either ‘H’ or ‘V’ to determine phase term of
+AC dipole before and after ACD location.</li>
+<li><strong>ac_tunes</strong> -- tuple
+Contains horizontal and vertical AC dipole tunes, i.e. (0.302, 0.33)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.calc_chromatic_beating">
+<code class="descname">calc_chromatic_beating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.calc_chromatic_beating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.calc_chromatic_beating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Chromatic Beating</p>
+<p>Eq. 36 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id7">[2]</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.calc_chromatic_coupling">
+<code class="descname">calc_chromatic_coupling</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.calc_chromatic_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.calc_chromatic_coupling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Eq. 47, 48, B77 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id8">[2]</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.calc_cmatrix">
+<code class="descname">calc_cmatrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.calc_cmatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.calc_cmatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates C matrix and Coupling and Gamma from it.
+See <a class="footnote-reference" href="#calagabetatroncouplingmerging2005" id="id9">[3]</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.calc_linear_chromaticity">
+<code class="descname">calc_linear_chromaticity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.calc_linear_chromaticity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.calc_linear_chromaticity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Linear Chromaticity</p>
+<p>Eq. 31 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id10">[2]</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.calc_linear_dispersion">
+<code class="descname">calc_linear_dispersion</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.calc_linear_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.calc_linear_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Linear Disperion.</p>
+<p>Eq. 24 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id11">[2]</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.calc_rdts">
+<code class="descname">calc_rdts</code><span class="sig-paren">(</span><em>order_or_rdts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.calc_rdts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.calc_rdts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Resonance Driving Terms.</p>
+<p>Eq. A8 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id12">[2]</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>order_or_rdts</strong> -- int, string or list of strings
+If an int is given all Resonance Driving Terms up to this order
+will be calculated.
+The strings are assumed to be the desired driving term names, e.g. “F1001”</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.calc_second_order_dispersion">
+<code class="descname">calc_second_order_dispersion</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.calc_second_order_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.calc_second_order_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Eq. 11, 41 - 43 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id13">[2]</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.define_plot_style">
+<code class="descname">define_plot_style</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.define_plot_style"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.define_plot_style" title="Permalink to this definition">¶</a></dt>
+<dd><p>Edit your desired plot style here</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.get_chromatic_beating">
+<code class="descname">get_chromatic_beating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.get_chromatic_beating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.get_chromatic_beating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the Chromatic Beating</p>
+<p>Available after calc_chromatic_beating</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.get_cmatrix">
+<code class="descname">get_cmatrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.get_cmatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.get_cmatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the C-Matrix</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.get_coupling">
+<code class="descname">get_coupling</code><span class="sig-paren">(</span><em>method='rdt'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.get_coupling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.get_coupling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the coupling term.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This function changes sign of the real part of the RDTs compared to
+<a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id14">[2]</a> to be consistent with the RDT
+calculations from <a class="footnote-reference" href="#calagabetatroncouplingmerging2005" id="id15">[3]</a> .</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>method</strong> -- ‘rdt’ - Returns the values calculated by calc_rdts()
+‘cmatrix’ - Returns the values calculated by calc_cmatrix()</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.get_gamma">
+<code class="descname">get_gamma</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.get_gamma"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.get_gamma" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return Gamma values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.get_linear_chromaticity">
+<code class="descname">get_linear_chromaticity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.get_linear_chromaticity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.get_linear_chromaticity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the Linear Chromaticity</p>
+<p>Available after calc_linear_chromaticity</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.get_linear_dispersion">
+<code class="descname">get_linear_dispersion</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.get_linear_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.get_linear_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the Linear Dispersion.</p>
+<p>Available after calc_linear_dispersion!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.get_phase_adv">
+<code class="descname">get_phase_adv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.get_phase_adv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.get_phase_adv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for returning the matrix of phase-advances.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.get_rdts">
+<code class="descname">get_rdts</code><span class="sig-paren">(</span><em>rdt_names=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.get_rdts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.get_rdts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return Resonance Driving Terms.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.plot_chromatic_beating">
+<code class="descname">plot_chromatic_beating</code><span class="sig-paren">(</span><em>combined=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.plot_chromatic_beating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.plot_chromatic_beating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the Chromatic Beating</p>
+<p>Available after calc_chromatic_beating</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>combined</strong> (<em>bool</em>) -- If ‘True’ plots x and y into the same axes.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.plot_linear_dispersion">
+<code class="descname">plot_linear_dispersion</code><span class="sig-paren">(</span><em>combined=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.plot_linear_dispersion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.plot_linear_dispersion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the Linear Dispersion.</p>
+<p>Available after calc_linear_dispersion!</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>combined</strong> (<em>bool</em>) -- If ‘True’ plots x and y into the same axes.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.plot_phase_advance">
+<code class="descname">plot_phase_advance</code><span class="sig-paren">(</span><em>combined=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.plot_phase_advance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.plot_phase_advance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the phase advances between two consecutive elements</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>combined</strong> (<em>bool</em>) -- If ‘True’ plots x and y into the same axes.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="twiss_optics.optics_class.TwissOptics.plot_rdts">
+<code class="descname">plot_rdts</code><span class="sig-paren">(</span><em>rdt_names=None</em>, <em>apply_fun=&lt;ufunc 'absolute'&gt;</em>, <em>combined=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/optics_class.html#TwissOptics.plot_rdts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.optics_class.TwissOptics.plot_rdts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot Resonance Driving Terms</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="helpers-twiss-optics">
+<h2>Helpers Twiss Optics<a class="headerlink" href="#helpers-twiss-optics" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-twiss_optics.twiss_functions">
+<span id="module-twiss-optics-twiss-functions"></span><h3>Module twiss_optics.twiss_functions<a class="headerlink" href="#module-twiss_optics.twiss_functions" title="Permalink to this headline">¶</a></h3>
+<p>Common Functions not attached to any class in this module.</p>
+<dl class="function">
+<dt id="twiss_optics.twiss_functions.dphi">
+<code class="descclassname">twiss_optics.twiss_functions.</code><code class="descname">dphi</code><span class="sig-paren">(</span><em>data</em>, <em>q</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/twiss_functions.html#dphi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.twiss_functions.dphi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return dphi from phase advances in data, see Eq. 8 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id16">[2]</a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="twiss_optics.twiss_functions.get_all_rdts">
+<code class="descclassname">twiss_optics.twiss_functions.</code><code class="descname">get_all_rdts</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/twiss_functions.html#get_all_rdts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.twiss_functions.get_all_rdts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns list of all valid RDTs of order 2 to n</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="twiss_optics.twiss_functions.get_phase_advances">
+<code class="descclassname">twiss_optics.twiss_functions.</code><code class="descname">get_phase_advances</code><span class="sig-paren">(</span><em>twiss_df</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/twiss_functions.html#get_phase_advances"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.twiss_functions.get_phase_advances" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate phase advances between all elements</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Matrices similar to DPhi(i,j) = Phi(j) - Phi(i)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="twiss_optics.twiss_functions.lower">
+<code class="descclassname">twiss_optics.twiss_functions.</code><code class="descname">lower</code><span class="sig-paren">(</span><em>list_of_strings</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/twiss_functions.html#lower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.twiss_functions.lower" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set all items of list to lowercase</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="twiss_optics.twiss_functions.rdt_generator">
+<code class="descclassname">twiss_optics.twiss_functions.</code><code class="descname">rdt_generator</code><span class="sig-paren">(</span><em>orders</em>, <em>normal=True</em>, <em>skew=True</em>, <em>complex_conj=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/twiss_functions.html#rdt_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.twiss_functions.rdt_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates lists of RDT-4-tuples sorted into a dictionary by order.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>orders</strong> (<em>list</em>) -- list of orders to be generated. Orders &lt; 2 raise errors.</li>
+<li><strong>normal</strong> (<em>bool</em>) -- calculate normal RDTs (default: True)</li>
+<li><strong>skew</strong> (<em>bool</em>) -- calculate skew RDTs (default: True)</li>
+<li><strong>complex_conj</strong> (<em>bool</em>) -- Have both, RDT and it’s complex conjugate RDT in the list
+(default: True)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Dictionary with keys of orders containing lists of 4-Tuples for the RDTs of that order.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="twiss_optics.twiss_functions.tau">
+<code class="descclassname">twiss_optics.twiss_functions.</code><code class="descname">tau</code><span class="sig-paren">(</span><em>data</em>, <em>q</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/twiss_functions.html#tau"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.twiss_functions.tau" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return tau from phase advances in data, see Eq. 16 in <a class="footnote-reference" href="#franchianalyticformulasrapid2017" id="id17">[2]</a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="twiss_optics.twiss_functions.upper">
+<code class="descclassname">twiss_optics.twiss_functions.</code><code class="descname">upper</code><span class="sig-paren">(</span><em>list_of_strings</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/twiss_optics/twiss_functions.html#upper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#twiss_optics.twiss_functions.upper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set all items of list to uppercase</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../utils/index.html" class="btn btn-neutral float-right" title="Utils" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../tune_analysis/index.html" class="btn btn-neutral float-left" title="Tune Analysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

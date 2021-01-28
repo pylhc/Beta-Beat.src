@@ -1,0 +1,749 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Tune Analysis &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Twiss Optics" href="../twiss_optics/index.html" />
+    <link rel="prev" title="TFS Files" href="../tfs_files/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tune Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-tune_analysis.bbq_tools">Package Content</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-tune-analysis-bbq-tools">Module tune_analysis.bbq_tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-tune-analysis-constants">Module tune_analysis.constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-tune-analysis-detuning-tools">Module tune_analysis.detuning_tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-tune-analysis-kickac-modifiers">Module tune_analysis.kickac_modifiers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-tune-analysis-timber-extract">Module tune_analysis.timber_extract</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Tune Analysis</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/tune_analysis/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tune-analysis">
+<h1>Tune Analysis<a class="headerlink" href="#tune-analysis" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-tune_analysis.bbq_tools">
+<span id="package-content"></span><h2>Package Content<a class="headerlink" href="#module-tune_analysis.bbq_tools" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-tune-analysis-bbq-tools">
+<h3>Module tune_analysis.bbq_tools<a class="headerlink" href="#module-tune-analysis-bbq-tools" title="Permalink to this headline">¶</a></h3>
+<p>Tools to handle BBQ data.</p>
+<dl class="docutils">
+<dt>This package contains a collection of tools to handle and modify BBQ data:</dt>
+<dd><ul class="first last simple">
+<li>Calculating moving average</li>
+<li>Plotting</li>
+</ul>
+</dd>
+</dl>
+<dl class="function">
+<dt id="tune_analysis.bbq_tools.get_moving_average">
+<code class="descclassname">tune_analysis.bbq_tools.</code><code class="descname">get_moving_average</code><span class="sig-paren">(</span><em>data_series</em>, <em>length=20</em>, <em>min_val=None</em>, <em>max_val=None</em>, <em>fine_length=None</em>, <em>fine_cut=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/bbq_tools.html#get_moving_average"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.bbq_tools.get_moving_average" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a moving average of the <code class="docutils literal notranslate"><span class="pre">data_series</span></code> over <code class="docutils literal notranslate"><span class="pre">length</span></code> entries.
+The data can be filtered beforehand.
+The values are shifted, so that the averaged value takes ceil((length-1)/2) values previous
+and floor((length-1)/2) following values into account.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_series</strong> -- Series of data</li>
+<li><strong>length</strong> -- length of the averaging window</li>
+<li><strong>min_val</strong> -- minimum value (for filtering)</li>
+<li><strong>max_val</strong> -- maximum value (for filtering)</li>
+<li><strong>fine_length</strong> -- length of the averaging window for fine cleaning</li>
+<li><strong>fine_cut</strong> -- allowed deviation for fine cleaning</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Returns: filtered and averaged Series and the mask used for filtering data.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.bbq_tools.plot_bbq_data">
+<code class="descclassname">tune_analysis.bbq_tools.</code><code class="descname">plot_bbq_data</code><span class="sig-paren">(</span><em>bbq_df</em>, <em>interval=None</em>, <em>xmin=None</em>, <em>xmax=None</em>, <em>ymin=None</em>, <em>ymax=None</em>, <em>output=None</em>, <em>show=True</em>, <em>two_plots=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/bbq_tools.html#plot_bbq_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.bbq_tools.plot_bbq_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot BBQ data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>bbq_df</strong> -- BBQ Dataframe with moving average columns</li>
+<li><strong>interval</strong> -- start and end time of used interval, will be marked with red bars</li>
+<li><strong>xmin</strong> -- Lower x limit (time)</li>
+<li><strong>xmax</strong> -- Upper x limit (time)</li>
+<li><strong>ymin</strong> -- Lower y limit (tune)</li>
+<li><strong>ymax</strong> -- Upper y limit (tune)</li>
+<li><strong>output</strong> -- Path to the output file</li>
+<li><strong>show</strong> -- Shows plot if <cite>True</cite></li>
+<li><strong>two_plots</strong> -- Plots each tune in it’s own axes if <cite>True</cite></li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Plotted figure</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<span class="target" id="module-tune_analysis.constants"></span><div class="section" id="module-tune-analysis-constants">
+<h3>Module tune_analysis.constants<a class="headerlink" href="#module-tune-analysis-constants" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="tune_analysis.constants.get_action_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_action_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_action_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_action_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the action column.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_action_err_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_action_err_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_action_err_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_action_err_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the action error column.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_bbq_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_bbq_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_bbq_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_bbq_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the BBQ column</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_experiment_timezone">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_experiment_timezone</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_experiment_timezone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_experiment_timezone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get time zone for measurement data.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_mav_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_mav_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_mav_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_mav_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the moving average BBQ column.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_mav_std_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_mav_std_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_mav_std_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_mav_std_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the standard deviation of the moving average data.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_natq_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_natq_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_natq_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_natq_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the natural tune column.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_natq_corr_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_natq_corr_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_natq_corr_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_natq_corr_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the corrected natural tune column.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_natq_err_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_natq_err_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_natq_err_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_natq_err_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the natural tune error column.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_odr_header_offset">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_odr_header_offset</code><span class="sig-paren">(</span><em>j_plane</em>, <em>q_plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_odr_header_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_odr_header_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Header key for odr offset (i.e. beta[0])</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_odr_header_offset_corr">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_odr_header_offset_corr</code><span class="sig-paren">(</span><em>j_plane</em>, <em>q_plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_odr_header_offset_corr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_odr_header_offset_corr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Header key for corrected odr offset (i.e. beta[0])</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_odr_header_slope">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_odr_header_slope</code><span class="sig-paren">(</span><em>j_plane</em>, <em>q_plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_odr_header_slope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_odr_header_slope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Header key for odr slope (i.e. beta[1])</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_odr_header_slope_corr">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_odr_header_slope_corr</code><span class="sig-paren">(</span><em>j_plane</em>, <em>q_plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_odr_header_slope_corr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_odr_header_slope_corr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Header key for corrected odr slope (i.e. beta[1])</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_odr_header_slope_std">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_odr_header_slope_std</code><span class="sig-paren">(</span><em>j_plane</em>, <em>q_plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_odr_header_slope_std"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_odr_header_slope_std" title="Permalink to this definition">¶</a></dt>
+<dd><p>Header key for odr slope standard deviation (i.e. sd_beta[1])</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_odr_header_slope_std_corr">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_odr_header_slope_std_corr</code><span class="sig-paren">(</span><em>j_plane</em>, <em>q_plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_odr_header_slope_std_corr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_odr_header_slope_std_corr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Header key for corrected odr slope standard deviation (i.e. sd_beta[1])</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_paired_lables">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_paired_lables</code><span class="sig-paren">(</span><em>action_plane</em>, <em>tune_plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_paired_lables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_paired_lables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Labels for the action/tune plots.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_planes">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_planes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_planes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_planes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Names for the planes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_tend_head">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_tend_head</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_tend_head"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_tend_head" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for fill end time from header.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_timber_bbq_key">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_timber_bbq_key</code><span class="sig-paren">(</span><em>plane</em>, <em>beam</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_timber_bbq_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_timber_bbq_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Key to extract bbq from timber.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_time_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_time_col</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_time_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_time_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the TIME column.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_total_natq_std_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_total_natq_std_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_total_natq_std_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_total_natq_std_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the total standard deviation for the natural tune.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_tstart_head">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_tstart_head</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_tstart_head"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_tstart_head" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for fill start time from header.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.constants.get_used_in_mav_col">
+<code class="descclassname">tune_analysis.constants.</code><code class="descname">get_used_in_mav_col</code><span class="sig-paren">(</span><em>plane</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/constants.html#get_used_in_mav_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.constants.get_used_in_mav_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Label for the column showing if BBQ value was used in moving average.</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-tune_analysis.detuning_tools"></span><div class="section" id="module-tune-analysis-detuning-tools">
+<h3>Module tune_analysis.detuning_tools<a class="headerlink" href="#module-tune-analysis-detuning-tools" title="Permalink to this headline">¶</a></h3>
+<p>Some tools for amplitude detuning, mainly plotting.</p>
+<dl class="docutils">
+<dt>Important Convention:</dt>
+<dd>The beta-parameter in the ODR models go upwards with order, i.e.
+|  beta[0] = y-Axis offset
+|  beta[1] = slope
+|  beta[2] = quadratic term
+|  etc.</dd>
+</dl>
+<dl class="function">
+<dt id="tune_analysis.detuning_tools.do_linear_odr">
+<code class="descclassname">tune_analysis.detuning_tools.</code><code class="descname">do_linear_odr</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>xerr</em>, <em>yerr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/detuning_tools.html#do_linear_odr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.detuning_tools.do_linear_odr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns linear odr fit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> -- Series of x data</li>
+<li><strong>y</strong> -- Series of y data</li>
+<li><strong>xerr</strong> -- Series of x data errors</li>
+<li><strong>yerr</strong> -- Series of y data errors</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Returns: Linear odr fit. Betas see <code class="docutils literal notranslate"><span class="pre">linear_model()</span></code>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.detuning_tools.linear_model">
+<code class="descclassname">tune_analysis.detuning_tools.</code><code class="descname">linear_model</code><span class="sig-paren">(</span><em>beta</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/detuning_tools.html#linear_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.detuning_tools.linear_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a linear model <code class="docutils literal notranslate"><span class="pre">beta[0]</span> <span class="pre">+</span> <span class="pre">beta[1]</span> <span class="pre">*</span> <span class="pre">x</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>beta</strong> -- beta[0] = y-offset
+beta[1] = slope</li>
+<li><strong>x</strong> -- x-value</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.detuning_tools.plot_detuning">
+<code class="descclassname">tune_analysis.detuning_tools.</code><code class="descname">plot_detuning</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>xerr</em>, <em>yerr</em>, <em>labels</em>, <em>xmin=None</em>, <em>xmax=None</em>, <em>ymin=None</em>, <em>ymax=None</em>, <em>odr_fit=None</em>, <em>odr_plot=&lt;function plot_linear_odr&gt;</em>, <em>output=None</em>, <em>show=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/detuning_tools.html#plot_detuning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.detuning_tools.plot_detuning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot amplitude detuning.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> -- Action data.</li>
+<li><strong>y</strong> -- Tune data.</li>
+<li><strong>xerr</strong> -- Action error.</li>
+<li><strong>yerr</strong> -- Tune error.</li>
+<li><strong>xmin</strong> -- Lower action range to plot.</li>
+<li><strong>xmax</strong> -- Upper action range to plot.</li>
+<li><strong>ymin</strong> -- Lower tune range to plot.</li>
+<li><strong>ymax</strong> -- Upper tune range to plot.</li>
+<li><strong>odr_fit</strong> -- results of the odr-fit (e.g. see do_linear_odr)</li>
+<li><strong>odr_plot</strong> -- function to plot odr_fit (e.g. see plot_linear_odr)</li>
+<li><strong>labels</strong> -- Dict of labels to use for the data (“line”), the x-axis (“x”) and the y-axis (“y”)</li>
+<li><strong>output</strong> -- Output file of the plot.</li>
+<li><strong>show</strong> -- Show the plot in window.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Plotted Figure</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.detuning_tools.plot_linear_odr">
+<code class="descclassname">tune_analysis.detuning_tools.</code><code class="descname">plot_linear_odr</code><span class="sig-paren">(</span><em>ax</em>, <em>odr_fit</em>, <em>lim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/detuning_tools.html#plot_linear_odr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.detuning_tools.plot_linear_odr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a linear odr fit to axes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.detuning_tools.print_odr_result">
+<code class="descclassname">tune_analysis.detuning_tools.</code><code class="descname">print_odr_result</code><span class="sig-paren">(</span><em>printer</em>, <em>odr_out</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/detuning_tools.html#print_odr_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.detuning_tools.print_odr_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logs the odr output results.</p>
+<p>Adapted from odr_output pretty print.</p>
+</dd></dl>
+
+</div>
+<span class="target" id="module-tune_analysis.kickac_modifiers"></span><div class="section" id="module-tune-analysis-kickac-modifiers">
+<h3>Module tune_analysis.kickac_modifiers<a class="headerlink" href="#module-tune-analysis-kickac-modifiers" title="Permalink to this headline">¶</a></h3>
+<p>Functions to add data to or extract data from kick_ac files.</p>
+<dl class="function">
+<dt id="tune_analysis.kickac_modifiers.add_bbq_data">
+<code class="descclassname">tune_analysis.kickac_modifiers.</code><code class="descname">add_bbq_data</code><span class="sig-paren">(</span><em>kickac_df</em>, <em>bbq_series</em>, <em>column</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/kickac_modifiers.html#add_bbq_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.kickac_modifiers.add_bbq_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add bbq values from series to kickac dataframe into column.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>kickac_df</strong> -- kickac dataframe
+(needs to contain column “TIME_COL” or has time as index)</li>
+<li><strong>bbq_series</strong> -- series of bbq data with time as index</li>
+<li><strong>column</strong> -- column name to add the data into</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Returns: modified kickac dataframe</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.kickac_modifiers.add_corrected_natural_tunes">
+<code class="descclassname">tune_analysis.kickac_modifiers.</code><code class="descname">add_corrected_natural_tunes</code><span class="sig-paren">(</span><em>kickac_df</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/kickac_modifiers.html#add_corrected_natural_tunes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.kickac_modifiers.add_corrected_natural_tunes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the corrected natural tunes to kickac</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kickac_df</strong> -- Dataframe containing the data</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Modified kick_ac</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.kickac_modifiers.add_moving_average">
+<code class="descclassname">tune_analysis.kickac_modifiers.</code><code class="descname">add_moving_average</code><span class="sig-paren">(</span><em>kickac_df</em>, <em>bbq_df</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/kickac_modifiers.html#add_moving_average"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.kickac_modifiers.add_moving_average" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the moving average of the bbq data to kickac_df and bbq_df.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.kickac_modifiers.add_odr">
+<code class="descclassname">tune_analysis.kickac_modifiers.</code><code class="descname">add_odr</code><span class="sig-paren">(</span><em>kickac_df</em>, <em>odr_fit</em>, <em>action_plane</em>, <em>tune_plane</em>, <em>corrected=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/kickac_modifiers.html#add_odr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.kickac_modifiers.add_odr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the odr fit of the (un)corrected data to the header of the kickac.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>kickac_df</strong> -- Dataframe containing the data</li>
+<li><strong>odr_fit</strong> -- odr-fit data (definitions see <code class="docutils literal notranslate"><span class="pre">detuning_tools.py</span></code>)</li>
+<li><strong>action_plane</strong> -- Plane of the action</li>
+<li><strong>tune_plane</strong> -- Plane of the tune</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Modified kick_ac</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.kickac_modifiers.add_total_natq_std">
+<code class="descclassname">tune_analysis.kickac_modifiers.</code><code class="descname">add_total_natq_std</code><span class="sig-paren">(</span><em>kickac_df</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/kickac_modifiers.html#add_total_natq_std"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.kickac_modifiers.add_total_natq_std" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the total standard deviation of the natural tune to the kickac.
+The total standard deviation is here defined as the standard deviation of the measurement
+plus the standard deviation of the moving average.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kickac_df</strong> -- Dataframe containing the data</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Modified kick_ac</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.kickac_modifiers.get_ampdet_data">
+<code class="descclassname">tune_analysis.kickac_modifiers.</code><code class="descname">get_ampdet_data</code><span class="sig-paren">(</span><em>kickac_df</em>, <em>action_plane</em>, <em>tune_plane</em>, <em>corrected=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/kickac_modifiers.html#get_ampdet_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.kickac_modifiers.get_ampdet_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the data needed for plotting the (un)corrected amplitude detuning
+from the kickac dataframe.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>kickac_df</strong> -- Dataframe containing the data</li>
+<li><strong>action_plane</strong> -- Plane of the action</li>
+<li><strong>tune_plane</strong> -- Plane of the tune</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Dictionary containing x,y, x_err and y_err</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.kickac_modifiers.get_odr_data">
+<code class="descclassname">tune_analysis.kickac_modifiers.</code><code class="descname">get_odr_data</code><span class="sig-paren">(</span><em>kickac_df</em>, <em>action_plane</em>, <em>tune_plane</em>, <em>corrected=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/kickac_modifiers.html#get_odr_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.kickac_modifiers.get_odr_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the data from odr.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>kickac_df</strong> -- Dataframe containing the data</li>
+<li><strong>action_plane</strong> -- Plane of the action</li>
+<li><strong>tune_plane</strong> -- Plane of the tune</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Dictionary containing x,y, ylower, yupper, offset and label</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<span class="target" id="module-tune_analysis.timber_extract"></span><div class="section" id="module-tune-analysis-timber-extract">
+<h3>Module tune_analysis.timber_extract<a class="headerlink" href="#module-tune-analysis-timber-extract" title="Permalink to this headline">¶</a></h3>
+<p>Tools to extract data from timber.</p>
+<p>It is a bit heavy on the LHC-side at the moment.
+Feel free to make it more accelerator independent.</p>
+<dl class="function">
+<dt id="tune_analysis.timber_extract.extract_between_times">
+<code class="descclassname">tune_analysis.timber_extract.</code><code class="descname">extract_between_times</code><span class="sig-paren">(</span><em>t_start</em>, <em>t_end</em>, <em>keys=None</em>, <em>names=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/timber_extract.html#extract_between_times"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.timber_extract.extract_between_times" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts data for keys between t_start and t_end from timber.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>t_start</strong> -- starting time in UTC format</li>
+<li><strong>t_end</strong> -- end time in UTC format</li>
+<li><strong>keys</strong> -- list of data to extract</li>
+<li><strong>names</strong> -- dict to map keys to column names</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Returns: tfs pandas dataframe.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.timber_extract.get_fill_times">
+<code class="descclassname">tune_analysis.timber_extract.</code><code class="descname">get_fill_times</code><span class="sig-paren">(</span><em>db</em>, <em>fill_number</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/timber_extract.html#get_fill_times"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.timber_extract.get_fill_times" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns start and end time of fill with fill number.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>db</strong> -- pytimber database</li>
+<li><strong>fill_number</strong> -- fill number</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Returns: tuple of start and end time</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.timber_extract.get_tune_and_coupling_variables">
+<code class="descclassname">tune_analysis.timber_extract.</code><code class="descname">get_tune_and_coupling_variables</code><span class="sig-paren">(</span><em>db</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/timber_extract.html#get_tune_and_coupling_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.timber_extract.get_tune_and_coupling_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the tune and coupling variable names.
+:param db: pytimber database</p>
+<p>Returns: list of variable names</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tune_analysis.timber_extract.lhc_fill_to_tfs">
+<code class="descclassname">tune_analysis.timber_extract.</code><code class="descname">lhc_fill_to_tfs</code><span class="sig-paren">(</span><em>fill_number</em>, <em>keys=None</em>, <em>names=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tune_analysis/timber_extract.html#lhc_fill_to_tfs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tune_analysis.timber_extract.lhc_fill_to_tfs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts data for keys of fill from timber.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fill_number</strong> -- fill number</li>
+<li><strong>keys</strong> -- list of data to extract</li>
+<li><strong>names</strong> -- dict to map keys to column names</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Returns: tfs pandas dataframe.</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../twiss_optics/index.html" class="btn btn-neutral float-right" title="Twiss Optics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../tfs_files/index.html" class="btn btn-neutral float-left" title="TFS Files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

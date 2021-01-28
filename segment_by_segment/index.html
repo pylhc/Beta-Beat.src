@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Segment by Segment &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="TFS Files" href="../tfs_files/index.html" />
+    <link rel="prev" title="Plotting Tools" href="../plotshop/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Segment by Segment</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#entry-points-segment-by-segment">Entry Points Segment by Segment</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-segment_by_segment.segment_by_segment">Module segment_by_segment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#available-classes">Available Classes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Segment by Segment</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/segment_by_segment/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="segment-by-segment">
+<h1>Segment by Segment<a class="headerlink" href="#segment-by-segment" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="entry-points-segment-by-segment">
+<h2>Entry Points Segment by Segment<a class="headerlink" href="#entry-points-segment-by-segment" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-segment_by_segment.segment_by_segment">
+<span id="module-segment-by-segment"></span><h3>Module segment_by_segment<a class="headerlink" href="#module-segment_by_segment.segment_by_segment" title="Permalink to this headline">¶</a></h3>
+<dl class="exception">
+<dt id="segment_by_segment.segment_by_segment.SbsDefinitionError">
+<em class="property">exception </em><code class="descclassname">segment_by_segment.segment_by_segment.</code><code class="descname">SbsDefinitionError</code><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#SbsDefinitionError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.SbsDefinitionError" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="segment_by_segment.segment_by_segment.SegmentBeatings">
+<em class="property">class </em><code class="descclassname">segment_by_segment.segment_by_segment.</code><code class="descname">SegmentBeatings</code><span class="sig-paren">(</span><em>directory</em>, <em>seg_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#SegmentBeatings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.SegmentBeatings" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO</p>
+<dl class="method">
+<dt id="segment_by_segment.segment_by_segment.SegmentBeatings.get_filename">
+<code class="descname">get_filename</code><span class="sig-paren">(</span><em>template</em>, <em>plane=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#SegmentBeatings.get_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.SegmentBeatings.get_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the filename to be loaded or written.</p>
+<p>This function will get as parameters any parameter given to the
+Tfs(…) attributes. It must return the filename to be written
+according to those parameters. If “two_planes=False” is not present in
+the Tfs(…) definition, it will also be given the keyword argument
+plane=”x” or “y”.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="segment_by_segment.segment_by_segment.SegmentModels">
+<em class="property">class </em><code class="descclassname">segment_by_segment.segment_by_segment.</code><code class="descname">SegmentModels</code><span class="sig-paren">(</span><em>directory</em>, <em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#SegmentModels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.SegmentModels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class to hold and load the models of the segments created by MAD-X.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> -- The path where to find the models.</li>
+<li><strong>segment</strong> -- A segment instance corresponding to the model to load.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="segment_by_segment.segment_by_segment.SegmentModels.get_filename">
+<code class="descname">get_filename</code><span class="sig-paren">(</span><em>template</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#SegmentModels.get_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.SegmentModels.get_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the filename to be loaded or written.</p>
+<p>This function will get as parameters any parameter given to the
+Tfs(…) attributes. It must return the filename to be written
+according to those parameters. If “two_planes=False” is not present in
+the Tfs(…) definition, it will also be given the keyword argument
+plane=”x” or “y”.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="segment_by_segment.segment_by_segment.improve_segment">
+<code class="descclassname">segment_by_segment.segment_by_segment.</code><code class="descname">improve_segment</code><span class="sig-paren">(</span><em>segment</em>, <em>model</em>, <em>meas</em>, <em>eval_funct</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#improve_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.improve_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a new segment with elements that satisfies eval_funct.</p>
+<p>This function takes a segment with start and end that might not
+satisfy ‘eval_funct’ and searchs the next element that satisfies
+it, returning a new segment with the new start and end elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>segment</strong> -- The segment to be processed (see Segment class).</li>
+<li><strong>model</strong> -- The model where to take all the element names from. Both the
+start and end of the segment have to be present in this model
+NAME attribute.</li>
+<li><strong>meas</strong> -- An instance of the Measurement class that will be passed to
+‘eval_funct’ to check elements for validity.</li>
+<li><strong>eval_funct</strong> -- An user-provided function that takes an element name as
+first argument and an instance of the Measurement class as second,
+and returns True only if the element is evaluated as good start or
+end for the segment, usually checking for presence in the
+measurement and not too large error.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A new segment with generally different start and end but always the
+same name and element attributes.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="segment_by_segment.segment_by_segment.run_for_segment">
+<code class="descclassname">segment_by_segment.segment_by_segment.</code><code class="descname">run_for_segment</code><span class="sig-paren">(</span><em>accel_cls</em>, <em>segment</em>, <em>model</em>, <em>meas</em>, <em>optics</em>, <em>output</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#run_for_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.run_for_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="segment_by_segment.segment_by_segment.segment_by_segment">
+<code class="descclassname">segment_by_segment.segment_by_segment.</code><code class="descname">segment_by_segment</code><span class="sig-paren">(</span><em>accel_cls</em>, <em>options</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#segment_by_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.segment_by_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="segment_by_segment.segment_by_segment.write_beatings">
+<code class="descclassname">segment_by_segment.segment_by_segment.</code><code class="descname">write_beatings</code><span class="sig-paren">(</span><em>segment</em>, <em>propagables</em>, <em>output</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/segment_by_segment/segment_by_segment.html#write_beatings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#segment_by_segment.segment_by_segment.write_beatings" title="Permalink to this definition">¶</a></dt>
+<dd><p>TODO</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="available-classes">
+<h2>Available Classes<a class="headerlink" href="#available-classes" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../tfs_files/index.html" class="btn btn-neutral float-right" title="TFS Files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../plotshop/index.html" class="btn btn-neutral float-left" title="Plotting Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

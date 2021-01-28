@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>correction.fullresponse.response_madx &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>correction.fullresponse.response_madx</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for correction.fullresponse.response_madx</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provides a function to create the responses of beta, phase, dispersion, tune and coupling</span>
+<span class="sd">via iterative madx calls.</span>
+
+<span class="sd">The variables under investigation need to be provided as a list (which can be gotten from</span>
+<span class="sd">accelerator class).</span>
+
+<span class="sd">For now, the response matrix is stored in a &#39;pickled&#39; file.</span>
+
+<span class="sd">:author: Lukas Malina, Joschua Dilly, Jaime (...) Coello de Portugal</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+
+<span class="kn">import</span> <span class="nn">madx_wrapper</span>
+<span class="kn">from</span> <span class="nn">twiss_optics.optics_class</span> <span class="kn">import</span> <span class="n">TwissOptics</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_pandas</span> <span class="k">as</span> <span class="n">tfs</span>
+<span class="kn">from</span> <span class="nn">utils.contexts</span> <span class="kn">import</span> <span class="n">timeit</span><span class="p">,</span> <span class="n">suppress_warnings</span>
+<span class="kn">from</span> <span class="nn">utils.iotools</span> <span class="kn">import</span> <span class="n">create_dirs</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># Full Response Mad-X ##########################################################</span>
+
+
+<div class="viewcode-block" id="generate_fullresponse"><a class="viewcode-back" href="../../../correction/index.html#correction.fullresponse.response_madx.generate_fullresponse">[docs]</a><span class="k">def</span> <span class="nf">generate_fullresponse</span><span class="p">(</span><span class="n">accel_inst</span><span class="p">,</span> <span class="n">variable_categories</span><span class="p">,</span>
+                          <span class="n">delta_k</span><span class="o">=</span><span class="mf">0.00002</span><span class="p">,</span> <span class="n">num_proc</span><span class="o">=</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(),</span>
+                          <span class="n">temp_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generate a dictionary containing response matrices for</span>
+<span class="sd">        beta, phase, dispersion, tune and coupling and saves it to a file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            accel_inst : Accelerator Instance.</span>
+<span class="sd">            variable_categories (list): Categories of the variables/knobs to use. (from .json)</span>
+<span class="sd">            delta_k (float): delta K1L to be applied to quads for sensitivity matrix</span>
+<span class="sd">            num_proc (int): Number of processes to use in parallel.</span>
+<span class="sd">            temp_dir (str): temporary directory. If ``None``, uses folder of original_jobfile.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Generating Fullresponse via Mad-X.&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">timeit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;  Total time generating fullresponse: </span><span class="si">{:f}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="p">))):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">temp_dir</span><span class="p">:</span>
+            <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">accel_inst</span><span class="o">.</span><span class="n">model_dir</span>
+        <span class="n">create_dirs</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">)</span>
+
+        <span class="n">variables</span> <span class="o">=</span> <span class="n">accel_inst</span><span class="o">.</span><span class="n">get_variables</span><span class="p">(</span><span class="n">classes</span><span class="o">=</span><span class="n">variable_categories</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No variables found! Make sure your categories are valid!&quot;</span><span class="p">)</span>
+
+        <span class="c1"># try:</span>
+        <span class="c1">#     variables = variables.tolist()</span>
+        <span class="c1"># except AttributeError:</span>
+        <span class="c1">#     pass</span>
+
+        <span class="n">num_proc</span> <span class="o">=</span> <span class="n">num_proc</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">num_proc</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+        <span class="n">process_pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">num_proc</span><span class="p">)</span>
+
+        <span class="n">incr_dict</span> <span class="o">=</span> <span class="n">_generate_madx_jobs</span><span class="p">(</span><span class="n">accel_inst</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span>
+                                        <span class="n">delta_k</span><span class="p">,</span> <span class="n">num_proc</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+        <span class="n">_call_madx</span><span class="p">(</span><span class="n">process_pool</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">,</span> <span class="n">num_proc</span><span class="p">)</span>
+        <span class="n">_clean_up</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">num_proc</span><span class="p">)</span>
+
+        <span class="n">var_to_twiss</span> <span class="o">=</span> <span class="n">_load_madx_results</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">process_pool</span><span class="p">,</span> <span class="n">incr_dict</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">)</span>
+        <span class="n">fullresponse</span> <span class="o">=</span> <span class="n">_create_fullresponse_from_dict</span><span class="p">(</span><span class="n">var_to_twiss</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fullresponse</span></div>
+
+
+<span class="k">def</span> <span class="nf">_generate_madx_jobs</span><span class="p">(</span><span class="n">accel_inst</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">delta_k</span><span class="p">,</span> <span class="n">num_proc</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generates madx job-files &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Generating MADX jobfiles.&quot;</span><span class="p">)</span>
+    <span class="n">incr_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;0&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
+    <span class="n">vars_per_proc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">))</span> <span class="o">/</span> <span class="n">num_proc</span><span class="p">))</span>
+
+    <span class="n">madx_job</span> <span class="o">=</span> <span class="n">_get_madx_job</span><span class="p">(</span><span class="n">accel_inst</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">proc_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_proc</span><span class="p">):</span>
+        <span class="n">jobfile_path</span> <span class="o">=</span> <span class="n">_get_jobfiles</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">proc_idx</span><span class="p">)</span>
+
+        <span class="n">current_job</span> <span class="o">=</span> <span class="n">madx_job</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">vars_per_proc</span><span class="p">):</span>
+            <span class="n">var_idx</span> <span class="o">=</span> <span class="n">proc_idx</span> <span class="o">*</span> <span class="n">vars_per_proc</span> <span class="o">+</span> <span class="n">i</span>
+            <span class="k">if</span> <span class="n">var_idx</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">):</span>
+                <span class="k">break</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="n">variables</span><span class="p">[</span><span class="n">var_idx</span><span class="p">]</span>
+            <span class="n">incr_dict</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">delta_k</span>
+            <span class="n">current_job</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{var:s}</span><span class="s2">=</span><span class="si">{var:s}{delta:+f}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="n">delta_k</span><span class="p">)</span>
+            <span class="n">current_job</span> <span class="o">+=</span> <span class="s2">&quot;twiss, file=&#39;</span><span class="si">{:s}</span><span class="s2">&#39;;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;twiss.&quot;</span> <span class="o">+</span> <span class="n">var</span><span class="p">))</span>
+            <span class="n">current_job</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{var:s}</span><span class="s2">=</span><span class="si">{var:s}{delta:+f}</span><span class="s2">;</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">,</span> <span class="n">delta</span><span class="o">=-</span><span class="n">delta_k</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">proc_idx</span> <span class="o">==</span> <span class="n">num_proc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">current_job</span> <span class="o">+=</span> <span class="s2">&quot;twiss, file=&#39;</span><span class="si">{:s}</span><span class="s2">&#39;;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;twiss.0&quot;</span><span class="p">))</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">jobfile_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">jobfile</span><span class="p">:</span>
+            <span class="n">jobfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">current_job</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">incr_dict</span>
+
+
+<span class="k">def</span> <span class="nf">_get_madx_job</span><span class="p">(</span><span class="n">accel_inst</span><span class="p">):</span>
+    <span class="n">job_content</span> <span class="o">=</span> <span class="n">accel_inst</span><span class="o">.</span><span class="n">get_basic_seq_job</span><span class="p">()</span>
+    <span class="n">job_content</span> <span class="o">+=</span> <span class="p">(</span>
+        <span class="s2">&quot;select, flag=twiss, clear;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;select, flag=twiss, pattern=&#39;^BPM.*\.B</span><span class="si">{beam:d}</span><span class="s2">$&#39;, &quot;</span>
+        <span class="s2">&quot;column=NAME,S,BETX,ALFX,BETY,ALFY,DX,DY,DPX,DPY,X,Y,K1L,MUX,MUY,R11,R12,R21,R22;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">beam</span><span class="o">=</span><span class="n">accel_inst</span><span class="o">.</span><span class="n">get_beam</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">job_content</span>
+
+
+<span class="k">def</span> <span class="nf">_call_madx</span><span class="p">(</span><span class="n">process_pool</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">,</span> <span class="n">num_proc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Call madx in parallel &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Starting </span><span class="si">{:d}</span><span class="s2"> MAD-X jobs...&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_proc</span><span class="p">))</span>
+    <span class="n">madx_jobs</span> <span class="o">=</span> <span class="p">[</span><span class="n">_get_jobfiles</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_proc</span><span class="p">)]</span>
+    <span class="n">process_pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_launch_single_job</span><span class="p">,</span> <span class="n">madx_jobs</span><span class="p">)</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;MAD-X jobs done.&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_clean_up</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">num_proc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Merge Logfiles and clean temporary outputfiles &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Cleaning output and building log...&quot;</span><span class="p">)</span>
+    <span class="n">full_log</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_proc</span><span class="p">):</span>
+        <span class="n">job_path</span> <span class="o">=</span> <span class="n">_get_jobfiles</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="n">log_path</span> <span class="o">=</span> <span class="n">job_path</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">log_file</span><span class="p">:</span>
+            <span class="n">full_log</span> <span class="o">+=</span> <span class="n">log_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">log_path</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">job_path</span><span class="p">)</span>
+    <span class="n">full_log_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;response_madx_full.log&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">full_log_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">full_log_file</span><span class="p">:</span>
+        <span class="n">full_log_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">full_log</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_load_madx_results</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">process_pool</span><span class="p">,</span> <span class="n">incr_dict</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Load the madx results in parallel and return var-tfs dictionary &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Loading Madx Results.&quot;</span><span class="p">)</span>
+    <span class="n">vars_and_paths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">variables</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">]:</span>
+        <span class="n">vars_and_paths</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">value</span><span class="p">,</span> <span class="n">temp_dir</span><span class="p">))</span>
+    <span class="n">var_to_twiss</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">tfs_data</span> <span class="ow">in</span> <span class="n">process_pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_load_and_remove_twiss</span><span class="p">,</span> <span class="n">vars_and_paths</span><span class="p">):</span>
+        <span class="n">tfs_data</span><span class="p">[</span><span class="s1">&#39;incr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">incr_dict</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+        <span class="n">var_to_twiss</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">tfs_data</span>
+    <span class="k">return</span> <span class="n">var_to_twiss</span>
+
+
+<span class="k">def</span> <span class="nf">_create_fullresponse_from_dict</span><span class="p">(</span><span class="n">var_to_twiss</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Convert var-tfs dictionary to fullresponse dictionary &quot;&quot;&quot;</span>
+    <span class="n">var_to_twiss</span> <span class="o">=</span> <span class="n">_add_coupling</span><span class="p">(</span><span class="n">var_to_twiss</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Panel</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">var_to_twiss</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># After transpose e.g: resp[NDX, bpm12l1.b1, kqt3]</span>
+    <span class="c1"># The magnet called &quot;0&quot; is no change (nominal model)</span>
+    <span class="n">resp</span><span class="p">[</span><span class="s1">&#39;NDX&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;DX&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;BETX&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+    <span class="n">resp</span><span class="p">[</span><span class="s1">&#39;NDY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;DY&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;BETY&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+    <span class="n">resp</span><span class="p">[</span><span class="s1">&#39;BBX&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;BETX&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s1">&#39;BETX&#39;</span><span class="p">,</span> <span class="p">:,</span> <span class="s1">&#39;0&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+    <span class="n">resp</span><span class="p">[</span><span class="s1">&#39;BBY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;BETY&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s1">&#39;BETY&#39;</span><span class="p">,</span> <span class="p">:,</span> <span class="s1">&#39;0&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Remove difference of nominal model with itself (bunch of zeros)</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s1">&#39;incr&#39;</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:])</span>
+
+    <span class="k">with</span> <span class="n">suppress_warnings</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ComplexWarning</span><span class="p">):</span>  <span class="c1"># raised as everything is complex-type now</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;MUX&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;MUX&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;MUY&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;MUY&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;BETX&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;BETX&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;BETY&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;BETY&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;BBX&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;BBX&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;BBY&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;BBY&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;DX&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;DX&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;DY&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;DY&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;NDX&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;NDX&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s1">&#39;NDY&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;NDY&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="s2">&quot;F1001R&quot;</span><span class="p">:</span> <span class="n">tfs</span><span class="o">.</span><span class="n">TfsDataFrame</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;1001&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)),</span>
+              <span class="s2">&quot;F1001I&quot;</span><span class="p">:</span> <span class="n">tfs</span><span class="o">.</span><span class="n">TfsDataFrame</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;1001&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)),</span>
+              <span class="s2">&quot;F1010R&quot;</span><span class="p">:</span> <span class="n">tfs</span><span class="o">.</span><span class="n">TfsDataFrame</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;1010&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)),</span>
+              <span class="s2">&quot;F1010I&quot;</span><span class="p">:</span> <span class="n">tfs</span><span class="o">.</span><span class="n">TfsDataFrame</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">xs</span><span class="p">(</span><span class="s1">&#39;1010&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)),</span>
+              <span class="s1">&#39;Q&#39;</span><span class="p">:</span> <span class="n">resp</span><span class="o">.</span><span class="n">loc</span><span class="p">[[</span><span class="s1">&#39;Q1&#39;</span><span class="p">,</span> <span class="s1">&#39;Q2&#39;</span><span class="p">],</span> <span class="n">resp</span><span class="o">.</span><span class="n">major_axis</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:]</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="p">}</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="k">def</span> <span class="nf">_get_jobfiles</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return names for jobfile and iterfile according to index &quot;&quot;&quot;</span>
+    <span class="n">jobfile_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;job.iterate.</span><span class="si">{:d}</span><span class="s2">.madx&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">jobfile_path</span>
+
+
+<span class="k">def</span> <span class="nf">_launch_single_job</span><span class="p">(</span><span class="n">inputfile_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Function for pool to start a single madx job &quot;&quot;&quot;</span>
+    <span class="n">log_file</span> <span class="o">=</span> <span class="n">inputfile_path</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
+    <span class="n">madx_wrapper</span><span class="o">.</span><span class="n">resolve_and_run_file</span><span class="p">(</span><span class="n">inputfile_path</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_load_and_remove_twiss</span><span class="p">(</span><span class="n">var_and_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Function for pool to retrieve results &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span> <span class="o">=</span> <span class="n">var_and_path</span>
+    <span class="n">twissfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;twiss.&quot;</span> <span class="o">+</span> <span class="n">var</span><span class="p">)</span>
+    <span class="n">tfs_data</span> <span class="o">=</span> <span class="n">tfs</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">twissfile</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+    <span class="n">tfs_data</span><span class="p">[</span><span class="s1">&#39;Q1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tfs_data</span><span class="o">.</span><span class="n">Q1</span>
+    <span class="n">tfs_data</span><span class="p">[</span><span class="s1">&#39;Q2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tfs_data</span><span class="o">.</span><span class="n">Q2</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">twissfile</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">var</span><span class="p">,</span> <span class="n">tfs_data</span>
+
+
+<span class="k">def</span> <span class="nf">_add_coupling</span><span class="p">(</span><span class="n">dict_of_tfs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds coupling to the tfs. QUICK FIX VIA LOOP!&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">timeit</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;  Time adding coupling: </span><span class="si">{:f}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="p">))):</span>
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">dict_of_tfs</span><span class="p">:</span>
+            <span class="n">twopt</span> <span class="o">=</span> <span class="n">TwissOptics</span><span class="p">(</span><span class="n">dict_of_tfs</span><span class="p">[</span><span class="n">var</span><span class="p">])</span>
+            <span class="n">cpl</span> <span class="o">=</span> <span class="n">twopt</span><span class="o">.</span><span class="n">get_coupling</span><span class="p">(</span><span class="s2">&quot;cmatrix&quot;</span><span class="p">)</span>
+            <span class="n">dict_of_tfs</span><span class="p">[</span><span class="n">var</span><span class="p">][</span><span class="s2">&quot;1001&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpl</span><span class="p">[</span><span class="s2">&quot;F1001&quot;</span><span class="p">]</span>
+            <span class="n">dict_of_tfs</span><span class="p">[</span><span class="n">var</span><span class="p">][</span><span class="s2">&quot;1010&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpl</span><span class="p">[</span><span class="s2">&quot;F1010&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">dict_of_tfs</span>
+
+
+<span class="c1"># Script Mode ##################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">EnvironmentError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2"> is not supposed to run as main.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

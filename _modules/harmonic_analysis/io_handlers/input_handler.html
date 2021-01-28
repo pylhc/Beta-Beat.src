@@ -1,0 +1,604 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>harmonic_analysis.io_handlers.input_handler &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>harmonic_analysis.io_handlers.input_handler</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for harmonic_analysis.io_handlers.input_handler</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">abspath</span><span class="p">,</span> <span class="n">dirname</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">optics_measurements.optics_input</span> <span class="kn">import</span> <span class="n">_get_optics_parser</span><span class="p">,</span> <span class="n">OpticsInput</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">model</span> <span class="kn">import</span> <span class="n">manager</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">main_parser</span> <span class="o">=</span> <span class="n">_get_main_parser</span><span class="p">()</span>
+    <span class="n">main_options</span><span class="p">,</span> <span class="n">rest</span> <span class="o">=</span> <span class="n">main_parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;optics&quot;</span> <span class="ow">in</span> <span class="n">rest</span><span class="p">:</span>
+        <span class="n">rest</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;--files=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">main_options</span><span class="o">.</span><span class="n">file</span><span class="p">))</span>
+        <span class="n">rest</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;--outputdir=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">main_options</span><span class="o">.</span><span class="n">outputdir</span><span class="p">))</span>
+        <span class="n">rest</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;--model_dir=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="n">abspath</span><span class="p">(</span><span class="n">main_options</span><span class="o">.</span><span class="n">model</span><span class="p">))))</span>
+    <span class="n">subparsers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;clean&quot;</span><span class="p">:</span> <span class="n">_get_clean_parser</span><span class="p">,</span>
+        <span class="s2">&quot;harpy&quot;</span><span class="p">:</span> <span class="n">_get_harpy_parser</span><span class="p">,</span>
+        <span class="s2">&quot;optics&quot;</span><span class="p">:</span> <span class="n">_get_optics_parser</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">suboptions</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">subparser_name</span> <span class="ow">in</span> <span class="n">subparsers</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">subparser_name</span> <span class="ow">in</span> <span class="n">rest</span><span class="p">:</span>
+            <span class="n">rest</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">subparser_name</span><span class="p">)</span>
+            <span class="n">suboption</span><span class="p">,</span> <span class="n">rest</span> <span class="o">=</span> <span class="n">subparsers</span><span class="p">[</span><span class="n">subparser_name</span><span class="p">]()</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
+            <span class="n">suboptions</span><span class="p">[</span><span class="n">subparser_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">suboption</span>
+    <span class="n">main_input</span> <span class="o">=</span> <span class="n">MainInput</span><span class="o">.</span><span class="n">init_from_options</span><span class="p">(</span><span class="n">main_options</span><span class="p">)</span>
+    <span class="n">clean_input</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">harpy_input</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">optics_input</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="s2">&quot;clean&quot;</span> <span class="ow">in</span> <span class="n">suboptions</span><span class="p">:</span>
+        <span class="n">clean_input</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">init_from_options</span><span class="p">(</span><span class="n">suboptions</span><span class="p">[</span><span class="s2">&quot;clean&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="s2">&quot;harpy&quot;</span> <span class="ow">in</span> <span class="n">suboptions</span><span class="p">:</span>
+        <span class="n">harpy_input</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="o">.</span><span class="n">init_from_options</span><span class="p">(</span><span class="n">suboptions</span><span class="p">[</span><span class="s2">&quot;harpy&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="s2">&quot;optics&quot;</span> <span class="ow">in</span> <span class="n">suboptions</span><span class="p">:</span>
+        <span class="n">accelerator</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">get_accel_instance</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
+        <span class="n">suboptions</span><span class="p">[</span><span class="s2">&quot;optics&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">accelerator</span> <span class="o">=</span> <span class="n">accelerator</span>
+        <span class="n">optics_input</span> <span class="o">=</span> <span class="n">OpticsInput</span><span class="o">.</span><span class="n">init_from_options</span><span class="p">(</span><span class="n">suboptions</span><span class="p">[</span><span class="s2">&quot;optics&quot;</span><span class="p">])</span>
+
+
+
+    <span class="n">python_path</span> <span class="o">=</span> <span class="s2">&quot;/afs/cern.ch/work/o/omc/anaconda/bin/python &quot;</span>
+    <span class="k">return</span> <span class="n">main_input</span><span class="p">,</span> <span class="n">clean_input</span><span class="p">,</span> <span class="n">harpy_input</span><span class="p">,</span> <span class="n">optics_input</span><span class="p">,</span> <span class="p">(</span><span class="n">python_path</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="ArgumentError"><a class="viewcode-back" href="../../../harmonic_analysis/index.html#harmonic_analysis.io_handlers.input_handler.ArgumentError">[docs]</a><span class="k">class</span> <span class="nc">ArgumentError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<span class="k">class</span> <span class="nc">MainInput</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">DEFAULTS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;write_raw&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;startturn&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;endturn&quot;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">,</span>
+        <span class="s2">&quot;skip_files&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputdir</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_raw</span> <span class="o">=</span> <span class="n">MainInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;write_raw&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">startturn</span> <span class="o">=</span> <span class="n">MainInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;startturn&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endturn</span> <span class="o">=</span> <span class="n">MainInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;endturn&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_files</span> <span class="o">=</span> <span class="n">MainInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;skip_files&quot;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">init_from_options</span><span class="p">(</span><span class="n">options</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">MainInput</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">file</span><span class="c1">#[file_name.strip() for file_name in options.file.strip(&quot;\&quot;&quot;).split(&quot;,&quot;)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputdir</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">outputdir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_raw</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">write_raw</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_files</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">skip_files</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputdir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">outdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outputdir</span> <span class="o">=</span> <span class="n">outdir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">startturn</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">startturn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">endturn</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">endturn</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+
+<span class="k">def</span> <span class="nf">_get_main_parser</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+    <span class="c1"># Obligatory arguments ###########</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--file&quot;</span><span class="p">,</span> <span class="s2">&quot;--files&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma separated binary files to clean&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;file&quot;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--model&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Model for BPM locations&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;model&quot;</span>
+    <span class="p">)</span>
+    <span class="c1">################################</span>
+
+    <span class="c1"># Optional arguments ###########</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--outputdir&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Output directory.</span>
+<span class="s2">                If not present it will use the input file directory.&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;outputdir&quot;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--write_raw&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;If present, it will write the raw&quot;</span> <span class="o">+</span>
+              <span class="s2">&quot;ASCII file in the --outputdir.&quot;</span><span class="p">),</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--skip_files&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;If present, it will not write the .amps and the .freqs files&quot;</span> <span class="o">+</span>
+              <span class="s2">&quot;ASCII file in the --outputdir.&quot;</span><span class="p">),</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>    
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--startturn&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Turn index to start. Default is first turn: </span><span class="si">%(default)s</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">MainInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;startturn&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;startturn&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--endturn&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;First turn index to be ignored.</span>
+<span class="s2">                Default is a number that is lower than the maximum which</span>
+<span class="s2">                can be handled by drive: </span><span class="si">%(default)s</span><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">MainInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;endturn&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;endturn&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">parser</span>
+    <span class="c1">################################</span>
+
+
+<span class="k">class</span> <span class="nc">CleanInput</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">DEFAULTS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;svd_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;numpy&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sing_val&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="s2">&quot;peak_to_peak&quot;</span><span class="p">:</span> <span class="mf">0.00001</span><span class="p">,</span>
+        <span class="s2">&quot;max_peak&quot;</span><span class="p">:</span> <span class="mf">20.</span><span class="p">,</span>
+        <span class="s2">&quot;single_svd_bpm_threshold&quot;</span><span class="p">:</span> <span class="mf">0.925</span><span class="p">,</span>
+        <span class="s2">&quot;bad_bpms&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;wrong_polarity_bpms&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;noresync&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;write_clean&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;no_exact_zeros&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">svd_mode</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;svd_mode&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sing_val</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;sing_val&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">peak_to_peak</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;peak_to_peak&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_peak</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;max_peak&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">single_svd_bpm_threshold</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span>
+            <span class="s2">&quot;single_svd_bpm_threshold&quot;</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bad_bpms</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;bad_bpms&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrong_polarity_bpms</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;wrong_polarity_bpms&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noresync</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;noresync&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_clean</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;write_clean&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_exact_zeros</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;no_exact_zeros&quot;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">init_from_options</span><span class="p">(</span><span class="n">options</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">CleanInput</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">svd_mode</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">svd_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sing_val</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">sing_val</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">peak_to_peak</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">peak_to_peak</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_peak</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">max_peak</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">single_svd_bpm_threshold</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">single_svd_bpm_threshold</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">bad_bpms</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bad_bpms</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bad_bpms</span> <span class="o">=</span> <span class="p">[</span><span class="n">bad_bpm</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">bad_bpm</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">bad_bpms</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="o">.</span><span class="n">wrong_polarity_bpms</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wrong_polarity_bpms</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wrong_polarity_bpms</span> <span class="o">=</span> <span class="p">[</span><span class="n">wrong_polarity_bpm</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">wrong_polarity_bpm</span> <span class="ow">in</span> <span class="n">options</span><span class="o">.</span><span class="n">wrong_polarity_bpms</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noresync</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">noresync</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_clean</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">write_clean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_exact_zeros</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_exact_zeros</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+
+<span class="k">def</span> <span class="nf">_get_clean_parser</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+    <span class="c1"># Optional arguments ###########</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--svd_mode&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Defines modes of the SVD funtion itself. Should be one of:</span>
+<span class="s2">                - numpy: numpy.linalg.svd</span>
+<span class="s2">                - sparse: scipy.sparse.linalg.svds</span>
+<span class="s2">                - random: Randomized SVD</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;svd_mode&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;svd_mode&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;numpy&quot;</span><span class="p">,</span> <span class="s2">&quot;sparse&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--sing_val&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Keep this amount of singular values in decreasing order,</span>
+<span class="s2">                rest will be cut (set to 0).</span>
+<span class="s2">                Default is a large number: </span><span class="si">%(default)s</span><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;sing_val&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;sing_val&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--pk-2-pk&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Peak to peak amplitude cut. This removes BPMs where</span>
+<span class="s2">                abs(max(turn values) - min(turn values)) &lt;= threshold.</span>
+<span class="s2">                Default: </span><span class="si">%(default)s</span><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;peak_to_peak&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;peak_to_peak&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--max-peak-cut&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Maximum peak tolerance in mm. This removes BPMs where the</span>
+<span class="s2">                maximum measured oscillation &gt; threshold.</span>
+<span class="s2">             Default: </span><span class="si">%(default)s</span><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;max_peak&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;max_peak&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--single_svd_bpm_threshold&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Threshold for single BPM dominating a mode.</span>
+<span class="s2">                Should be &gt; 0.9 for LHC. Default: </span><span class="si">%(default)s</span><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;single_svd_bpm_threshold&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;single_svd_bpm_threshold&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--bad_bpms&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&quot;Comma separated bad BPMs to clean. Default: </span><span class="si">%(default)s</span><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;bad_bpms&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;bad_bpms&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--wrong_polarity_bpms&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;&quot;Comma separated BPMs with swapped polarity in both planes. Default: </span><span class="si">%(default)s</span><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">CleanInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;wrong_polarity_bpms&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;wrong_polarity_bpms&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--noresync&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Ignore the synchronization error of the BPMs.&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;noresync&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--write_clean&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;If present, it will write the cleaned ASCII file</span>
+<span class="s2">                in the --outputdir.&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;write_clean&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_exact_zeros&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;If present, will not remove files with a single zero .&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;no_exact_zeros&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+    <span class="c1">################################</span>
+    <span class="k">return</span> <span class="n">parser</span>
+
+
+<span class="k">class</span> <span class="nc">HarpyInput</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">DEFAULTS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;tunez&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s2">&quot;tolerance&quot;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="s2">&quot;harpy_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;svd&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sequential&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;no_tune_clean&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;tune_clean_limit&quot;</span><span class="p">:</span> <span class="mf">1e-5</span><span class="p">,</span>
+        <span class="s2">&quot;is_free_kick&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tunex</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tuney</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tunez</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;tunez&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nattunex</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nattuney</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nattunez</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;tolerance&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">harpy_mode</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;harpy_mode&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequential</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;sequential&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_tune_clean</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;no_tune_clean&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tune_clean_limit</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;tune_clean_limit&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_free_kick</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;is_free_kick&quot;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">init_from_options</span><span class="p">(</span><span class="n">options</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">check_tune_overlap</span><span class="p">(</span><span class="n">tune</span><span class="p">,</span> <span class="n">nattune</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">tune</span> <span class="o">-</span> <span class="n">nattune</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tolerance</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Windows for tune and natural tune in plane </span><span class="si">{}</span><span class="s2"> overlap &quot;</span>
+                       <span class="s2">&quot;for tolerance </span><span class="si">{}</span><span class="s2">. This could lead to both tunes being &quot;</span>
+                       <span class="s2">&quot;found at the same frequency&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">)</span>
+                <span class="n">LOGGER</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">HarpyInput</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tunex</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">tunex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tuney</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">tuney</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nattunex</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">nattunex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nattuney</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">nattuney</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tunez</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">tunez</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nattunez</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">nattunez</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">tolerance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">harpy_mode</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">harpy_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequential</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">sequential</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_tune_clean</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_tune_clean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tune_clean_limit</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">tune_clean_limit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_free_kick</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">is_free_kick</span>
+
+        <span class="c1"># Check there&#39;s no overlap for the tune and nattune</span>
+        <span class="n">check_tune_overlap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tunex</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nattunex</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span><span class="p">)</span>
+        <span class="n">check_tune_overlap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tuney</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nattuney</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+
+<span class="k">def</span> <span class="nf">_get_harpy_parser</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+    <span class="c1"># Obligatory arguments ###########</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--tunex&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Guess for the main horizontal tune.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;tunex&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--tuney&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Guess for the main vertical tune.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;tuney&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1">################################</span>
+
+    <span class="c1"># Optional arguments ###########</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--nattunex&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Guess for the natural horizontal tune.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;nattunex&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--nattuney&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Guess for the natural vertical tune.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;nattuney&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--tunez&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Guess for the main synchrotron tune.&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;tunez&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;tunez&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--nattunez&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Guess for the natural synchrotron tune.&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;nattunez&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--tolerance&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Tolerance on the guess for the tunes.&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;tolerance&quot;</span><span class="p">],</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;tolerance&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--harpy_mode&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Harpy resonance computation mode.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;harpy_mode&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;bpm&quot;</span><span class="p">,</span> <span class="s2">&quot;svd&quot;</span><span class="p">,</span> <span class="s2">&quot;fast&quot;</span><span class="p">,</span> <span class="s2">&quot;window&quot;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;harpy_mode&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--sequential&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If set, it will run in only one process.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;sequential&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--no_tune_clean&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If present, the automatic tune cleaning will be deactivated.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;no_tune_clean&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--tune_clean_limit&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The autoclean wont remove tune deviation lower than this limit.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;tune_clean_limit&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">HarpyInput</span><span class="o">.</span><span class="n">DEFAULTS</span><span class="p">[</span><span class="s2">&quot;tune_clean_limit&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--free_kick&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If present, it will perform the free kick phase correction&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;is_free_kick&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1">################################</span>
+    <span class="k">return</span> <span class="n">parser</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

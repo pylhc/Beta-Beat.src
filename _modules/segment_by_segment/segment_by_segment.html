@@ -1,0 +1,557 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>segment_by_segment.segment_by_segment &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>segment_by_segment.segment_by_segment</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for segment_by_segment.segment_by_segment</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">copyfile</span>
+
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">abspath</span><span class="p">,</span> <span class="n">join</span><span class="p">,</span> <span class="n">dirname</span><span class="p">,</span> <span class="n">pardir</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">abspath</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="n">pardir</span><span class="p">)))</span>
+
+<span class="kn">from</span> <span class="nn">model</span> <span class="kn">import</span> <span class="n">manager</span><span class="p">,</span> <span class="n">creator</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">optics_measurements.io_filehandler</span> <span class="kn">import</span> <span class="n">OpticsMeasurement</span>
+<span class="kn">from</span> <span class="nn">tfs_files.tfs_collection</span> <span class="kn">import</span> <span class="n">TfsCollection</span><span class="p">,</span> <span class="n">Tfs</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_pandas</span>
+<span class="kn">import</span> <span class="nn">sbs_propagables</span>
+
+<span class="c1"># TODO: Remove debug and set up log file</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">DEBUG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span>
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">level_console</span><span class="o">=</span><span class="n">DEBUG</span><span class="p">)</span>
+
+<span class="n">PLANES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Parses the arguments, checks for valid input and returns tuple</span>
+<span class="sd">    It needs also the input needed to define the accelerator:</span>
+<span class="sd">    --accel=&lt;accel_name&gt;</span>
+<span class="sd">    and all the rest of the parameters needed to define given accelerator.</span>
+<span class="sd">    e.g. for LHC runII 2017 beam 1</span>
+<span class="sd">    --accel lhc --lhcmode lhc_runII_2017 --beam 1</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--measurement&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Path to measurement files, &quot;</span>
+                              <span class="s2">&quot;usually the GetLLM output dir.&quot;</span><span class="p">),</span>
+                        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;measurement&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--model&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Model from where to get the segments and &quot;</span>
+                              <span class="s2">&quot;elements definitions, all BPMs and elements &quot;</span>
+                              <span class="s2">&quot;defined in --elements and --segments have to &quot;</span>
+                              <span class="s2">&quot;be present in this model.&quot;</span><span class="p">),</span>
+                        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--optics&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Path to the optics file to use, usually &quot;</span>
+                              <span class="s2">&quot;the path to the modifiers.madx file.&quot;</span><span class="p">),</span>
+                        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;optics&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--elements&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Comma separated element name list &quot;</span>
+                              <span class="s2">&quot;to run in element mode.&quot;</span><span class="p">),</span>
+                        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;elements&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--segments&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Segments to run in segment mode with format: &quot;</span>
+                              <span class="s2">&quot;segment_name1,start1,end1;segment_name2,start2,end2;&quot;</span>
+                              <span class="s2">&quot;where start and end must be existing BPM names.&quot;</span><span class="p">),</span>
+                        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;segments&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--output&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Directory where to put the output files.&quot;</span><span class="p">),</span>
+                        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">options</span><span class="p">,</span> <span class="n">accel_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">accel_cls</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">get_accel_class</span><span class="p">(</span><span class="n">accel_args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">accel_cls</span><span class="p">,</span> <span class="n">options</span>
+
+
+<div class="viewcode-block" id="segment_by_segment"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.segment_by_segment">[docs]</a><span class="k">def</span> <span class="nf">segment_by_segment</span><span class="p">(</span><span class="n">accel_cls</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">_parse_segments</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">segments</span><span class="p">)</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">_parse_elements</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">elements</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">segments</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">elements</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span><span class="s2">&quot;No segments or elements provided in the input.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">_there_are_duplicated_names</span><span class="p">(</span><span class="n">segments</span><span class="p">,</span> <span class="n">elements</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span><span class="s2">&quot;Duplicated names in segments and elements.&quot;</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;NAME&quot;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">meas</span> <span class="o">=</span> <span class="n">OpticsMeasurement</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">measurement</span><span class="p">)</span>
+    <span class="n">elem_segments</span> <span class="o">=</span> <span class="p">[</span><span class="n">Segment</span><span class="o">.</span><span class="n">init_from_element</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">elements</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">elem_segments</span> <span class="o">+</span> <span class="n">segments</span><span class="p">:</span>
+        <span class="n">propagable</span> <span class="o">=</span> <span class="n">run_for_segment</span><span class="p">(</span><span class="n">accel_cls</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span>
+                                     <span class="n">options</span><span class="o">.</span><span class="n">optics</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+        <span class="n">write_beatings</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">propagable</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">output</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="run_for_segment"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.run_for_segment">[docs]</a><span class="k">def</span> <span class="nf">run_for_segment</span><span class="p">(</span><span class="n">accel_cls</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">optics</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bpm_eval_funct</span> <span class="o">=</span> <span class="n">_bpm_is_in_beta_meas</span>
+    <span class="n">new_segment</span> <span class="o">=</span> <span class="n">improve_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">bpm_eval_funct</span><span class="p">)</span>
+    <span class="n">propagables</span> <span class="o">=</span> <span class="p">[</span><span class="n">propg</span><span class="p">(</span><span class="n">new_segment</span><span class="p">,</span> <span class="n">meas</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">propg</span> <span class="ow">in</span> <span class="n">sbs_propagables</span><span class="o">.</span><span class="n">get_all_propagables</span><span class="p">()]</span>
+    <span class="n">propagables</span> <span class="o">=</span> <span class="p">[</span><span class="n">measbl</span> <span class="k">for</span> <span class="n">measbl</span> <span class="ow">in</span> <span class="n">propagables</span> <span class="k">if</span> <span class="n">measbl</span><span class="p">]</span>
+    <span class="n">segment_inst</span> <span class="o">=</span> <span class="n">accel_cls</span><span class="o">.</span><span class="n">get_segment</span><span class="p">(</span>
+        <span class="n">new_segment</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">new_segment</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">new_segment</span><span class="o">.</span><span class="n">end</span><span class="p">,</span>
+        <span class="n">optics</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Evaluating segment </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">). Was input as </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">).&quot;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">new_segment</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">new_segment</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">new_segment</span><span class="o">.</span><span class="n">end</span><span class="p">,</span>
+                        <span class="n">segment</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">segment</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">segment</span><span class="o">.</span><span class="n">end</span><span class="p">))</span>
+    <span class="n">_prepare_for_madx</span><span class="p">(</span><span class="n">new_segment</span><span class="p">,</span> <span class="n">propagables</span><span class="p">,</span> <span class="n">optics</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="n">_run_madx</span><span class="p">(</span><span class="n">new_segment</span><span class="p">,</span> <span class="n">segment_inst</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="n">seg_models</span> <span class="o">=</span> <span class="n">SegmentModels</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">new_segment</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">propagable</span> <span class="ow">in</span> <span class="n">propagables</span><span class="p">:</span>
+        <span class="n">propagable</span><span class="o">.</span><span class="n">segment_models</span> <span class="o">=</span> <span class="n">seg_models</span>
+    <span class="k">return</span> <span class="n">propagables</span></div>
+
+
+<div class="viewcode-block" id="improve_segment"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.improve_segment">[docs]</a><span class="k">def</span> <span class="nf">improve_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">meas</span><span class="p">,</span> <span class="n">eval_funct</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a new segment with elements that satisfies eval_funct.</span>
+
+<span class="sd">    This function takes a segment with start and end that might not</span>
+<span class="sd">    satisfy &#39;eval_funct&#39; and searchs the next element that satisfies</span>
+<span class="sd">    it, returning a new segment with the new start and end elements.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        segment: The segment to be processed (see Segment class).</span>
+<span class="sd">        model: The model where to take all the element names from. Both the</span>
+<span class="sd">            start and end of the segment have to be present in this model</span>
+<span class="sd">            NAME attribute.</span>
+<span class="sd">        meas: An instance of the Measurement class that will be passed to</span>
+<span class="sd">            &#39;eval_funct&#39; to check elements for validity.</span>
+<span class="sd">        eval_funct: An user-provided function that takes an element name as</span>
+<span class="sd">            first argument and an instance of the Measurement class as second,</span>
+<span class="sd">            and returns True only if the element is evaluated as good start or</span>
+<span class="sd">            end for the segment, usually checking for presence in the</span>
+<span class="sd">            measurement and not too large error.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        A new segment with generally different start and end but always the</span>
+<span class="sd">        same name and element attributes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">NAME</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">segment</span><span class="o">.</span><span class="n">end</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;Element name </span><span class="si">{}</span><span class="s2"> not in the input model.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">eval_funct_meas</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">eval_funct</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meas</span><span class="p">)</span>
+
+    <span class="n">new_start</span> <span class="o">=</span> <span class="n">_select_closest</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">eval_funct_meas</span><span class="p">,</span> <span class="n">back</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">new_end</span> <span class="o">=</span> <span class="n">_select_closest</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">eval_funct_meas</span><span class="p">,</span> <span class="n">back</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">new_segment</span> <span class="o">=</span> <span class="n">Segment</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">new_start</span><span class="p">,</span> <span class="n">new_end</span><span class="p">)</span>
+    <span class="n">new_segment</span><span class="o">.</span><span class="n">element</span> <span class="o">=</span> <span class="n">segment</span><span class="o">.</span><span class="n">element</span>
+    <span class="k">return</span> <span class="n">new_segment</span></div>
+
+
+<div class="viewcode-block" id="write_beatings"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.write_beatings">[docs]</a><span class="k">def</span> <span class="nf">write_beatings</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">propagables</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seg_beats</span> <span class="o">=</span> <span class="n">SegmentBeatings</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">segment</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">seg_beats</span><span class="o">.</span><span class="n">allow_write</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">for</span> <span class="n">propagable</span> <span class="ow">in</span> <span class="n">propagables</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">propagable</span><span class="o">.</span><span class="n">write_to_file</span><span class="p">(</span><span class="n">seg_beats</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+
+<span class="k">def</span> <span class="nf">_parse_segments</span><span class="p">(</span><span class="n">segments_str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">segments_str</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">clean_segm_str</span> <span class="o">=</span> <span class="n">segments_str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">clean_segm_str</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span><span class="s2">&quot;Empty segment definition string.&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">single_definition</span> <span class="ow">in</span> <span class="n">clean_segm_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">single_definition</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">name_start_end</span> <span class="o">=</span> <span class="n">single_definition</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">name_start_end</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;Unable to parse segment string </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name_start_end</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">start</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">end</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span>
+                    <span class="s2">&quot;Duplicated segment name </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Segment</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">))</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">segments</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_elements</span><span class="p">(</span><span class="n">elements_str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">elements_str</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="n">clean_elems_str</span> <span class="o">=</span> <span class="n">elements_str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">clean_elems_str</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span><span class="s2">&quot;Empty element definition string.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">clean_elems_str</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+        <span class="n">clean_elems_str</span> <span class="o">=</span> <span class="n">clean_elems_str</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="p">[</span><span class="n">element_name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">element_name</span> <span class="ow">in</span> <span class="n">clean_elems_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">elements</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">elements</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span><span class="s2">&quot;Duplicated names in element list.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">elements</span>
+
+
+<span class="k">def</span> <span class="nf">_there_are_duplicated_names</span><span class="p">(</span><span class="n">segments</span><span class="p">,</span> <span class="n">elements</span><span class="p">):</span>
+    <span class="n">seg_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">segment</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">segments</span><span class="p">]</span>
+    <span class="k">return</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">seg_names</span><span class="p">)</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">elements</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_select_closest</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">all_names</span><span class="p">,</span> <span class="n">eval_cond</span><span class="p">,</span> <span class="n">back</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">new_name</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">eval_cond</span><span class="p">(</span><span class="n">new_name</span><span class="p">):</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">back</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">next_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">all_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span> <span class="o">+</span> <span class="n">delta</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_names</span><span class="p">)</span>
+        <span class="n">new_name</span> <span class="o">=</span> <span class="n">all_names</span><span class="p">[</span><span class="n">next_index</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="n">new_name</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SbsDefinitionError</span><span class="p">(</span>
+                <span class="s2">&quot;No elements remaining after filtering. &quot;</span>
+                <span class="s2">&quot;Probably wrong model or bad measurement.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_name</span>
+
+
+<span class="k">def</span> <span class="nf">_bpm_is_in_beta_meas</span><span class="p">(</span><span class="n">bpm_name</span><span class="p">,</span> <span class="n">meas</span><span class="p">):</span>
+    <span class="c1"># &#39;elem in pandasSeries&#39; doesnt seem to work...</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">bpm_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">meas</span><span class="o">.</span><span class="n">beta_x</span><span class="o">.</span><span class="n">NAME</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="n">bpm_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">meas</span><span class="o">.</span><span class="n">beta_y</span><span class="o">.</span><span class="n">NAME</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_prepare_for_madx</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">measurables</span><span class="p">,</span> <span class="n">optics</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="n">copyfile</span><span class="p">(</span><span class="n">optics</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;modifiers.madx&quot;</span><span class="p">))</span>
+    <span class="n">meas_file_content</span> <span class="o">=</span> <span class="n">_prepare_meas_file</span><span class="p">(</span><span class="n">measurables</span><span class="p">)</span>
+    <span class="n">meas_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">output</span><span class="p">,</span>
+        <span class="s2">&quot;measurement_</span><span class="si">{}</span><span class="s2">.madx&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">meas_file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">meas_file</span><span class="p">:</span>
+        <span class="n">meas_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">meas_file_content</span><span class="p">)</span>
+    <span class="n">corr_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">output</span><span class="p">,</span>
+        <span class="s2">&quot;corrections_</span><span class="si">{}</span><span class="s2">.madx&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="c1"># TODO do this properly:</span>
+    <span class="nb">open</span><span class="p">(</span><span class="n">corr_file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_prepare_meas_file</span><span class="p">(</span><span class="n">measurables</span><span class="p">):</span>
+    <span class="n">meas_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">measurable</span> <span class="ow">in</span> <span class="n">measurables</span><span class="p">:</span>
+        <span class="n">meas_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">measurable</span><span class="o">.</span><span class="n">init_conds_dict</span><span class="p">())</span>
+    <span class="n">meas_file_content</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">meas_dict</span><span class="p">:</span>
+        <span class="n">meas_file_content</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> = </span><span class="si">{}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">meas_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">meas_file_content</span>
+
+
+<span class="k">def</span> <span class="nf">_run_madx</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">segment_inst</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="n">mad_file_name</span> <span class="o">=</span> <span class="s1">&#39;t_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">segment</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.madx&#39;</span>
+    <span class="n">log_file_name</span> <span class="o">=</span> <span class="n">segment</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_mad.log&quot;</span>
+    <span class="n">madx_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">mad_file_name</span><span class="p">)</span>
+    <span class="n">log_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">log_file_name</span><span class="p">)</span>
+    <span class="n">creator</span><span class="o">.</span><span class="n">create_model</span><span class="p">(</span><span class="n">segment_inst</span><span class="p">,</span> <span class="s2">&quot;segment&quot;</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span>
+                         <span class="n">logfile</span><span class="o">=</span><span class="n">log_file_path</span><span class="p">,</span> <span class="n">writeto</span><span class="o">=</span><span class="n">madx_file_path</span><span class="p">)</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;MAD-X done, log file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">log_file_path</span><span class="p">))</span>
+
+
+<span class="k">class</span> <span class="nc">Segment</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">element</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ini_conds</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">init_from_element</span><span class="p">(</span><span class="n">element_name</span><span class="p">):</span>
+        <span class="n">fake_segment</span> <span class="o">=</span> <span class="n">Segment</span><span class="p">(</span><span class="n">element_name</span><span class="p">,</span> <span class="n">element_name</span><span class="p">,</span> <span class="n">element_name</span><span class="p">)</span>
+        <span class="n">fake_segment</span><span class="o">.</span><span class="n">element</span> <span class="o">=</span> <span class="n">element_name</span>
+        <span class="k">return</span> <span class="n">fake_segment</span>
+
+
+<div class="viewcode-block" id="SegmentModels"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.SegmentModels">[docs]</a><span class="k">class</span> <span class="nc">SegmentModels</span><span class="p">(</span><span class="n">TfsCollection</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold and load the models of the segments created by MAD-X.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        directory: The path where to find the models.</span>
+<span class="sd">        segment: A segment instance corresponding to the model to load.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">front</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;twiss_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="p">,</span> <span class="n">two_planes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">back</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;twiss_</span><span class="si">{}</span><span class="s2">_back.dat&quot;</span><span class="p">,</span> <span class="n">two_planes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">front_corrected</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;twiss_</span><span class="si">{}</span><span class="s2">_cor.dat&quot;</span><span class="p">,</span> <span class="n">two_planes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">back_corrected</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;twiss_</span><span class="si">{}</span><span class="s2">_cor_back.dat&quot;</span><span class="p">,</span> <span class="n">two_planes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SegmentModels</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">segment</span> <span class="o">=</span> <span class="n">segment</span>
+
+<div class="viewcode-block" id="SegmentModels.get_filename"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.SegmentModels.get_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segment</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SegmentBeatings"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.SegmentBeatings">[docs]</a><span class="k">class</span> <span class="nc">SegmentBeatings</span><span class="p">(</span><span class="n">TfsCollection</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">beta_phase</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;sbsbetabeating</span><span class="si">{plane}</span><span class="s2">_</span><span class="si">{name}</span><span class="s2">.out&quot;</span><span class="p">)</span>
+    <span class="n">beta_kmod</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;sbskmodbetabeat</span><span class="si">{plane}</span><span class="s2">_</span><span class="si">{name}</span><span class="s2">.out&quot;</span><span class="p">)</span>
+    <span class="n">beta_amp</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;sbsampbetabeat</span><span class="si">{plane}</span><span class="s2">_</span><span class="si">{name}</span><span class="s2">.out&quot;</span><span class="p">)</span>
+    <span class="n">phase</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;sbsphase</span><span class="si">{plane}</span><span class="s2">t_</span><span class="si">{name}</span><span class="s2">.out&quot;</span><span class="p">)</span>
+    <span class="n">coupling</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;sbscouple_</span><span class="si">{name}</span><span class="s2">.out&quot;</span><span class="p">,</span> <span class="n">two_planes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">disp</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;sbsD</span><span class="si">{plane}</span><span class="s2">_</span><span class="si">{name}</span><span class="s2">.out&quot;</span><span class="p">)</span>
+    <span class="n">norm_disp</span> <span class="o">=</span> <span class="n">Tfs</span><span class="p">(</span><span class="s2">&quot;sbsNDx_</span><span class="si">{name}</span><span class="s2">.out&quot;</span><span class="p">,</span> <span class="n">two_planes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">seg_name</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SegmentBeatings</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seg_name</span> <span class="o">=</span> <span class="n">seg_name</span>
+
+<div class="viewcode-block" id="SegmentBeatings.get_filename"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.SegmentBeatings.get_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">plane</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">plane</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seg_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">=</span><span class="n">plane</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seg_name</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SbsDefinitionError"><a class="viewcode-back" href="../../segment_by_segment/index.html#segment_by_segment.segment_by_segment.SbsDefinitionError">[docs]</a><span class="k">class</span> <span class="nc">SbsDefinitionError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<span class="k">def</span> <span class="nf">_i_am_main</span><span class="p">():</span>
+    <span class="n">_accel_cls</span><span class="p">,</span> <span class="n">_options</span> <span class="o">=</span> <span class="n">_parse_args</span><span class="p">()</span>
+    <span class="n">segment_by_segment</span><span class="p">(</span><span class="n">_accel_cls</span><span class="p">,</span> <span class="n">_options</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">_i_am_main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

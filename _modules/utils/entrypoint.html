@@ -1,0 +1,780 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>utils.entrypoint &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>utils.entrypoint</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for utils.entrypoint</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Entry Point Decorator</span>
+
+<span class="sd">Allows a function to be decorated as entrypoint.</span>
+<span class="sd">This function will then automatically accept console arguments, config files, json files,</span>
+<span class="sd">kwargs and dictionaries as input and will parse it according to the parameters</span>
+<span class="sd">given to the entrypoint-Decorator.</span>
+
+<span class="sd">Terminology:</span>
+<span class="sd">++++++++++++++++++++++++</span>
+
+<span class="sd">    * **Parameter** - Items containing info on how to parse Arguments</span>
+<span class="sd">    * **Arguments** - The input to the wrapped-function</span>
+<span class="sd">    * **Options** - The parsed arguments and hence the options of the function</span>
+
+<span class="sd">Hence, an :class:`ArgumentError` will be raised in case of something going wrong during parsing,</span>
+<span class="sd">while :class:`ParameterErrors` will be raised if something goes wrong when</span>
+<span class="sd">adding parameters to the list.</span>
+
+<span class="sd">Usage:</span>
+<span class="sd">++++++++++++++++++++++++</span>
+
+<span class="sd">To be used as a decorator::</span>
+
+<span class="sd">    @entrypoint(parameters)</span>
+<span class="sd">    def some_function(options, unknown_options)</span>
+
+<span class="sd">Using **strict** mode (see below)::</span>
+
+<span class="sd">    @entrypoint(parameters, strict=True)</span>
+<span class="sd">    def some_function(options)</span>
+
+<span class="sd">It is also possible to use the EntryPoint Class similar to a normal parser::</span>
+
+<span class="sd">    ep_parser = EntryPoint(parameters)</span>
+<span class="sd">    options, unknown_options = ep_parser.parse(arguments)</span>
+
+<span class="sd">Using **strict** mode (see below)::</span>
+
+<span class="sd">    ep_parser = EntryPoint(parameters, strict=True)</span>
+<span class="sd">    options = ep_parser.parse(arguments)</span>
+
+
+<span class="sd">Parameters:</span>
+<span class="sd">++++++++++++++++++++++++</span>
+
+<span class="sd">Parameters need to be a list or a dictionary of dictionaries with the following keys:</span>
+
+<span class="sd">| **name** (*required*): Name of the variable (e.g. later use options.NAME).</span>
+<span class="sd"> If &#39;params&#39; is a dictionary, the key will be used as name.</span>
+<span class="sd">| **flags** (*required*): Commandline flag(s), e.g. ``--file``</span>
+<span class="sd">| **required** (*optional*): ``bool``</span>
+<span class="sd">| **default** (*optional*): Default value, if variable not present</span>
+<span class="sd">| **help** (*optional*): ``str``</span>
+<span class="sd">| **type** (*optional*): Value ``type`` (if nargs is given, set to list for dicts!)</span>
+<span class="sd">| **choices** (*optional*): choices to choose from</span>
+<span class="sd"> (choices need to be of ``type``, if given)</span>
+<span class="sd">| **nargs** (*optional*): number of arguments to consume</span>
+<span class="sd"> (commandline only, do not use ``REMAINDER``!)</span>
+<span class="sd">| **action** (*optional*): either ``store_true`` or ``store_false``, will set ``type`` to bool</span>
+<span class="sd"> and the default to ``False`` and ``True`` respectively.</span>
+
+
+
+<span class="sd">The **strict** option changes the behaviour for unknown parameters:</span>
+<span class="sd">``strict=True`` raises exceptions, ``strict=False`` loggs debug messages and returns the options.</span>
+<span class="sd">Hence a wrapped function with ``strict=True`` must accept one input, with ``strict=False`` two.</span>
+<span class="sd">Default: ``False``</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">ArgumentParser</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span> <span class="k">as</span> <span class="n">logtools</span>
+<span class="kn">from</span> <span class="nn">utils.dict_tools</span> <span class="kn">import</span> <span class="n">DictParser</span>
+<span class="kn">from</span> <span class="nn">utils.dict_tools</span> <span class="kn">import</span> <span class="n">DotDict</span>
+<span class="kn">from</span> <span class="nn">utils.dict_tools</span> <span class="kn">import</span> <span class="n">ArgumentError</span>
+<span class="kn">from</span> <span class="nn">utils.dict_tools</span> <span class="kn">import</span> <span class="n">ParameterError</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">from</span> <span class="nn">utils.contexts</span> <span class="kn">import</span> <span class="n">silence</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="c1"># Python 2</span>
+    <span class="kn">from</span> <span class="nn">ConfigParser</span> <span class="kn">import</span> <span class="n">ConfigParser</span>
+    <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">getargspec</span> <span class="k">as</span> <span class="n">getfullargspec</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="c1"># Python 3</span>
+    <span class="kn">from</span> <span class="nn">configparser</span> <span class="kn">import</span> <span class="n">ConfigParser</span>
+    <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">getfullargspec</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logtools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="n">ID_CONFIG</span> <span class="o">=</span> <span class="s2">&quot;entry_cfg&quot;</span>
+<span class="n">ID_DICT</span> <span class="o">=</span> <span class="s2">&quot;entry_dict&quot;</span>
+<span class="n">ID_JSON</span> <span class="o">=</span> <span class="s2">&quot;entry_json&quot;</span>
+<span class="n">ID_SECTION</span> <span class="o">=</span> <span class="s2">&quot;section&quot;</span>
+
+
+<span class="c1"># EntryPoint Class #############################################################</span>
+
+
+<span class="k">class</span> <span class="nc">EntryPoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Initialize decoration: Handle the desired input parameter. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strict</span> <span class="o">=</span> <span class="n">strict</span>
+
+        <span class="c1"># add argument dictionary to EntryPoint</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remainder</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="o">.</span><span class="n">_dict2list_param</span><span class="p">(</span><span class="n">parameter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_parameter</span><span class="p">()</span>
+
+        <span class="c1"># add config-argparser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configarg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_config_argument</span><span class="p">()</span>
+
+        <span class="c1"># create parsers from parameter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">argparse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_argument_parser</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dictparse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_dict_parser</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configparse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_config_parser</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Parse whatever input parameter come.</span>
+
+<span class="sd">            This is the heart of EntryPoint and will recognize the input and parse it</span>
+<span class="sd">            accordingly.</span>
+<span class="sd">            Allowed inputs are:</span>
+<span class="sd">                - Dictionary with arguments as key-values</span>
+<span class="sd">                - Key-Value arguments</span>
+<span class="sd">                - Path to a one-section config file</span>
+<span class="sd">                - Commandline Arguments</span>
+<span class="sd">                - Commandline Arguments in string-form (as list)</span>
+<span class="sd">                - Special Key-Value arguments are:</span>
+<span class="sd">                    entry_dict: Value is a dict of arguments</span>
+<span class="sd">                    entry_cfg: Path to config file</span>
+<span class="sd">                    entry_json: Path to json file</span>
+<span class="sd">                    section: Section to use in config file, or subdirectory to use in json file.</span>
+<span class="sd">                             Only works with the key-value version of config file.</span>
+<span class="sd">                             If not given only one-section config files are allowed.</span>
+<span class="sd">         &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="s2">&quot;Cannot combine positional parameter with keyword parameter.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="s2">&quot;Only one positional argument allowed (dict or config file).&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">args</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># LOG.info(&quot;Entry input: {:s}&quot;.format(args[0]))  # activate for debugging</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_arg</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># LOG.info(&quot;Entry input: {:s}&quot;.format(kwargs))  # activate for debugging</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_kwargs</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># LOG.info(&quot;Entry input: {:s}&quot;.format(&quot; &quot;.join(sys.argv))  # activate for debugging</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_commandline</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">options</span>  <span class="c1"># options might include known and unknown options</span>
+
+    <span class="c1">#########################</span>
+    <span class="c1"># Create Parsers</span>
+    <span class="c1">#########################</span>
+
+    <span class="k">def</span> <span class="nf">_create_config_argument</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates the config-file argument parser &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">()</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ID_CONFIG</span><span class="p">),</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">ID_CONFIG</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ID_SECTION</span><span class="p">),</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="n">ID_SECTION</span><span class="p">,)</span>
+        <span class="k">return</span> <span class="n">parser</span>
+
+    <span class="k">def</span> <span class="nf">_create_argument_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates the ArgumentParser from parameter. &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">()</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">add_params_to_generic</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span>
+
+    <span class="k">def</span> <span class="nf">_create_dict_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates the DictParser from parameter. &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">DictParser</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">strict</span><span class="p">)</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">add_params_to_generic</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span>
+
+    <span class="k">def</span> <span class="nf">_create_config_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Creates the config parser. Maybe more to do here later with parameter. &quot;&quot;&quot;</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">ConfigParser</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">parser</span>
+
+    <span class="c1">#########################</span>
+    <span class="c1"># Handlers</span>
+    <span class="c1">#########################</span>
+
+    <span class="k">def</span> <span class="nf">_handle_commandline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; No input to function &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># check for config file first</span>
+            <span class="k">with</span> <span class="n">silence</span><span class="p">():</span>
+                <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configarg</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">SystemExit</span><span class="p">:</span>
+            <span class="c1"># parse regular options</span>
+            <span class="n">options</span><span class="p">,</span> <span class="n">unknown_opts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">argparse</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="n">DotDict</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">options</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">strict</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">unknown_opts</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="s2">&quot;Unknown options: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">unknown_opts</span><span class="p">)))</span>
+                <span class="k">return</span> <span class="n">options</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">unknown_opts</span><span class="p">:</span>
+                    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Unknown options: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">unknown_opts</span><span class="p">)))</span>
+                <span class="k">return</span> <span class="n">options</span><span class="p">,</span> <span class="n">unknown_opts</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># parse config file</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dictparse</span><span class="o">.</span><span class="n">parse_config_items</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_read_config</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">options</span><span class="p">)[</span><span class="n">ID_CONFIG</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">_handle_arg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; *args has been input &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+            <span class="c1"># assume config file</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dictparse</span><span class="o">.</span><span class="n">parse_config_items</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_read_config</span><span class="p">(</span><span class="n">arg</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="c1"># dictionary</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dictparse</span><span class="o">.</span><span class="n">parse_arguments</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="c1"># list of commandline parameter</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_commandline</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="s2">&quot;Only dictionary or configfiles &quot;</span>
+                                <span class="s2">&quot;are allowed as positional arguments&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">options</span>  <span class="c1"># options might include known and unknown options</span>
+
+    <span class="k">def</span> <span class="nf">_handle_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; **kwargs been input &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ID_CONFIG</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">ID_SECTION</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span>
+                    <span class="s2">&quot;Only &#39;</span><span class="si">{:s}</span><span class="s2">&#39; and &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ID_CONFIG</span><span class="p">,</span> <span class="n">ID_SECTION</span><span class="p">)</span> <span class="o">+</span>
+                    <span class="s2">&quot; arguments are allowed, when using a config file.&quot;</span><span class="p">)</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_config</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="n">ID_CONFIG</span><span class="p">],</span>
+                                        <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ID_SECTION</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dictparse</span><span class="o">.</span><span class="n">parse_config_items</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">ID_DICT</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="s2">&quot;Only one argument allowed when using a dictionary&quot;</span><span class="p">)</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dictparse</span><span class="o">.</span><span class="n">parse_arguments</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="n">ID_DICT</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="n">ID_JSON</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">ID_SECTION</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span>
+                    <span class="s2">&quot;Only &#39;</span><span class="si">{:s}</span><span class="s2">&#39; and &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ID_JSON</span><span class="p">,</span> <span class="n">ID_SECTION</span><span class="p">)</span> <span class="o">+</span>
+                    <span class="s2">&quot; arguments are allowed, when using a json file.&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="n">ID_JSON</span><span class="p">],</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+                <span class="n">json_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">json_file</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ID_SECTION</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">json_dict</span> <span class="o">=</span> <span class="n">json_dict</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="n">ID_SECTION</span><span class="p">]]</span>
+
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dictparse</span><span class="o">.</span><span class="n">parse_arguments</span><span class="p">(</span><span class="n">json_dict</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dictparse</span><span class="o">.</span><span class="n">parse_arguments</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">options</span>   <span class="c1"># options might include known and unknown options</span>
+
+    <span class="c1">#########################</span>
+    <span class="c1"># Helpers</span>
+    <span class="c1">#########################</span>
+
+    <span class="k">def</span> <span class="nf">_check_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; EntryPoint specific checks for parameter &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">:</span>
+            <span class="n">arg_name</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">arg_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ParameterError</span><span class="p">(</span><span class="s2">&quot;A Parameter needs a Name!&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nargs&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="n">argparse</span><span class="o">.</span><span class="n">REMAINDER</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ParameterError</span><span class="p">(</span><span class="s2">&quot;Parameter &#39;</span><span class="si">{:s}</span><span class="s2">&#39; is set as remainder.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arg_name</span><span class="p">)</span> <span class="o">+</span>
+                                     <span class="s2">&quot;This method is really buggy, hence it is forbidden.&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;flags&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ParameterError</span><span class="p">(</span><span class="s2">&quot;Parameter &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arg_name</span><span class="p">)</span> <span class="o">+</span>
+                                     <span class="s2">&quot;does not have flags.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_read_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfgfile_path</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get content from config file&quot;&quot;&quot;</span>
+        <span class="n">cfgparse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configparse</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cfgfile_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">config_file</span><span class="p">:</span>
+            <span class="n">cfgparse</span><span class="o">.</span><span class="n">readfp</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+        <span class="n">sections</span> <span class="o">=</span> <span class="n">cfgparse</span><span class="o">.</span><span class="n">sections</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">section</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">sections</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">section</span> <span class="o">=</span> <span class="n">sections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">section</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{:s}</span><span class="s2">&#39; contains multiple sections. Please specify one!&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cfgparse</span><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_dict2list_param</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Convert dictionary to list and add name by key &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">param</span><span class="p">:</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="n">item</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">out</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">param</span>
+
+
+<span class="c1"># entrypoint Decorator #########################################################</span>
+
+
+<div class="viewcode-block" id="entrypoint"><a class="viewcode-back" href="../../utils/index.html#utils.entrypoint.entrypoint">[docs]</a><span class="k">class</span> <span class="nc">entrypoint</span><span class="p">(</span><span class="n">EntryPoint</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Decorator extension of EntryPoint.</span>
+
+<span class="sd">    Implements the __call__ method needed for decorating.</span>
+<span class="sd">    Lowercase looks nicer if used as decorator &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Builds wrapper around the function &#39;func&#39; (called on decoration)</span>
+
+<span class="sd">        Whenever the decorated function is called, actually this wrapper is called.</span>
+<span class="sd">        The Number of arguments is checked for compliance with instance- and class- methods,</span>
+
+<span class="sd">        Meaning: if there is one more argument as there should be, we pass it on as it is</span>
+<span class="sd">        (should be) either ``self`` or ``cls``.</span>
+<span class="sd">        One could check that there are no varargs and keywords, but let&#39;s assume the user</span>
+<span class="sd">        is doing the right things.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nargs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">getfullargspec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">strict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">nargs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+                <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">nargs</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+                <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="s2">&quot;In strict mode, only one option-structure will be passed.&quot;</span>
+                                    <span class="s2">&quot; The entrypoint needs to have the following structure: &quot;</span>
+                                    <span class="s2">&quot; ([self/cls,] options).&quot;</span>
+                                    <span class="s2">&quot; Found: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">getfullargspec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">args</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">nargs</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+                <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                    <span class="n">options</span><span class="p">,</span> <span class="n">unknown_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">unknown_options</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">nargs</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+                <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                    <span class="n">options</span><span class="p">,</span> <span class="n">unknown_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">unknown_options</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ArgumentError</span><span class="p">(</span><span class="s2">&quot;Two option-structures will be passed.&quot;</span>
+                                    <span class="s2">&quot; The entrypoint needs to have the following structure: &quot;</span>
+                                    <span class="s2">&quot; ([self/cls,] options, unknown_options).&quot;</span>
+                                    <span class="s2">&quot; Found: </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">getfullargspec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">args</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">wrapper</span></div>
+
+
+<span class="c1"># EntryPoint Arguments #########################################################</span>
+
+
+<div class="viewcode-block" id="EntryPointParameters"><a class="viewcode-back" href="../../utils/index.html#utils.entrypoint.EntryPointParameters">[docs]</a><span class="k">class</span> <span class="nc">EntryPointParameters</span><span class="p">(</span><span class="n">DotDict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Helps to build a simple dictionary structure via add_argument functions.</span>
+
+<span class="sd">    You really don&#39;t need that, but old habits die hard.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="EntryPointParameters.add_parameter"><a class="viewcode-back" href="../../utils/index.html#utils.entrypoint.EntryPointParameters.add_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">add_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Add parameter &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ParameterError</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">{:s}</span><span class="s2">&#39; is already a parameter.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span></div>
+
+<div class="viewcode-block" id="EntryPointParameters.help"><a class="viewcode-back" href="../../utils/index.html#utils.entrypoint.EntryPointParameters.help">[docs]</a>    <span class="k">def</span> <span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Prints current help. Usable to paste into docstrings. &quot;&quot;&quot;</span>
+        <span class="n">optional_param</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">required_param</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">item_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">name_type</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{n:s}</span><span class="s2"> (</span><span class="si">{t:s}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">name_type</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{n:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">item_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{n:s}</span><span class="s2">: </span><span class="si">{h:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">name_type</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;help&quot;</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="n">item_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{n:s}</span><span class="s2">: -Help not available- &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">name_type</span><span class="p">)</span>
+
+            <span class="n">space</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">name_type</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">item_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="si">{s:s}</span><span class="s2">**Flags**: </span><span class="si">{f:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="n">space</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;flags&quot;</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">item_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="si">{s:s}</span><span class="s2">**Choices**: </span><span class="si">{c:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="n">space</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;choices&quot;</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">item_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="si">{s:s}</span><span class="s2">**Default**: ``</span><span class="si">{d:s}</span><span class="s2">``&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="n">space</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">]))</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">item_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="si">{s:s}</span><span class="s2">**Action**: ``</span><span class="si">{d:s}</span><span class="s2">``&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="n">space</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;action&quot;</span><span class="p">]))</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;required&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">required_param</span> <span class="o">+=</span> <span class="n">item_str</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">optional_param</span> <span class="o">+=</span> <span class="n">item_str</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="n">required_param</span><span class="p">:</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Required&quot;</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">required_param</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">optional_param</span><span class="p">:</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Optional&quot;</span><span class="p">)</span>
+            <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">optional_param</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># Public Helpers ###############################################################</span>
+
+
+<div class="viewcode-block" id="add_params_to_generic"><a class="viewcode-back" href="../../utils/index.html#utils.entrypoint.add_params_to_generic">[docs]</a><span class="k">def</span> <span class="nf">add_params_to_generic</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Adds entry-point style parameter to either</span>
+<span class="sd">    ArgumentParser, DictParser or EntryPointArguments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="o">.</span><span class="n">_dict2list_param</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">EntryPointParameters</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">ArgumentParser</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+            <span class="n">param</span><span class="p">[</span><span class="s2">&quot;dest&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">flags</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;flags&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">flags</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="o">**</span><span class="n">param</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flags</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                    <span class="n">flags</span> <span class="o">=</span> <span class="p">[</span><span class="n">flags</span><span class="p">]</span>
+                <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="o">*</span><span class="n">flags</span><span class="p">,</span> <span class="o">**</span><span class="n">param</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">DictParser</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;nargs&quot;</span> <span class="ow">in</span> <span class="n">param</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s2">&quot;nargs&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;?&quot;</span><span class="p">:</span>
+                    <span class="n">param</span><span class="p">[</span><span class="s2">&quot;subtype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="n">param</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="s2">&quot;nargs&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;nargs&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">&quot;action&quot;</span> <span class="ow">in</span> <span class="n">param</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">param</span><span class="p">[</span><span class="s2">&quot;action&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="s2">&quot;store_false&quot;</span><span class="p">):</span>
+                    <span class="n">param</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span>
+                    <span class="n">param</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">param</span><span class="p">[</span><span class="s2">&quot;action&quot;</span><span class="p">][</span><span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;t&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ParameterError</span><span class="p">(</span><span class="s2">&quot;Action &#39;</span><span class="si">{:s}</span><span class="s2">&#39; not allowed in EntryPoint&quot;</span><span class="p">)</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;action&quot;</span><span class="p">)</span>
+
+            <span class="n">param</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;flags&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="n">name</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+            <span class="n">parser</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">param</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Parser not recognised.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+<div class="viewcode-block" id="split_arguments"><a class="viewcode-back" href="../../utils/index.html#utils.entrypoint.split_arguments">[docs]</a><span class="k">def</span> <span class="nf">split_arguments</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="o">*</span><span class="n">param_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Divide remaining arguments into a list of argument-dicts,</span>
+<span class="sd">        fitting to the params in param_list.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            args: Input arguments, either as list of strings or dict</span>
+<span class="sd">            param_list: list of sets of entry-point parameters (either dict, or list)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of dictionaries containing the arguments for each set of parameters,</span>
+<span class="sd">            plus one more entry for unknown parameters.</span>
+<span class="sd">            If the input was a list of argument-strings, the parameters will already be parsed.</span>
+
+<span class="sd">        .. warning:: Unless you know what you are doing, run this function only on</span>
+<span class="sd">                     remaining-arguments from entry point parsing, not on the actual arguments</span>
+
+<span class="sd">        .. warning:: Adds each argument only once, to the set of params who claim it first!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">split_args</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="c1"># strings of commandline parameters, has to be parsed twice</span>
+        <span class="c1"># (as I don&#39;t know how to handle flags properly)</span>
+        <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">param_list</span><span class="p">:</span>
+            <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+            <span class="n">parser</span> <span class="o">=</span> <span class="n">add_params_to_generic</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+            <span class="n">this_args</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">split_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DotDict</span><span class="p">(</span><span class="n">this_args</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">))</span>
+        <span class="n">split_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># should be a dictionary of params, so do it the manual way</span>
+        <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">param_list</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">param_names</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+            <span class="n">split_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DotDict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">params</span><span class="p">]))</span>
+        <span class="n">split_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DotDict</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">split_args</span></div>
+
+
+<div class="viewcode-block" id="param_names"><a class="viewcode-back" href="../../utils/index.html#utils.entrypoint.param_names">[docs]</a><span class="k">def</span> <span class="nf">param_names</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Get the names of the parameters, no matter if they are a dict or list of dicts &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">names</span></div>
+
+
+<div class="viewcode-block" id="create_parameter_help"><a class="viewcode-back" href="../../utils/index.html#utils.entrypoint.create_parameter_help">[docs]</a><span class="k">def</span> <span class="nf">create_parameter_help</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">param_fun</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Print params help quickly but changing the logging format first.</span>
+
+<span class="sd">    Usage Example::</span>
+
+<span class="sd">        import amplitude_detuning_analysis</span>
+<span class="sd">        create_parameter_help(amplitude_detuning_analysis)</span>
+<span class="sd">        create_parameter_help(amplitude_detuning_analysis, &quot;_get_plot_params&quot;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">logtools</span><span class="o">.</span><span class="n">unformatted_console_logging</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">param_fun</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">get_params</span><span class="p">()</span><span class="o">.</span><span class="n">help</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">_get_params</span><span class="p">()</span><span class="o">.</span><span class="n">help</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">param_fun</span><span class="p">)()</span><span class="o">.</span><span class="n">help</span><span class="p">()</span></div>
+
+
+<span class="c1"># Script Mode ##################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">EnvironmentError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2"> is not supposed to run as main.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

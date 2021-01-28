@@ -1,0 +1,1420 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Utils &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Twiss Optics" href="../twiss_optics/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Utils</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#package-content">Package Content</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.absolute_ratio_beta_amp_beta_phase">Module utils.absolute_ratio_beta_amp_beta_phase</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.ADDbpmerror">Module utils.ADDbpnerror</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.bpm">Module utils.bpm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.contexts">Module utils.contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.convert2json">Module utils.convert2json</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.dict_tools">Module utils.dict_tools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.entry_datatypes">Module utils.entry_datatypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.entrypoint">Module utils.entrypoint</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#terminology">Terminology:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#usage">Usage:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parameters">Parameters:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.error_handling">Module utils.error_handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.htcondor_wrapper">Module utils.htcondor_wrapper</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.iotools">Module utils.iotools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.logging_tools">Module utils.logging_tools</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-utils-math-tools">Module utils.math_tools</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.outliers">Module utils.outliers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.print_cprofile">Module utils.print_cprofile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.read_bet_deviations">Module utils.read_bet_deviations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.reindent">Module utils.reindent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-utils.stats">Module utils.stats</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/utils/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="utils">
+<h1>Utils<a class="headerlink" href="#utils" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="package-content">
+<h2>Package Content<a class="headerlink" href="#package-content" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-utils.absolute_ratio_beta_amp_beta_phase">
+<span id="module-utils-absolute-ratio-beta-amp-beta-phase"></span><h3>Module utils.absolute_ratio_beta_amp_beta_phase<a class="headerlink" href="#module-utils.absolute_ratio_beta_amp_beta_phase" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="module-utils.ADDbpmerror">
+<span id="module-utils-addbpnerror"></span><h3>Module utils.ADDbpnerror<a class="headerlink" href="#module-utils.ADDbpmerror" title="Permalink to this headline">¶</a></h3>
+<p>Created April, 2014</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">maintainer:</th><td class="field-body">Yngve Inntjore Levinsen</td>
+</tr>
+<tr class="field-even field"><th class="field-name">author:</th><td class="field-body">Yngve Inntjore Levinsen (based on awk script by Rogelio Tomas)</td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="utils.ADDbpmerror.convert_files">
+<code class="descclassname">utils.ADDbpmerror.</code><code class="descname">convert_files</code><span class="sig-paren">(</span><em>nparticles=1</em>, <em>infile='trackone'</em>, <em>outfile='ALLBPMs'</em>, <em>x_error=0.0</em>, <em>y_error=0.0</em>, <em>n_faulty=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/ADDbpmerror.html#convert_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.ADDbpmerror.convert_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Similar to the old awk script ALLBPMs.</p>
+<p>The main difference is that this can handle track files with more than one particle.
+In this case it will write each particle track to different files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>nparticles</strong> (<em>int</em>) -- Number of particles in the track file</li>
+<li><strong>infile</strong> (<em>string</em>) -- Name of input file</li>
+<li><strong>outfile</strong> (<em>string</em>) -- Name of output file</li>
+<li><strong>x_error</strong> (<em>float</em>) -- Sigma of noise in horizontal plane</li>
+<li><strong>y_error</strong> (<em>float</em>) -- Sigma of noise in vertical plane</li>
+<li><strong>n_faulty</strong> (<em>int</em>) -- Number of faulty BPMs</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.bpm">
+<span id="module-utils-bpm"></span><h3>Module utils.bpm<a class="headerlink" href="#module-utils.bpm" title="Permalink to this headline">¶</a></h3>
+<p>Created on 3 Jun 2013</p>
+<p>This module contains helper functions concerning bpms. It contains functions to filter BPMs or to
+intersect BPMs in multiple files or with a given model file.</p>
+<dl class="function">
+<dt id="utils.bpm.filterbpm">
+<code class="descclassname">utils.bpm.</code><code class="descname">filterbpm</code><span class="sig-paren">(</span><em>list_of_bpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/bpm.html#filterbpm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.bpm.filterbpm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filter non-arc BPM.
+:returns: list -- a list with those bpms which start with name “BPM.”</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.bpm.get_list_of_tuples">
+<code class="descclassname">utils.bpm.</code><code class="descname">get_list_of_tuples</code><span class="sig-paren">(</span><em>bpms</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/bpm.html#get_list_of_tuples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.bpm.get_list_of_tuples" title="Permalink to this definition">¶</a></dt>
+<dd><p>transforms the DataFrame bpms to a list of tuples to fake the old usage.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.bpm.intersect">
+<code class="descclassname">utils.bpm.</code><code class="descname">intersect</code><span class="sig-paren">(</span><em>list_of_twiss_files</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/bpm.html#intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.bpm.intersect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pure intersection of all bpm names in all files.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>list_of_twiss_files</strong> (<em>list</em>) -- List of metaclass.Twiss objects with columns NAME and S.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list with tuples: (&lt;S_value_i&gt;,&lt;bpm_i&gt;) -- bpm_i is in every twiss of list_of_twiss_files.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.bpm.intersect_with_bpm_list">
+<code class="descclassname">utils.bpm.</code><code class="descname">intersect_with_bpm_list</code><span class="sig-paren">(</span><em>exp_bpms</em>, <em>bpm_list</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/bpm.html#intersect_with_bpm_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.bpm.intersect_with_bpm_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Intersects BPMs from</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>exp_bpms' list with tuples</strong> (<em>list</em>) -- (&lt;S_value_i&gt;,&lt;bpm_i&gt;)</li>
+<li><strong>bpm_list</strong> (<em>list</em>) -- List of bpm names</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list with tuples: (&lt;S_value_i&gt;,&lt;bpm_i&gt;) -- A list with BPMs which are both in exp_bpms and bpm_list.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.bpm.model_intersect">
+<code class="descclassname">utils.bpm.</code><code class="descname">model_intersect</code><span class="sig-paren">(</span><em>exp_bpms</em>, <em>model_twiss</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/bpm.html#model_intersect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.bpm.model_intersect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Intersects BPMs from</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>exp_bpms</strong> (<em>list</em>) -- list with tuples (&lt;S_value_i&gt;,&lt;bpm_i&gt;)</li>
+<li><strong>model_twiss</strong> (<em>metaclass.Twiss</em>) -- Should be a Twiss object from model</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list with tuples: (&lt;S_value_i&gt;,&lt;bpm_i&gt;) -- A list with BPMs which are both in exp_bpms and model_twiss.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.contexts">
+<span id="module-utils-contexts"></span><h3>Module utils.contexts<a class="headerlink" href="#module-utils.contexts" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="utils.contexts.suppress_exception">
+<code class="descclassname">utils.contexts.</code><code class="descname">suppress_exception</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/contexts.html#suppress_exception"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.contexts.suppress_exception" title="Permalink to this definition">¶</a></dt>
+<dd><p>Catch exception and ignore it.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.contexts.temporary_file_path">
+<code class="descclassname">utils.contexts.</code><code class="descname">temporary_file_path</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/contexts.html#temporary_file_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.contexts.temporary_file_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns path to temporary file with content.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.convert2json">
+<span id="module-utils-convert2json"></span><h3>Module utils.convert2json<a class="headerlink" href="#module-utils.convert2json" title="Permalink to this headline">¶</a></h3>
+<p>Created on ??</p>
+<p>Loads the dictionaries which are the return values of the AllLists.py python script
+functions and dumps it as a json file.</p>
+</div>
+<div class="section" id="module-utils.dict_tools">
+<span id="module-utils-dict-tools"></span><h3>Module utils.dict_tools<a class="headerlink" href="#module-utils.dict_tools" title="Permalink to this headline">¶</a></h3>
+<dl class="exception">
+<dt id="utils.dict_tools.ArgumentError">
+<em class="property">exception </em><code class="descclassname">utils.dict_tools.</code><code class="descname">ArgumentError</code><a class="reference internal" href="../_modules/utils/dict_tools.html#ArgumentError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.ArgumentError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="utils.dict_tools.DictParser">
+<em class="property">class </em><code class="descclassname">utils.dict_tools.</code><code class="descname">DictParser</code><span class="sig-paren">(</span><em>dictionary=None</em>, <em>strict=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#DictParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.DictParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides functions to parse a dictionary.</p>
+<p>First build a dictionary structure with Arguments as leafs via add_argument or on init.
+A similar structured option dictionary with the values as leafs can then be parsed.</p>
+<dl class="method">
+<dt id="utils.dict_tools.DictParser.add_argument_dict">
+<code class="descname">add_argument_dict</code><span class="sig-paren">(</span><em>dictionary</em>, <em>loc</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#DictParser.add_argument_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.DictParser.add_argument_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Appends a complete subdictionary to existing argument structure at node ‘loc’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>loc</strong> -- location of the node to append the sub-dictionary</li>
+<li><strong>dictionary</strong> -- The dictionary to append</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">This object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="utils.dict_tools.DictParser.add_parameter">
+<code class="descname">add_parameter</code><span class="sig-paren">(</span><em>param</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#DictParser.add_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.DictParser.add_parameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an parameter to the parser.</p>
+<p>If you want it to be an parameter of a sub-dictionary add
+the ‘loc=subdict.subdict’ keyword to the input.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>param</strong> -- Argument to add (either of object of class argument or string defining the name)</li>
+<li><strong>kwargs</strong> -- Any of the argument-fields (apart from ‘name’) and/or ‘loc’</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">This object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="utils.dict_tools.DictParser.parse_arguments">
+<code class="descname">parse_arguments</code><span class="sig-paren">(</span><em>arguments</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#DictParser.parse_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.DictParser.parse_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a given option dictionary and return parsed options.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>arguments</strong> -- Arguments to parse</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Parsed options</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="utils.dict_tools.DictParser.parse_config_items">
+<code class="descname">parse_config_items</code><span class="sig-paren">(</span><em>items</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#DictParser.parse_config_items"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.DictParser.parse_config_items" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a list of (name, value) items, where the values are all strings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>items</strong> -- list of (name, value) items.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Parsed options</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="utils.dict_tools.DictParser.tree">
+<code class="descname">tree</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#DictParser.tree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.DictParser.tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the current Parameter-Tree (I made dis :) )</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="utils.dict_tools.DotDict">
+<em class="property">class </em><code class="descclassname">utils.dict_tools.</code><code class="descname">DotDict</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#DotDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.DotDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make dict fields accessible by .</p>
+<dl class="method">
+<dt id="utils.dict_tools.DotDict.get_subdict">
+<code class="descname">get_subdict</code><span class="sig-paren">(</span><em>keys</em>, <em>strict=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#DotDict.get_subdict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.DotDict.get_subdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>See get_subdict in dict_tools.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="utils.dict_tools.Parameter">
+<em class="property">class </em><code class="descclassname">utils.dict_tools.</code><code class="descname">Parameter</code><span class="sig-paren">(</span><em>name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#Parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.Parameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper Class for DictParser</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="utils.dict_tools.ParameterError">
+<em class="property">exception </em><code class="descclassname">utils.dict_tools.</code><code class="descname">ParameterError</code><a class="reference internal" href="../_modules/utils/dict_tools.html#ParameterError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.ParameterError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="utils.dict_tools.get_subdict">
+<code class="descclassname">utils.dict_tools.</code><code class="descname">get_subdict</code><span class="sig-paren">(</span><em>full_dict</em>, <em>keys</em>, <em>strict=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#get_subdict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.get_subdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a sub-dictionary of <code class="docutils literal notranslate"><span class="pre">full_dict</span></code> containing only keys of <code class="docutils literal notranslate"><span class="pre">keys</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_dict</strong> -- Dictionary to extract from</li>
+<li><strong>keys</strong> -- keys to extract</li>
+<li><strong>strict</strong> -- If false it ignores keys not in full_dict. Otherwise it crashes on those.
+Default: True</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Returns: Extracted sub-dictionary</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.dict_tools.print_dict_tree">
+<code class="descclassname">utils.dict_tools.</code><code class="descname">print_dict_tree</code><span class="sig-paren">(</span><em>dictionary</em>, <em>name='Dictionary'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/dict_tools.html#print_dict_tree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.dict_tools.print_dict_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints a dictionary as a tree</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.entry_datatypes">
+<span id="module-utils-entry-datatypes"></span><h3>Module utils.entry_datatypes<a class="headerlink" href="#module-utils.entry_datatypes" title="Permalink to this headline">¶</a></h3>
+<p>Advanced Datatypes to add as type to entrypoint. Or any parser, really.</p>
+<dl class="class">
+<dt id="utils.entry_datatypes.BoolOrList">
+<em class="property">class </em><code class="descclassname">utils.entry_datatypes.</code><code class="descname">BoolOrList</code><a class="reference internal" href="../_modules/utils/entry_datatypes.html#BoolOrList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entry_datatypes.BoolOrList" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class that behaves like a boolean when possible, otherwise like a list.</p>
+<p>Hint: ‘list.__new__(list, value)’ returns an empty list.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="utils.entry_datatypes.BoolOrString">
+<em class="property">class </em><code class="descclassname">utils.entry_datatypes.</code><code class="descname">BoolOrString</code><a class="reference internal" href="../_modules/utils/entry_datatypes.html#BoolOrString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entry_datatypes.BoolOrString" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class that behaves like a boolean when possible, otherwise like a string.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="utils.entry_datatypes.DictAsString">
+<em class="property">class </em><code class="descclassname">utils.entry_datatypes.</code><code class="descname">DictAsString</code><a class="reference internal" href="../_modules/utils/entry_datatypes.html#DictAsString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entry_datatypes.DictAsString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use dicts in command line like {“key”:value}</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.entry_datatypes.get_instance_faker_meta">
+<code class="descclassname">utils.entry_datatypes.</code><code class="descname">get_instance_faker_meta</code><span class="sig-paren">(</span><em>*classes</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entry_datatypes.html#get_instance_faker_meta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entry_datatypes.get_instance_faker_meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the metaclass that fakes the isinstance() checks.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.entry_datatypes.get_multi_class">
+<code class="descclassname">utils.entry_datatypes.</code><code class="descname">get_multi_class</code><span class="sig-paren">(</span><em>*classes</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entry_datatypes.html#get_multi_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entry_datatypes.get_multi_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a class ‘behaving’ like all classes in <cite>classes</cite>.</p>
+<p>In case a value needs to be converted to a class in this list,
+it is attempted to cast the input to the classes in the given order
+(i.e. string-classes need to go to the end, as they ‘always’ succeed).</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.entrypoint">
+<span id="module-utils-entrypoint"></span><h3>Module utils.entrypoint<a class="headerlink" href="#module-utils.entrypoint" title="Permalink to this headline">¶</a></h3>
+<p>Entry Point Decorator</p>
+<p>Allows a function to be decorated as entrypoint.
+This function will then automatically accept console arguments, config files, json files,
+kwargs and dictionaries as input and will parse it according to the parameters
+given to the entrypoint-Decorator.</p>
+<div class="section" id="terminology">
+<h4>Terminology:<a class="headerlink" href="#terminology" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div><ul class="simple">
+<li><strong>Parameter</strong> - Items containing info on how to parse Arguments</li>
+<li><strong>Arguments</strong> - The input to the wrapped-function</li>
+<li><strong>Options</strong> - The parsed arguments and hence the options of the function</li>
+</ul>
+</div></blockquote>
+<p>Hence, an <code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentError</span></code> will be raised in case of something going wrong during parsing,
+while <code class="xref py py-class docutils literal notranslate"><span class="pre">ParameterErrors</span></code> will be raised if something goes wrong when
+adding parameters to the list.</p>
+</div>
+<div class="section" id="usage">
+<h4>Usage:<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h4>
+<p>To be used as a decorator:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@entrypoint</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">some_function</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">unknown_options</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Using <strong>strict</strong> mode (see below):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@entrypoint</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">some_function</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It is also possible to use the EntryPoint Class similar to a normal parser:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ep_parser</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+<span class="n">options</span><span class="p">,</span> <span class="n">unknown_options</span> <span class="o">=</span> <span class="n">ep_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">arguments</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Using <strong>strict</strong> mode (see below):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ep_parser</span> <span class="o">=</span> <span class="n">EntryPoint</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">options</span> <span class="o">=</span> <span class="n">ep_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">arguments</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="parameters">
+<h4>Parameters:<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h4>
+<p>Parameters need to be a list or a dictionary of dictionaries with the following keys:</p>
+<div class="line-block">
+<div class="line"><strong>name</strong> (<em>required</em>): Name of the variable (e.g. later use options.NAME).
+If ‘params’ is a dictionary, the key will be used as name.</div>
+<div class="line"><strong>flags</strong> (<em>required</em>): Commandline flag(s), e.g. <code class="docutils literal notranslate"><span class="pre">--file</span></code></div>
+<div class="line"><strong>required</strong> (<em>optional</em>): <code class="docutils literal notranslate"><span class="pre">bool</span></code></div>
+<div class="line"><strong>default</strong> (<em>optional</em>): Default value, if variable not present</div>
+<div class="line"><strong>help</strong> (<em>optional</em>): <code class="docutils literal notranslate"><span class="pre">str</span></code></div>
+<div class="line"><strong>type</strong> (<em>optional</em>): Value <code class="docutils literal notranslate"><span class="pre">type</span></code> (if nargs is given, set to list for dicts!)</div>
+<div class="line"><strong>choices</strong> (<em>optional</em>): choices to choose from
+(choices need to be of <code class="docutils literal notranslate"><span class="pre">type</span></code>, if given)</div>
+<div class="line"><strong>nargs</strong> (<em>optional</em>): number of arguments to consume
+(commandline only, do not use <code class="docutils literal notranslate"><span class="pre">REMAINDER</span></code>!)</div>
+<div class="line"><strong>action</strong> (<em>optional</em>): either <code class="docutils literal notranslate"><span class="pre">store_true</span></code> or <code class="docutils literal notranslate"><span class="pre">store_false</span></code>, will set <code class="docutils literal notranslate"><span class="pre">type</span></code> to bool
+and the default to <code class="docutils literal notranslate"><span class="pre">False</span></code> and <code class="docutils literal notranslate"><span class="pre">True</span></code> respectively.</div>
+</div>
+<p>The <strong>strict</strong> option changes the behaviour for unknown parameters:
+<code class="docutils literal notranslate"><span class="pre">strict=True</span></code> raises exceptions, <code class="docutils literal notranslate"><span class="pre">strict=False</span></code> loggs debug messages and returns the options.
+Hence a wrapped function with <code class="docutils literal notranslate"><span class="pre">strict=True</span></code> must accept one input, with <code class="docutils literal notranslate"><span class="pre">strict=False</span></code> two.
+Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
+<dl class="class">
+<dt id="utils.entrypoint.EntryPointParameters">
+<em class="property">class </em><code class="descclassname">utils.entrypoint.</code><code class="descname">EntryPointParameters</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entrypoint.html#EntryPointParameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entrypoint.EntryPointParameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helps to build a simple dictionary structure via add_argument functions.</p>
+<p>You really don’t need that, but old habits die hard.</p>
+<dl class="method">
+<dt id="utils.entrypoint.EntryPointParameters.add_parameter">
+<code class="descname">add_parameter</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entrypoint.html#EntryPointParameters.add_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entrypoint.EntryPointParameters.add_parameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add parameter</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="utils.entrypoint.EntryPointParameters.help">
+<code class="descname">help</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entrypoint.html#EntryPointParameters.help"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entrypoint.EntryPointParameters.help" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints current help. Usable to paste into docstrings.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.entrypoint.add_params_to_generic">
+<code class="descclassname">utils.entrypoint.</code><code class="descname">add_params_to_generic</code><span class="sig-paren">(</span><em>parser</em>, <em>params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entrypoint.html#add_params_to_generic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entrypoint.add_params_to_generic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds entry-point style parameter to either
+ArgumentParser, DictParser or EntryPointArguments</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.entrypoint.create_parameter_help">
+<code class="descclassname">utils.entrypoint.</code><code class="descname">create_parameter_help</code><span class="sig-paren">(</span><em>module</em>, <em>param_fun=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entrypoint.html#create_parameter_help"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entrypoint.create_parameter_help" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print params help quickly but changing the logging format first.</p>
+<p>Usage Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">amplitude_detuning_analysis</span>
+<span class="n">create_parameter_help</span><span class="p">(</span><span class="n">amplitude_detuning_analysis</span><span class="p">)</span>
+<span class="n">create_parameter_help</span><span class="p">(</span><span class="n">amplitude_detuning_analysis</span><span class="p">,</span> <span class="s2">&quot;_get_plot_params&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="utils.entrypoint.entrypoint">
+<em class="property">class </em><code class="descclassname">utils.entrypoint.</code><code class="descname">entrypoint</code><span class="sig-paren">(</span><em>parameter</em>, <em>strict=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entrypoint.html#entrypoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entrypoint.entrypoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator extension of EntryPoint.</p>
+<p>Implements the __call__ method needed for decorating.
+Lowercase looks nicer if used as decorator</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.entrypoint.param_names">
+<code class="descclassname">utils.entrypoint.</code><code class="descname">param_names</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entrypoint.html#param_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entrypoint.param_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the names of the parameters, no matter if they are a dict or list of dicts</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.entrypoint.split_arguments">
+<code class="descclassname">utils.entrypoint.</code><code class="descname">split_arguments</code><span class="sig-paren">(</span><em>args</em>, <em>*param_list</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/entrypoint.html#split_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.entrypoint.split_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Divide remaining arguments into a list of argument-dicts,
+fitting to the params in param_list.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>args</strong> -- Input arguments, either as list of strings or dict</li>
+<li><strong>param_list</strong> -- list of sets of entry-point parameters (either dict, or list)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A list of dictionaries containing the arguments for each set of parameters,
+plus one more entry for unknown parameters.
+If the input was a list of argument-strings, the parameters will already be parsed.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Unless you know what you are doing, run this function only on
+remaining-arguments from entry point parsing, not on the actual arguments</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Adds each argument only once, to the set of params who claim it first!</p>
+</div>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-utils.error_handling">
+<span id="module-utils-error-handling"></span><h3>Module utils.error_handling<a class="headerlink" href="#module-utils.error_handling" title="Permalink to this headline">¶</a></h3>
+<p>Tools to handle errors easier
+(and to not to have to look it up on StackOverflow all the time)</p>
+<dl class="function">
+<dt id="utils.error_handling.append_error_message">
+<code class="descclassname">utils.error_handling.</code><code class="descname">append_error_message</code><span class="sig-paren">(</span><em>err</em>, <em>message</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/error_handling.html#append_error_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.error_handling.append_error_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Append ‘message’ to the message of error ‘err’</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.error_handling.assertion">
+<code class="descclassname">utils.error_handling.</code><code class="descname">assertion</code><span class="sig-paren">(</span><em>condition</em>, <em>exception</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/error_handling.html#assertion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.error_handling.assertion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise Exception if condition is not fulfilled</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.error_handling.replace_error_message">
+<code class="descclassname">utils.error_handling.</code><code class="descname">replace_error_message</code><span class="sig-paren">(</span><em>err</em>, <em>message</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/error_handling.html#replace_error_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.error_handling.replace_error_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace the message of error ‘err’ with ‘message’</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.htcondor_wrapper">
+<span id="module-utils-htcondor-wrapper"></span><h3>Module utils.htcondor_wrapper<a class="headerlink" href="#module-utils.htcondor_wrapper" title="Permalink to this headline">¶</a></h3>
+<p>Tools to use htcondor via python.
+Requires you to be on a computer where htcondor is set up.
+For local machines see: <a class="reference external" href="https://twiki.cern.ch/twiki/bin/view/ABPComputing/LxbatchHTCondor">https://twiki.cern.ch/twiki/bin/view/ABPComputing/LxbatchHTCondor</a></p>
+<p>Hint: I had to add the path of the newly installed modules to the batch_Krb5_credential script to
+be able to find the Authen::Krb5 package:
+(use lib “/home/jdilly/perl5/lib/perl5/x86_64-linux-gnu-thread-multi/”;)</p>
+<p>Also, make sure the SCHEDD_NAME is set properly in the config file mentioned above.
+(i.e. go to lxplus, run condor_q and see which scheduler was assigned to you)</p>
+<p>If you run jobs that take longer than 25h, make sure you are using a renewable Kerberos ticket:
+kinit -r 604800  (i.e. renewable  by “kinit -R” for 1 week)</p>
+<p>Python Readme:
+<a class="reference external" href="https://htcondor-python.readthedocs.io/en/latest">https://htcondor-python.readthedocs.io/en/latest</a></p>
+<p>IMPORTANT: This functionality relies on shared-space of all files between htcondor and the user.</p>
+<dl class="function">
+<dt id="utils.htcondor_wrapper.create_job_for_bashfile">
+<code class="descclassname">utils.htcondor_wrapper.</code><code class="descname">create_job_for_bashfile</code><span class="sig-paren">(</span><em>bashfile</em>, <em>duration='longlunch'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/htcondor_wrapper.html#create_job_for_bashfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.htcondor_wrapper.create_job_for_bashfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a simple Submit() object for the bashfile.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.htcondor_wrapper.create_multijob_for_bashfiles">
+<code class="descclassname">utils.htcondor_wrapper.</code><code class="descname">create_multijob_for_bashfiles</code><span class="sig-paren">(</span><em>folder</em>, <em>n_files</em>, <em>duration='longlunch'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/htcondor_wrapper.html#create_multijob_for_bashfiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.htcondor_wrapper.create_multijob_for_bashfiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to create a HTCondor job assuming n_files bash-files.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.htcondor_wrapper.create_subfile_from_job">
+<code class="descclassname">utils.htcondor_wrapper.</code><code class="descname">create_subfile_from_job</code><span class="sig-paren">(</span><em>folder</em>, <em>job</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/htcondor_wrapper.html#create_subfile_from_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.htcondor_wrapper.create_subfile_from_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write file to submit to htcondor</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.htcondor_wrapper.submit_job">
+<code class="descclassname">utils.htcondor_wrapper.</code><code class="descname">submit_job</code><span class="sig-paren">(</span><em>job</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/htcondor_wrapper.html#submit_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.htcondor_wrapper.submit_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submits the job to the scheduler
+This would be the nicer way, BUT: the python bindings do currently not forward the
+keberos token.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.htcondor_wrapper.submit_jobfile">
+<code class="descclassname">utils.htcondor_wrapper.</code><code class="descname">submit_jobfile</code><span class="sig-paren">(</span><em>jobfile</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/htcondor_wrapper.html#submit_jobfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.htcondor_wrapper.submit_jobfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submit subfile to htcondor via subprocess</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.htcondor_wrapper.write_madx_bash">
+<code class="descclassname">utils.htcondor_wrapper.</code><code class="descname">write_madx_bash</code><span class="sig-paren">(</span><em>folder</em>, <em>id</em>, <em>madx_files</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/htcondor_wrapper.html#write_madx_bash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.htcondor_wrapper.write_madx_bash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write bash file to call madx files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>folder</strong> -- Folder to write file into</li>
+<li><strong>id</strong> -- id for current bash_file</li>
+<li><strong>madx_files</strong> -- List of madx-files to run in this job.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Path to current madx file</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.iotools">
+<span id="module-utils-iotools"></span><h3>Module utils.iotools<a class="headerlink" href="#module-utils.iotools" title="Permalink to this headline">¶</a></h3>
+<p>Created on 1 Jul 2013</p>
+<p>utils.iotools.py holds helper functions for input/output issues. This module is not intended to
+be executed.</p>
+<p>Feel free to use and extend this module.</p>
+<dl class="function">
+<dt id="utils.iotools.append_string_to_textfile">
+<code class="descclassname">utils.iotools.</code><code class="descname">append_string_to_textfile</code><span class="sig-paren">(</span><em>path_to_textfile</em>, <em>str_to_append</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#append_string_to_textfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.append_string_to_textfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>If file does not exist, a new file will be created.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.copy_content_of_dir">
+<code class="descclassname">utils.iotools.</code><code class="descname">copy_content_of_dir</code><span class="sig-paren">(</span><em>src_dir</em>, <em>dst_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#copy_content_of_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.copy_content_of_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies all files and directories from src_dir to dst_dir.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.copy_item">
+<code class="descclassname">utils.iotools.</code><code class="descname">copy_item</code><span class="sig-paren">(</span><em>src_item</em>, <em>dest</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#copy_item"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.copy_item" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies a file or a directory to dest. dest may be a directory.
+If src_item is a directory then all containing files and dirs will be copied into dest.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.create_dirs">
+<code class="descclassname">utils.iotools.</code><code class="descname">create_dirs</code><span class="sig-paren">(</span><em>path_to_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#create_dirs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.create_dirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates all dirs to path_to_dir if not exists.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.deleteFilesWithoutGitignore">
+<code class="descclassname">utils.iotools.</code><code class="descname">deleteFilesWithoutGitignore</code><span class="sig-paren">(</span><em>pathToDirectory</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#deleteFilesWithoutGitignore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.deleteFilesWithoutGitignore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes all files in the given pathToDirectory except of the file with the name ‘.gitignore’</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">bool -- True if the directory exists and the files are deleted otherwise False.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.delete_content_of_dir">
+<code class="descclassname">utils.iotools.</code><code class="descname">delete_content_of_dir</code><span class="sig-paren">(</span><em>path_to_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#delete_content_of_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.delete_content_of_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes all folders, files and symbolic links in given directory.
+:param string path_to_dir:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.delete_item">
+<code class="descclassname">utils.iotools.</code><code class="descname">delete_item</code><span class="sig-paren">(</span><em>path_to_item</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#delete_item"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.delete_item" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the item given by path_to_item. It distinguishes between a file, a directory and a
+symbolic link.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.get_all_absolute_filenames_in_dir_and_subdirs">
+<code class="descclassname">utils.iotools.</code><code class="descname">get_all_absolute_filenames_in_dir_and_subdirs</code><span class="sig-paren">(</span><em>path_to_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#get_all_absolute_filenames_in_dir_and_subdirs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.get_all_absolute_filenames_in_dir_and_subdirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks for files(not dirs) in dir and subdirs and returns them as a list.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.get_all_dir_names_in_dir">
+<code class="descclassname">utils.iotools.</code><code class="descname">get_all_dir_names_in_dir</code><span class="sig-paren">(</span><em>path_to_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#get_all_dir_names_in_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.get_all_dir_names_in_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks for directories in dir and returns them as a list</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.get_all_filenames_in_dir">
+<code class="descclassname">utils.iotools.</code><code class="descname">get_all_filenames_in_dir</code><span class="sig-paren">(</span><em>path_to_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#get_all_filenames_in_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.get_all_filenames_in_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks for files in dir(not subdir) and returns them as a list</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.get_all_filenames_in_dir_and_subdirs">
+<code class="descclassname">utils.iotools.</code><code class="descname">get_all_filenames_in_dir_and_subdirs</code><span class="sig-paren">(</span><em>path_to_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#get_all_filenames_in_dir_and_subdirs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.get_all_filenames_in_dir_and_subdirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks for files(not dirs) in dir and subdirs and returns them as a list.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.json_dumps_readable">
+<code class="descclassname">utils.iotools.</code><code class="descname">json_dumps_readable</code><span class="sig-paren">(</span><em>json_outfile</em>, <em>object</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#json_dumps_readable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.json_dumps_readable" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is how you write a beautiful json file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>json_outfile</strong> -- File to write</li>
+<li><strong>object</strong> -- object to dump</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.replace_keywords_in_textfile">
+<code class="descclassname">utils.iotools.</code><code class="descname">replace_keywords_in_textfile</code><span class="sig-paren">(</span><em>path_to_textfile</em>, <em>dict_for_replacing</em>, <em>new_output_path=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#replace_keywords_in_textfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.replace_keywords_in_textfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function replaces all keywords in a textfile with the corresponding values in the dictionary.
+E.g.: A textfile with the content “%(This)s will be replaced!” and the dict {“This”:”xyz”} results
+to the change “xyz will be replaced!” in the textfile.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>new_output_path</strong> -- If new_output_path is None, then the source file will be replaced.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.iotools.write_string_into_new_file">
+<code class="descclassname">utils.iotools.</code><code class="descname">write_string_into_new_file</code><span class="sig-paren">(</span><em>path_to_textfile</em>, <em>str_to_insert</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/iotools.html#write_string_into_new_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.iotools.write_string_into_new_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>An existing file will be truncated.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.logging_tools">
+<span id="module-utils-logging-tools"></span><h3>Module utils.logging_tools<a class="headerlink" href="#module-utils.logging_tools" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="utils.logging_tools.DebugMode">
+<em class="property">class </em><code class="descclassname">utils.logging_tools.</code><code class="descname">DebugMode</code><span class="sig-paren">(</span><em>active=True</em>, <em>log_file=None</em>, <em>add_date_to_fname=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#DebugMode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.DebugMode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Context Manager for the debug mode.</p>
+<p>Hint: Does not work with &#64;contextmanager from contextlib (even though nicer code),
+as the _get_caller would find the contextlib.py</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>active</strong> (<em>bool</em>) -- Defines if this manager is doing anything. (Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>)</li>
+<li><strong>log_file</strong> (<em>str</em>) -- File to log into.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="utils.logging_tools.MaxFilter">
+<em class="property">class </em><code class="descclassname">utils.logging_tools.</code><code class="descname">MaxFilter</code><span class="sig-paren">(</span><em>level</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#MaxFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.MaxFilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>To get messages only up to a certain level</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="utils.logging_tools.TempFile">
+<em class="property">class </em><code class="descclassname">utils.logging_tools.</code><code class="descname">TempFile</code><span class="sig-paren">(</span><em>file_path</em>, <em>log_func</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#TempFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.TempFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Context Manager.
+Lets another function write into a temporary file and logs its contents.</p>
+<p>It won’t open the file though, so only the files path is returned.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>file_path</strong> (<em>str</em>) -- Place to write the tempfile to.</li>
+<li><strong>log_func</strong> (<em>func</em>) -- The function with which the content should be logged (e.g. LOG.info)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.add_module_handler">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">add_module_handler</code><span class="sig-paren">(</span><em>handler</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#add_module_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.add_module_handler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add handler at current module level</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.add_root_handler">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">add_root_handler</code><span class="sig-paren">(</span><em>handler</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#add_root_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.add_root_handler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add handler at root level</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.file_handler">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">file_handler</code><span class="sig-paren">(</span><em>logfile</em>, <em>level=10</em>, <em>fmt='%(levelname)7s | %(message)s | %(name)s'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#file_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.file_handler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function so the caller does not have to import logging</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.getLogger">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">getLogger</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#getLogger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.getLogger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function so the caller does not have to import logging</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.get_logger">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">get_logger</code><span class="sig-paren">(</span><em>name</em>, <em>level_root=10</em>, <em>level_console=20</em>, <em>fmt='%(levelname)7s | %(message)s | %(name)s'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#get_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.get_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up logger if name is __main__. Returns logger based on module name)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> -- only used to check if __name__ is __main__</li>
+<li><strong>level_root</strong> -- main logging level, default DEBUG</li>
+<li><strong>level_console</strong> -- console logging level, default INFO</li>
+<li><strong>fmt</strong> -- Format of the logging. For default see BASIC_FORMAT</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Logger instance.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.log_pandas_settings_with_copy">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">log_pandas_settings_with_copy</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#log_pandas_settings_with_copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.log_pandas_settings_with_copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logs pandas SettingsWithCopy warning to loc_func instead of printing the warning.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.logging_silence">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">logging_silence</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#logging_silence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.logging_silence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove temporarily all loggers from root logger.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.stream_handler">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">stream_handler</code><span class="sig-paren">(</span><em>stream=&lt;open file '&lt;stdout&gt;'</em>, <em>mode 'w'&gt;</em>, <em>level=10</em>, <em>fmt='%(levelname)7s | %(message)s | %(name)s'</em>, <em>max_level=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#stream_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.stream_handler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function so the caller does not have to import logging</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.logging_tools.unformatted_console_logging">
+<code class="descclassname">utils.logging_tools.</code><code class="descname">unformatted_console_logging</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/logging_tools.html#unformatted_console_logging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.logging_tools.unformatted_console_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Log only to console and only unformatted.</p>
+</dd></dl>
+
+<span class="target" id="module-utils.math_tools"></span><div class="section" id="module-utils-math-tools">
+<h4>Module utils.math_tools<a class="headerlink" href="#module-utils-math-tools" title="Permalink to this headline">¶</a></h4>
+<p>Mathematical helper functions for everyone.</p>
+<dl class="function">
+<dt id="utils.math_tools.get_next_scientific_exponent">
+<code class="descclassname">utils.math_tools.</code><code class="descname">get_next_scientific_exponent</code><span class="sig-paren">(</span><em>number</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/math_tools.html#get_next_scientific_exponent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.math_tools.get_next_scientific_exponent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the next exponent of 10 which is a multiple of 3, so that
+the coefficient is &lt;100.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>number</strong> -- number to convert</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Tupel of coefficient and exponent.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.math_tools.mad">
+<code class="descclassname">utils.math_tools.</code><code class="descname">mad</code><span class="sig-paren">(</span><em>arr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/math_tools.html#mad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.math_tools.mad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Median Absolute Deviation: a “Robust” version of standard deviation.
+Indices variabililty of the sample.
+<a class="reference external" href="https://en.wikipedia.org/wiki/Median_absolute_deviation">https://en.wikipedia.org/wiki/Median_absolute_deviation</a>
+Source: <a class="reference external" href="https://stackoverflow.com/a/23535934/5609590">https://stackoverflow.com/a/23535934/5609590</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>arr</strong> -- numpy array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-utils.outliers">
+<span id="module-utils-outliers"></span><h3>Module utils.outliers<a class="headerlink" href="#module-utils.outliers" title="Permalink to this headline">¶</a></h3>
+<p>..module: utils.outliers</p>
+<p>Created on 08/05/17</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Lukas Malina</td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="utils.outliers.get_filter_mask">
+<code class="descclassname">utils.outliers.</code><code class="descname">get_filter_mask</code><span class="sig-paren">(</span><em>data</em>, <em>x_data=None</em>, <em>limit=0.0</em>, <em>niter=20</em>, <em>nsig=None</em>, <em>mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/outliers.html#get_filter_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.outliers.get_filter_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>It filters the array of values which are meant to be constant
+or a linear function of the other array if that is provided
+Returns a filter mask for the original array</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.print_cprofile">
+<span id="module-utils-print-cprofile"></span><h3>Module utils.print_cprofile<a class="headerlink" href="#module-utils.print_cprofile" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="utils.print_cprofile.main">
+<code class="descclassname">utils.print_cprofile.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/print_cprofile.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.print_cprofile.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Little snipet to print the output of cProfile in
+a human redable way.
+Usage: python print_cprofile.py input_file.dat &gt;&gt; ouput_file.txt</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-utils.read_bet_deviations">
+<span id="module-utils-read-bet-deviations"></span><h3>Module utils.read_bet_deviations<a class="headerlink" href="#module-utils.read_bet_deviations" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="module-utils.reindent">
+<span id="module-utils-reindent"></span><h3>Module utils.reindent<a class="headerlink" href="#module-utils.reindent" title="Permalink to this headline">¶</a></h3>
+<p>reindent [-d][-r][-v] [ path … ]</p>
+<p>-d (--dryrun)   Dry run.   Analyze, but don’t make any changes to, files.
+-r (--recurse)  Recurse.   Search for all .py files in subdirectories too.
+-n (--nobackup) No backup. Does not make a “.bak” file before reindenting.
+-v (--verbose)  Verbose.   Print informative msgs; else no output.
+-h (--help)     Help.      Print this usage information and exit.</p>
+<p>Change Python (.py) files to use 4-space indents and no hard tab characters.
+Also trim excess spaces and tabs from ends of lines, and remove empty lines
+at the end of files.  Also ensure the last line ends with a newline.</p>
+<p>If no paths are given on the command line, reindent operates as a filter,
+reading a single source file from standard input and writing the transformed
+source to standard output.  In this case, the -d, -r and -v flags are
+ignored.</p>
+<p>You can pass one or more file and/or directory paths.  When a directory
+path, all .py files within the directory will be examined, and, if the -r
+option is given, likewise recursively for subdirectories.</p>
+<p>If output is not to standard output, reindent overwrites files in place,
+renaming the originals with a .bak extension.  If it finds nothing to
+change, the file is left alone.  If reindent does change a file, the changed
+file is a fixed-point for future runs (i.e., running reindent on the
+resulting .py file won’t change it again).</p>
+<p>The hard part of reindenting is figuring out what to do with comment
+lines.  So long as the input files get a clean bill of health from
+tabnanny.py, reindent should do a good job.</p>
+<p>The backup file is a copy of the one that is being reindented. The “.bak”
+file is generated with shutil.copy(), but some corner cases regarding
+user/group and permissions could leave the backup file more readable that
+you’d prefer. You can always use the --nobackup option to prevent this.</p>
+</div>
+<div class="section" id="module-utils.stats">
+<span id="module-utils-stats"></span><h3>Module utils.stats<a class="headerlink" href="#module-utils.stats" title="Permalink to this headline">¶</a></h3>
+<p>Created on 03/07/18</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Lukas Malina</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Provides statistical methods to compute:</dt>
+<dd>various weighted averages along specified axis and their errors
+unbiased error estimator of infinite normal distribution from finite-sized sample</dd>
+</dl>
+<p>TODO use weighted average and its error in circular calculations
+TODO write tests
+TODO LOGGER or Raising error and warnings?
+TODO if zeros or nans occur in errors, fallback to uniform weights only in affected cases</p>
+<dl class="function">
+<dt id="utils.stats.circular_error">
+<code class="descclassname">utils.stats.</code><code class="descname">circular_error</code><span class="sig-paren">(</span><em>data</em>, <em>period=6.283185307179586</em>, <em>errors=None</em>, <em>axis=None</em>, <em>t_value_corr=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#circular_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.circular_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes error of weighted circular average along the specified axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> -- array-like
+Contains the data to be averaged</li>
+<li><strong>period</strong> -- scalar, optional
+Periodicity period of data, default is (2 * np.pi)</li>
+<li><strong>errors</strong> -- array-like, optional
+Contains errors associated with the values in data, it is used to calculated weights</li>
+<li><strong>axis</strong> -- int or tuple of ints, optional
+Axis or axes along which to average data</li>
+<li><strong>t_value_corr</strong> -- bool, optional
+Species if the error is corrected for small sample size, default True</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns the error of weighted circular average along the specified axis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.stats.circular_mean">
+<code class="descclassname">utils.stats.</code><code class="descname">circular_mean</code><span class="sig-paren">(</span><em>data</em>, <em>period=6.283185307179586</em>, <em>errors=None</em>, <em>axis=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#circular_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.circular_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes weighted circular average along the specified axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> -- array-like
+Contains the data to be averaged</li>
+<li><strong>period</strong> -- scalar, optional, default (2 * np.pi)
+Periodicity period of data</li>
+<li><strong>errors</strong> -- array-like, optional
+Contains errors associated with the values in data, it is used to calculated weights</li>
+<li><strong>axis</strong> -- int or tuple of ints, optional
+Axis or axes along which to average data</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns the weighted circular average along the specified axis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.stats.effective_sample_size">
+<code class="descclassname">utils.stats.</code><code class="descname">effective_sample_size</code><span class="sig-paren">(</span><em>data</em>, <em>weights</em>, <em>axis=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#effective_sample_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.effective_sample_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes effective sample size of weighted data along specifies axis</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> -- array-like</li>
+<li><strong>weights</strong> -- array-like
+Contains weights associated with the values in data</li>
+<li><strong>axis</strong> -- int or tuple of ints, optional
+Axis or axes along which the effective sample size is computed</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns the error of weighted circular average along the specified axis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.stats.t_value_correction">
+<code class="descclassname">utils.stats.</code><code class="descname">t_value_correction</code><span class="sig-paren">(</span><em>sample_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#t_value_correction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.t_value_correction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the multiplicative correction factor to determine standard deviation of normally
+distributed quantity from standard deviation of its finite-sized sample</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sample_size</strong> -- array-like</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>multiplicative correction factor(s) of same shape as sample_size</dt>
+<dd>can contain nans</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.stats.unbias_variance">
+<code class="descclassname">utils.stats.</code><code class="descname">unbias_variance</code><span class="sig-paren">(</span><em>data</em>, <em>weights</em>, <em>axis=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#unbias_variance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.unbias_variance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes a correction factor to unbias variance of weighted average of data along specified axis</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> -- array-like</li>
+<li><strong>weights</strong> -- array-like
+Contains weights associated with the values in data</li>
+<li><strong>axis</strong> -- int or tuple of ints, optional
+Axis or axes along which the effective sample size is computed</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns the error of weighted circular average along the specified axis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.stats.weighted_error">
+<code class="descclassname">utils.stats.</code><code class="descname">weighted_error</code><span class="sig-paren">(</span><em>data</em>, <em>errors=None</em>, <em>axis=None</em>, <em>t_value_corr=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#weighted_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.weighted_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes error of weighted average along the specified axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> -- array-like
+Contains the data to be averaged</li>
+<li><strong>errors</strong> -- array-like, optional
+Contains errors associated with the values in data, it is used to calculated weights</li>
+<li><strong>axis</strong> -- int or tuple of ints, optional
+Axis or axes along which to average data</li>
+<li><strong>t_value_corr</strong> -- bool, optional
+Species if the error is corrected for small sample size, default True</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns the error of weighted average along the specified axis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.stats.weighted_mean">
+<code class="descclassname">utils.stats.</code><code class="descname">weighted_mean</code><span class="sig-paren">(</span><em>data</em>, <em>errors=None</em>, <em>axis=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#weighted_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.weighted_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes weighted average along the specified axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> -- array-like
+Contains the data to be averaged</li>
+<li><strong>errors</strong> -- array-like, optional
+Contains errors associated with the values in data, it is used to calculated weights</li>
+<li><strong>axis</strong> -- int or tuple of ints, optional
+Axis or axes along which to average data</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns the weighted average along the specified axis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.stats.weighted_rms">
+<code class="descclassname">utils.stats.</code><code class="descname">weighted_rms</code><span class="sig-paren">(</span><em>data</em>, <em>errors=None</em>, <em>axis=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#weighted_rms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.weighted_rms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes weighted root mean square along the specified axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> -- array-like
+Contains the data to be averaged</li>
+<li><strong>errors</strong> -- array-like, optional
+Contains errors associated with the values in data, it is used to calculated weights</li>
+<li><strong>axis</strong> -- int or tuple of ints, optional
+Axis or axes along which to average data</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns weighted root mean square along the specified axis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="utils.stats.weights_from_errors">
+<code class="descclassname">utils.stats.</code><code class="descname">weights_from_errors</code><span class="sig-paren">(</span><em>errors</em>, <em>period=6.283185307179586</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/stats.html#weights_from_errors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#utils.stats.weights_from_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes weights from measurement errors, weights are not output if errors contain zeros or nans</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>errors</strong> -- array-like
+Contains errors which are used to calculated weights</li>
+<li><strong>period</strong> -- scalar, optional
+Periodicity period of data, default is (2 * np.pi)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Returns the error of weighted circular average along the specified axis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../twiss_optics/index.html" class="btn btn-neutral float-left" title="Twiss Optics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

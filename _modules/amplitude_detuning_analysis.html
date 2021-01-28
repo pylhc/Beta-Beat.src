@@ -1,0 +1,835 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>amplitude_detuning_analysis &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>amplitude_detuning_analysis</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for amplitude_detuning_analysis</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Entrypoint Amplitude Detuning Analysis</span>
+<span class="sd">------------------------------------------------</span>
+
+<span class="sd">Entrypoint for amplitude detuning analysis.</span>
+
+<span class="sd">This module provides functionality to run amplitude detuning analysis with</span>
+<span class="sd">additionally getting BBQ data from timber, averaging and filtering this data and</span>
+<span class="sd">subtracting it from the measurement data.</span>
+
+<span class="sd">Furthermore, the orthogonal distance regression is utilized to get a</span>
+<span class="sd">linear fit from the measurements.</span>
+
+<span class="sd">Also, plotting functionality is integrated, for the amplitude detuning as well as for the bbq data.</span>
+
+
+<span class="sd">:author: Joschua Dilly</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="kn">from</span> <span class="nn">tune_analysis</span> <span class="kn">import</span> <span class="n">bbq_tools</span><span class="p">,</span> <span class="n">timber_extract</span><span class="p">,</span> <span class="n">detuning_tools</span><span class="p">,</span> <span class="n">kickac_modifiers</span>
+<span class="kn">import</span> <span class="nn">tune_analysis.constants</span> <span class="k">as</span> <span class="nn">ta_const</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_pandas</span> <span class="k">as</span> <span class="n">tfs</span>
+<span class="kn">from</span> <span class="nn">utils.dict_tools</span> <span class="kn">import</span> <span class="n">ParameterError</span>
+<span class="kn">from</span> <span class="nn">utils.entrypoint</span> <span class="kn">import</span> <span class="n">entrypoint</span><span class="p">,</span> <span class="n">EntryPointParameters</span>
+
+<span class="c1"># Globals ####################################################################</span>
+
+<span class="c1"># Column Names</span>
+<span class="n">COL_TIME</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_time_col</span>
+<span class="n">COL_BBQ</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_bbq_col</span>
+<span class="n">COL_MAV</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_mav_col</span>
+<span class="n">COL_MAV_STD</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_mav_std_col</span>
+<span class="n">COL_IN_MAV</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_used_in_mav_col</span>
+<span class="n">COL_NATQ</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_natq_col</span>
+<span class="n">COL_CORRECTED</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_natq_corr_col</span>
+
+<span class="n">PLANES</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_planes</span><span class="p">()</span>
+<span class="n">TIMBER_KEY</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_timber_bbq_key</span>
+
+<span class="n">TIMEZONE</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_experiment_timezone</span><span class="p">()</span>
+
+<span class="n">DTIME</span> <span class="o">=</span> <span class="mi">60</span>  <span class="c1"># extra seconds to add to kickac times when extracting from timber</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Get Parameters #############################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_get_params</span><span class="p">():</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPointParameters</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--label&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Label to identify this run.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;label&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--beam&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Which beam to use.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;beam&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--plane&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Plane of the kicks. &#39;X&#39; or &#39;Y&#39;.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;plane&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">PLANES</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--timberin&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Fill number of desired data or path to presaved tfs-file&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;timber_in&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--timberout&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output location to save fill as tfs-file&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;timber_out&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--bbqout&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output location to save bbq data as tfs-file&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bbq_out&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--kickac&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Location of the kickac file&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;kickac_path&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--kickacout&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If given, writes out the modified kickac file&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;kickac_out&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--window&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Length of the moving average window. (# data points)&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;window_length&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># cleaning method one:</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--tunex&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Horizontal Tune. For BBQ cleaning.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tune_x&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--tuney&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Vertical Tune. For BBQ cleaning.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tune_y&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--tunecut&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Cuts for the tune. For BBQ cleaning.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tune_cut&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># cleaning method two:</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--tunexmin&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Horizontal Tune minimum. For BBQ cleaning.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tune_x_min&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--tunexmax&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Horizontal Tune minimum. For BBQ cleaning.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tune_x_max&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--tuneymin&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Vertical  Tune minimum. For BBQ cleaning.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tune_y_min&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--tuneymax&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Vertical Tune minimum. For BBQ cleaning.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tune_y_max&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># fine cleaning</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--finewindow&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Length of the moving average window. (# data points)&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;fine_window&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--finecut&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Cut (i.e. tolerance) of the tune for the fine cleaning.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;fine_cut&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Plotting</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--bbqplot&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Save the bbq plot here.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bbq_plot_out&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--bbqplotshow&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Show the bbq plot.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bbq_plot_show&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--bbqplottwo&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Two plots for the bbq plot.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bbq_plot_two&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--bbqplotfull&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Plot the full bqq data with interval as lines.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;bbq_plot_full&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ampdetplot&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Save the amplitude detuning plot here.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ampdet_plot_out&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ampdetplotshow&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Show the amplitude detuning plot.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ampdet_plot_show&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ampdetplotymin&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum tune (y-axis) in amplitude detuning plot.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ampdet_plot_ymin&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ampdetplotymax&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum tune (y-axis) in amplitude detuning plot.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ampdet_plot_ymax&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ampdetplotxmin&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum action (x-axis) in amplitude detuning plot.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ampdet_plot_xmin&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ampdetplotxmax&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum action (x-axis) in amplitude detuning plot.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ampdet_plot_xmax&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Debug</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--debug&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Activates Debug mode&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;debug&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--logfile&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Logfile if debug mode is active.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;logfile&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">params</span>
+
+
+<span class="k">def</span> <span class="nf">_get_plot_params</span><span class="p">():</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">EntryPointParameters</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--in&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;BBQ data as data frame or tfs file.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;input&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--out&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Save figure to this location.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--show&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Show plot.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;show&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--xmin&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Lower x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;xmin&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ymin&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Lower y-axis limit.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ymin&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--xmax&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Upper x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;xmax&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--ymax&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Upper y-axis limit.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ymax&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--interval&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;x_axis interval that was used in calculations.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;interval&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
+        <span class="n">flags</span><span class="o">=</span><span class="s2">&quot;--two&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Plot two axis into the figure.&quot;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;two_plots&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">params</span>
+
+
+<span class="c1"># Main #########################################################################</span>
+
+
+<div class="viewcode-block" id="analyse_with_bbq_corrections"><a class="viewcode-back" href="../entrypoints/index.html#amplitude_detuning_analysis.analyse_with_bbq_corrections">[docs]</a><span class="nd">@entrypoint</span><span class="p">(</span><span class="n">_get_params</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">analyse_with_bbq_corrections</span><span class="p">(</span><span class="n">opt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create amplitude detuning analysis with BBQ correction from timber data.</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        Required</span>
+<span class="sd">        beam (int): Which beam to use.</span>
+<span class="sd">                    **Flags**: --beam</span>
+<span class="sd">        kickac_path (str): Location of the kickac file</span>
+<span class="sd">                           **Flags**: --kickac</span>
+<span class="sd">        plane (str): Plane of the kicks. &#39;X&#39; or &#39;Y&#39;.</span>
+<span class="sd">                           **Flags**: --plane</span>
+<span class="sd">                           **Choices**: XY</span>
+<span class="sd">        Optional</span>
+<span class="sd">        ampdet_plot_out (str): Save the amplitude detuning plot here.</span>
+<span class="sd">                          **Flags**: --ampdetplot</span>
+<span class="sd">        ampdet_plot_show: Show the amplitude detuning plot.</span>
+<span class="sd">                          **Flags**: --ampdetplotshow</span>
+<span class="sd">                          **Action**: ``store_true``</span>
+<span class="sd">        ampdet_plot_xmax (float): Maximum action (x-axis) in amplitude detuning plot.</span>
+<span class="sd">                          **Flags**: --ampdetplotxmax</span>
+<span class="sd">        ampdet_plot_xmin (float): Minimum action (x-axis) in amplitude detuning plot.</span>
+<span class="sd">                                  **Flags**: --ampdetplotxmin</span>
+<span class="sd">        ampdet_plot_ymax (float): Maximum tune (y-axis) in amplitude detuning plot.</span>
+<span class="sd">                                  **Flags**: --ampdetplotymax</span>
+<span class="sd">        ampdet_plot_ymin (float): Minimum tune (y-axis) in amplitude detuning plot.</span>
+<span class="sd">                                  **Flags**: --ampdetplotymin</span>
+<span class="sd">        bbq_out (str): Output location to save bbq data as tfs-file</span>
+<span class="sd">                       **Flags**: --bbqout</span>
+<span class="sd">        bbq_plot_full: Plot the full bqq data with interval as lines.</span>
+<span class="sd">                       **Flags**: --bbqplotfull</span>
+<span class="sd">                       **Action**: ``store_true``</span>
+<span class="sd">        bbq_plot_out (str): Save the bbq plot here.</span>
+<span class="sd">                            **Flags**: --bbqplot</span>
+<span class="sd">        bbq_plot_show: Show the bbq plot.</span>
+<span class="sd">                       **Flags**: --bbqplotshow</span>
+<span class="sd">                       **Action**: ``store_true``</span>
+<span class="sd">        bbq_plot_two: Two plots for the bbq plot.</span>
+<span class="sd">                      **Flags**: --bbqplottwo</span>
+<span class="sd">                      **Action**: ``store_true``</span>
+<span class="sd">        debug: Activates Debug mode</span>
+<span class="sd">               **Flags**: --debug</span>
+<span class="sd">               **Action**: ``store_true``</span>
+<span class="sd">        fine_cut (float): Cut (i.e. tolerance) of the tune for the fine cleaning.</span>
+<span class="sd">                          **Flags**: --finecut</span>
+<span class="sd">        fine_window (int): Length of the moving average window. (# data points)</span>
+<span class="sd">                           **Flags**: --finewindow</span>
+<span class="sd">        kickac_out (str): If given, writes out the modified kickac file</span>
+<span class="sd">                          **Flags**: --kickacout</span>
+<span class="sd">        label (str): Label to identify this run.</span>
+<span class="sd">                     **Flags**: --label</span>
+<span class="sd">        logfile (str): Logfile if debug mode is active.</span>
+<span class="sd">                       **Flags**: --logfile</span>
+<span class="sd">        timber_in: Fill number of desired data or path to presaved tfs-file</span>
+<span class="sd">                   **Flags**: --timberin</span>
+<span class="sd">        timber_out (str): Output location to save fill as tfs-file</span>
+<span class="sd">                          **Flags**: --timberout</span>
+<span class="sd">        tune_cut (float): Cuts for the tune. For BBQ cleaning.</span>
+<span class="sd">                          **Flags**: --tunecut</span>
+<span class="sd">        tune_x (float): Horizontal Tune. For BBQ cleaning.</span>
+<span class="sd">                        **Flags**: --tunex</span>
+<span class="sd">        tune_x_max (float): Horizontal Tune minimum. For BBQ cleaning.</span>
+<span class="sd">                            **Flags**: --tunexmax</span>
+<span class="sd">        tune_x_min (float): Horizontal Tune minimum. For BBQ cleaning.</span>
+<span class="sd">                            **Flags**: --tunexmin</span>
+<span class="sd">        tune_y (float): Vertical Tune. For BBQ cleaning.</span>
+<span class="sd">                        **Flags**: --tuney</span>
+<span class="sd">        tune_y_max (float): Vertical Tune minimum. For BBQ cleaning.</span>
+<span class="sd">                            **Flags**: --tuneymax</span>
+<span class="sd">        tune_y_min (float): Vertical  Tune minimum. For BBQ cleaning.</span>
+<span class="sd">                            **Flags**: --tuneymin</span>
+<span class="sd">        window_length (int): Length of the moving average window. (# data points)</span>
+<span class="sd">                             **Flags**: --window</span>
+<span class="sd">                             **Default**: ``20``</span>
+<span class="sd">     &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Amplitude Detuning Analysis&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">DebugMode</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">logfile</span><span class="p">):</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">_check_analyse_opt</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span>
+        <span class="n">figs</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># get data</span>
+        <span class="n">kickac_df</span> <span class="o">=</span> <span class="n">tfs</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">kickac_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">COL_TIME</span><span class="p">())</span>
+        <span class="n">bbq_df</span> <span class="o">=</span> <span class="n">_get_timber_data</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">beam</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">timber_in</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">timber_out</span><span class="p">,</span> <span class="n">kickac_df</span><span class="p">)</span>
+        <span class="n">x_interval</span> <span class="o">=</span> <span class="n">_get_approx_bbq_interval</span><span class="p">(</span><span class="n">bbq_df</span><span class="p">,</span> <span class="n">kickac_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">window_length</span><span class="p">)</span>
+
+        <span class="c1"># add moving average to kickac</span>
+        <span class="n">kickac_df</span><span class="p">,</span> <span class="n">bbq_df</span> <span class="o">=</span> <span class="n">kickac_modifiers</span><span class="o">.</span><span class="n">add_moving_average</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">bbq_df</span><span class="p">,</span>
+                                                                <span class="o">**</span><span class="n">opt</span><span class="o">.</span><span class="n">get_subdict</span><span class="p">([</span>
+                                                                    <span class="s2">&quot;window_length&quot;</span><span class="p">,</span>
+                                                                    <span class="s2">&quot;tune_x_min&quot;</span><span class="p">,</span> <span class="s2">&quot;tune_x_max&quot;</span><span class="p">,</span>
+                                                                    <span class="s2">&quot;tune_y_min&quot;</span><span class="p">,</span> <span class="s2">&quot;tune_y_max&quot;</span><span class="p">,</span>
+                                                                    <span class="s2">&quot;fine_cut&quot;</span><span class="p">,</span> <span class="s2">&quot;fine_window&quot;</span><span class="p">]</span>
+                                                                <span class="p">)</span>
+                                                                <span class="p">)</span>
+
+        <span class="c1"># add corrected values to kickac</span>
+        <span class="n">kickac_df</span> <span class="o">=</span> <span class="n">kickac_modifiers</span><span class="o">.</span><span class="n">add_corrected_natural_tunes</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">)</span>
+        <span class="n">kickac_df</span> <span class="o">=</span> <span class="n">kickac_modifiers</span><span class="o">.</span><span class="n">add_total_natq_std</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">)</span>
+
+        <span class="c1"># BBQ plots</span>
+        <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_out</span> <span class="ow">or</span> <span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_show</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_full</span><span class="p">:</span>
+                <span class="n">figs</span><span class="p">[</span><span class="s2">&quot;bbq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bbq_tools</span><span class="o">.</span><span class="n">plot_bbq_data</span><span class="p">(</span>
+                    <span class="n">bbq_df</span><span class="p">,</span>
+                    <span class="n">output</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_out</span><span class="p">,</span>
+                    <span class="n">show</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_show</span><span class="p">,</span>
+                    <span class="n">two_plots</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_two</span><span class="p">,</span>
+                    <span class="n">interval</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">xint</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="n">TIMEZONE</span><span class="p">))</span>
+                              <span class="k">for</span> <span class="n">xint</span> <span class="ow">in</span> <span class="n">x_interval</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">figs</span><span class="p">[</span><span class="s2">&quot;bbq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bbq_tools</span><span class="o">.</span><span class="n">plot_bbq_data</span><span class="p">(</span>
+                    <span class="n">bbq_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">x_interval</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">x_interval</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+                    <span class="n">output</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_out</span><span class="p">,</span>
+                    <span class="n">show</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_show</span><span class="p">,</span>
+                    <span class="n">two_plots</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_two</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="c1"># amplitude detuning odr and plotting</span>
+        <span class="k">for</span> <span class="n">tune_plane</span> <span class="ow">in</span> <span class="n">PLANES</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">corr</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]:</span>
+                <span class="n">corr_label</span> <span class="o">=</span> <span class="s2">&quot;_corrected&quot;</span> <span class="k">if</span> <span class="n">corr</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+                <span class="c1"># get the proper data</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">kickac_modifiers</span><span class="o">.</span><span class="n">get_ampdet_data</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">,</span>
+                                                        <span class="n">corrected</span><span class="o">=</span><span class="n">corr</span><span class="p">)</span>
+
+                <span class="c1"># make the odr</span>
+                <span class="n">odr_fit</span> <span class="o">=</span> <span class="n">detuning_tools</span><span class="o">.</span><span class="n">do_linear_odr</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">)</span>
+                <span class="n">kickac_df</span> <span class="o">=</span> <span class="n">kickac_modifiers</span><span class="o">.</span><span class="n">add_odr</span><span class="p">(</span><span class="n">kickac_df</span><span class="p">,</span> <span class="n">odr_fit</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">,</span>
+                                                     <span class="n">corrected</span><span class="o">=</span><span class="n">corr</span><span class="p">)</span>
+
+                <span class="c1"># plotting</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="n">ta_const</span><span class="o">.</span><span class="n">get_paired_lables</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">plane</span><span class="p">,</span> <span class="n">tune_plane</span><span class="p">)</span>
+                <span class="n">id_str</span> <span class="o">=</span> <span class="s2">&quot;J</span><span class="si">{:s}</span><span class="s2">_Q</span><span class="si">{:s}{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="n">tune_plane</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="n">corr_label</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">ampdet_plot_out</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">_</span><span class="si">{:s}{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">id_str</span><span class="p">,</span> <span class="n">output</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+                <span class="n">figs</span><span class="p">[</span><span class="n">id_str</span><span class="p">]</span> <span class="o">=</span> <span class="n">detuning_tools</span><span class="o">.</span><span class="n">plot_detuning</span><span class="p">(</span>
+                    <span class="n">odr_fit</span><span class="o">=</span><span class="n">odr_fit</span><span class="p">,</span>
+                    <span class="n">odr_plot</span><span class="o">=</span><span class="n">detuning_tools</span><span class="o">.</span><span class="n">plot_linear_odr</span><span class="p">,</span>
+                    <span class="n">labels</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;line&quot;</span><span class="p">:</span> <span class="n">opt</span><span class="o">.</span><span class="n">label</span><span class="p">},</span>
+                    <span class="n">output</span><span class="o">=</span><span class="n">output</span><span class="p">,</span>
+                    <span class="n">show</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">ampdet_plot_show</span><span class="p">,</span>
+                    <span class="n">xmin</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">ampdet_plot_xmin</span><span class="p">,</span>
+                    <span class="n">xmax</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">ampdet_plot_xmax</span><span class="p">,</span>
+                    <span class="n">ymin</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">ampdet_plot_ymin</span><span class="p">,</span>
+                    <span class="n">ymax</span><span class="o">=</span><span class="n">opt</span><span class="o">.</span><span class="n">ampdet_plot_ymax</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">data</span>
+                <span class="p">)</span>
+
+    <span class="c1"># show plots if needed</span>
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">bbq_plot_show</span> <span class="ow">or</span> <span class="n">opt</span><span class="o">.</span><span class="n">ampdet_plot_show</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="c1"># output kickac and bbq data</span>
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">kickac_out</span><span class="p">:</span>
+        <span class="n">tfs</span><span class="o">.</span><span class="n">write_tfs</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">kickac_out</span><span class="p">,</span> <span class="n">kickac_df</span><span class="p">,</span> <span class="n">save_index</span><span class="o">=</span><span class="n">COL_TIME</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">bbq_out</span><span class="p">:</span>
+        <span class="n">tfs</span><span class="o">.</span><span class="n">write_tfs</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">bbq_out</span><span class="p">,</span> <span class="n">bbq_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">x_interval</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">x_interval</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+                      <span class="n">save_index</span><span class="o">=</span><span class="n">COL_TIME</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">figs</span></div>
+
+
+<div class="viewcode-block" id="plot_bbq_data"><a class="viewcode-back" href="../entrypoints/index.html#amplitude_detuning_analysis.plot_bbq_data">[docs]</a><span class="nd">@entrypoint</span><span class="p">(</span><span class="n">_get_plot_params</span><span class="p">(),</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">plot_bbq_data</span><span class="p">(</span><span class="n">opt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Plot BBQ wrapper.</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        Required</span>
+<span class="sd">        input: BBQ data as data frame or tfs file.</span>
+<span class="sd">               **Flags**: --in</span>
+<span class="sd">        Optional</span>
+<span class="sd">        interval (str): x_axis interval that was used in calculations.</span>
+<span class="sd">                        **Flags**: --interval</span>
+<span class="sd">        output (str): Save figure to this location.</span>
+<span class="sd">                      **Flags**: --out</span>
+<span class="sd">        show: Show plot.</span>
+<span class="sd">              **Flags**: --show</span>
+<span class="sd">              **Action**: ``store_true``</span>
+<span class="sd">        two_plots: Plot two axis into the figure.</span>
+<span class="sd">                   **Flags**: --two</span>
+<span class="sd">                   **Action**: ``store_true``</span>
+<span class="sd">        xmax (str): Upper x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)</span>
+<span class="sd">                    **Flags**: --xmax</span>
+<span class="sd">        xmin (str): Lower x-axis limit. (yyyy-mm-dd HH:mm:ss.mmm)</span>
+<span class="sd">                    **Flags**: --xmin</span>
+<span class="sd">        ymax (float): Upper y-axis limit.</span>
+<span class="sd">                      **Flags**: --ymax</span>
+<span class="sd">        ymin (float): Lower y-axis limit.</span>
+<span class="sd">                      **Flags**: --ymin</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Plotting BBQ.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>
+        <span class="n">bbq_df</span> <span class="o">=</span> <span class="n">tfs</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">COL_TIME</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">bbq_df</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">input</span>
+    <span class="n">opt</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;input&quot;</span><span class="p">)</span>
+
+    <span class="n">bbq_tools</span><span class="o">.</span><span class="n">plot_bbq_data</span><span class="p">(</span><span class="n">bbq_df</span><span class="p">,</span> <span class="o">**</span><span class="n">opt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">show</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<span class="c1"># Private Functions ############################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_check_analyse_opt</span><span class="p">(</span><span class="n">opt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Perform manual checks on opt-sturcture &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Checking Options.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># for label</span>
+    <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Amplitude Detuning for Beam </span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">beam</span><span class="p">)</span>
+
+    <span class="c1"># check if cleaning is properly specified</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">any</span><span class="p">([</span><span class="n">opt</span><span class="o">.</span><span class="n">tune_x</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">tune_y</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">tune_cut</span><span class="p">])</span>
+            <span class="ow">and</span> <span class="nb">any</span><span class="p">([</span><span class="n">opt</span><span class="o">.</span><span class="n">tune_x_min</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">tune_x_max</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">tune_y_min</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">tune_y_max</span><span class="p">])</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ParameterError</span><span class="p">(</span><span class="s2">&quot;Choose either the method of cleaning BBQ&quot;</span>
+                             <span class="s2">&quot;with tunes and cut or with min and max values&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">PLANES</span><span class="p">:</span>
+        <span class="n">tune</span> <span class="o">=</span> <span class="s2">&quot;tune_</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">opt</span><span class="p">[</span><span class="n">tune</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">tune_cut</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ParameterError</span><span class="p">(</span><span class="s2">&quot;Tune cut is needed for cleaning tune.&quot;</span><span class="p">)</span>
+            <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">_min&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tune</span><span class="p">)]</span> <span class="o">=</span> <span class="n">opt</span><span class="p">[</span><span class="n">tune</span><span class="p">]</span> <span class="o">-</span> <span class="n">opt</span><span class="o">.</span><span class="n">tune_cut</span>
+            <span class="n">opt</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">_max&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tune</span><span class="p">)]</span> <span class="o">=</span> <span class="n">opt</span><span class="p">[</span><span class="n">tune</span><span class="p">]</span> <span class="o">+</span> <span class="n">opt</span><span class="o">.</span><span class="n">tune_cut</span>
+
+    <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">fine_cut</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">fine_window</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ParameterError</span><span class="p">(</span><span class="s2">&quot;To activate fine cleaning, both fine cut and fine window need&quot;</span>
+                             <span class="s2">&quot;to be specified&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">opt</span>
+
+
+<span class="k">def</span> <span class="nf">_get_approx_bbq_interval</span><span class="p">(</span><span class="n">bbq_df</span><span class="p">,</span> <span class="n">time_array</span><span class="p">,</span> <span class="n">window_length</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Get data in approximate time interval,</span>
+<span class="sd">    for averaging based on window length and kickac interval &quot;&quot;&quot;</span>
+    <span class="n">bbq_tmp</span> <span class="o">=</span> <span class="n">bbq_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+
+    <span class="n">i_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bbq_tmp</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">time_array</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">window_length</span><span class="o">/</span><span class="mf">2.</span><span class="p">),</span>
+                  <span class="mi">0</span>
+                  <span class="p">)</span>
+    <span class="n">i_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">bbq_tmp</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">time_array</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">window_length</span><span class="o">/</span><span class="mf">2.</span><span class="p">),</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">bbq_tmp</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+                <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bbq_tmp</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">i_start</span><span class="p">],</span> <span class="n">bbq_tmp</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">i_end</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_get_timber_data</span><span class="p">(</span><span class="n">beam</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">kickac_df</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return Timber data from input &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fill_number</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="c1"># input is a string</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Getting timber data from file &#39;</span><span class="si">{:s}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">input</span><span class="p">))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">tfs</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">COL_TIME</span><span class="p">())</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="n">COL_MAV</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">PLANES</span> <span class="k">if</span> <span class="n">COL_MAV</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">],</span>
+                  <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;columns&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="c1"># input is None</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Getting timber data from kickac-times.&quot;</span><span class="p">)</span>
+        <span class="n">timber_keys</span><span class="p">,</span> <span class="n">bbq_cols</span> <span class="o">=</span> <span class="n">_get_timber_keys_and_bbq_columns</span><span class="p">(</span><span class="n">beam</span><span class="p">)</span>
+        <span class="n">t_start</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">kickac_df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">t_end</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">kickac_df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">timber_extract</span><span class="o">.</span><span class="n">extract_between_times</span><span class="p">(</span><span class="n">t_start</span><span class="o">-</span><span class="n">DTIME</span><span class="p">,</span> <span class="n">t_end</span><span class="o">+</span><span class="n">DTIME</span><span class="p">,</span>
+                                                    <span class="n">keys</span><span class="o">=</span><span class="n">timber_keys</span><span class="p">,</span>
+                                                    <span class="n">names</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">timber_keys</span><span class="p">,</span> <span class="n">bbq_cols</span><span class="p">)))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># input is a number</span>
+        <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Getting timber data from fill &#39;</span><span class="si">{:d}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">input</span><span class="p">))</span>
+        <span class="n">timber_keys</span><span class="p">,</span> <span class="n">bbq_cols</span> <span class="o">=</span> <span class="n">_get_timber_keys_and_bbq_columns</span><span class="p">(</span><span class="n">beam</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">timber_extract</span><span class="o">.</span><span class="n">lhc_fill_to_tfs</span><span class="p">(</span><span class="n">fill_number</span><span class="p">,</span>
+                                              <span class="n">keys</span><span class="o">=</span><span class="n">timber_keys</span><span class="p">,</span>
+                                              <span class="n">names</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">timber_keys</span><span class="p">,</span> <span class="n">bbq_cols</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">tfs</span><span class="o">.</span><span class="n">write_tfs</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">save_index</span><span class="o">=</span><span class="n">COL_TIME</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">def</span> <span class="nf">_get_timber_keys_and_bbq_columns</span><span class="p">(</span><span class="n">beam</span><span class="p">):</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">TIMBER_KEY</span><span class="p">(</span><span class="n">plane</span><span class="p">,</span> <span class="n">beam</span><span class="p">)</span> <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">PLANES</span><span class="p">]</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">COL_BBQ</span><span class="p">(</span><span class="n">plane</span><span class="p">)</span> <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">PLANES</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">keys</span><span class="p">,</span> <span class="n">cols</span>
+
+
+<span class="c1"># Script Mode ##################################################################</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">analyse_with_bbq_corrections</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

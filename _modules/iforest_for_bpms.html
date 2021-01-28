@@ -1,0 +1,511 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>iforest_for_bpms &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>iforest_for_bpms</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for iforest_for_bpms</h1><div class="highlight"><pre>
+<span></span><span class="c1"># coding: utf-8</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Created on May 4, 2018</span>
+<span class="sd">Application of Isolation Forest algorithm for the diagnostics of BPM signal.</span>
+<span class="sd">Original paper: Liu, Fei Tony, Ting, Kai Ming and Zhou, Zhi-Hua. “Isolation forest.” Data Mining, 2008. ICDM‘08. Eighth IEEE International Conference.</span>
+
+<span class="sd">@author: Elena Fol</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">stats</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">mpl_toolkits.mplot3d.axes3d</span> <span class="k">as</span> <span class="nn">p3</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="kn">import</span> <span class="n">IsolationForest</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">tfs_files</span> <span class="kn">import</span> <span class="n">tfs_pandas</span>
+<span class="kn">from</span> <span class="nn">model.accelerators</span> <span class="kn">import</span> <span class="n">lhc</span>
+
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">ARCS_CONT</span> <span class="o">=</span> <span class="mf">0.01</span>
+<span class="n">IRS_CONT</span> <span class="o">=</span> <span class="mf">0.025</span>
+<span class="n">FEATURES</span> <span class="o">=</span> <span class="s2">&quot;TUNE</span><span class="si">{0}</span><span class="s2">,NOISE_SCALED,AMP</span><span class="si">{0}</span><span class="s2">&quot;</span>
+<span class="n">FEATURES_WITH_NAME</span> <span class="o">=</span> <span class="s2">&quot;NAME,TUNE</span><span class="si">{0}</span><span class="s2">,NOISE_SCALED,AMP</span><span class="si">{0}</span><span class="s2">&quot;</span>
+<span class="n">PLANE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_bad_bpms</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">remove_bpms</span><span class="p">):</span>
+    <span class="n">files_list</span> <span class="o">=</span> <span class="n">files</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="n">files_x</span><span class="p">,</span> <span class="n">files_y</span> <span class="o">=</span> <span class="n">separate_by_plane</span><span class="p">(</span><span class="n">files_list</span><span class="p">)</span>
+    <span class="n">bad_dfs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+    <span class="n">bad_bpms_to_write</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">files</span><span class="p">,</span> <span class="n">plane</span> <span class="ow">in</span> <span class="p">((</span><span class="n">files_x</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">),</span> <span class="p">(</span><span class="n">files_y</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">)):</span>
+        <span class="n">bad_dfs</span><span class="p">[</span><span class="n">plane</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_bad_bpms_from_measurement</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">plane</span><span class="p">))</span>
+    <span class="n">bad_bpms_to_write</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">bad_dfs</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">])</span>
+    <span class="n">bad_bpms_to_write</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">bad_dfs</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">])</span>
+    <span class="n">write_bad_bpms</span><span class="p">(</span><span class="n">files_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bad_bpms_to_write</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">remove_bpms</span><span class="p">:</span>
+        <span class="n">remove_bpms_from_file</span><span class="p">(</span><span class="n">files_x</span><span class="p">,</span> <span class="nb">set</span><span class="p">(</span><span class="n">bad_bpms_to_write</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">NAME</span><span class="p">),</span> <span class="s2">&quot;x&quot;</span><span class="p">)</span>
+        <span class="n">remove_bpms_from_file</span><span class="p">(</span><span class="n">files_y</span><span class="p">,</span> <span class="nb">set</span><span class="p">(</span><span class="n">bad_bpms_to_write</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">NAME</span><span class="p">),</span> <span class="s2">&quot;y&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">write_bad_bpms</span><span class="p">(</span><span class="n">first_file</span><span class="p">,</span> <span class="n">bad_bpms_to_write</span><span class="p">):</span>
+    <span class="n">meas_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">first_file</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">pardir</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="n">PLANE</span><span class="p">:</span>
+        <span class="n">bad_bpms_summary_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">meas_dir</span><span class="p">,</span> <span class="s2">&quot;bad_bpms_iforest_</span><span class="si">{}</span><span class="s2">.tfs&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="p">))</span>
+        <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">write_tfs</span><span class="p">(</span><span class="n">bad_bpms_summary_path</span><span class="p">,</span> <span class="n">bad_bpms_to_write</span><span class="p">[</span><span class="n">plane</span><span class="p">])</span>
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Bad BPMs summary from Isolation Forest written to: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">meas_dir</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_bad_bpms_from_measurement</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+    <span class="n">uplane</span> <span class="o">=</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="n">bpm_tfs_data</span> <span class="o">=</span> <span class="n">_create_tfs_data</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+    <span class="n">arc_bpm_data</span><span class="p">,</span> <span class="n">ir_bpm_data</span> <span class="o">=</span> <span class="n">get_data_for_clustering</span><span class="p">(</span><span class="n">bpm_tfs_data</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+    <span class="n">dataframes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">data_for_clustering</span><span class="p">,</span> <span class="n">cont</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="p">((</span><span class="n">arc_bpm_data</span><span class="p">,</span> <span class="n">ARCS_CONT</span><span class="p">,</span> <span class="s2">&quot;Arcs&quot;</span><span class="p">),</span>
+                                      <span class="p">(</span><span class="n">ir_bpm_data</span><span class="p">,</span> <span class="n">IRS_CONT</span><span class="p">,</span> <span class="s2">&quot;IRs&quot;</span><span class="p">)):</span>
+        <span class="n">bad_bpms</span><span class="p">,</span> <span class="n">good_bpms</span><span class="p">,</span> <span class="n">all_bpms_scores</span><span class="p">,</span> <span class="n">bad_bpms_scores</span> <span class="o">=</span>\
+             <span class="n">detect_anomalies</span><span class="p">(</span><span class="n">cont</span><span class="p">,</span> <span class="n">data_for_clustering</span><span class="p">,</span> <span class="n">uplane</span><span class="p">)</span>
+        <span class="n">bpm_tfs_data</span><span class="p">,</span> <span class="n">data_for_clustering</span><span class="p">,</span> <span class="n">bad_bpms</span><span class="p">,</span> <span class="n">good_bpms</span> <span class="o">=</span>\
+            <span class="p">[</span><span class="n">reassign_index</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+             <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="p">(</span><span class="n">bpm_tfs_data</span><span class="p">,</span> <span class="n">data_for_clustering</span><span class="p">,</span> <span class="n">bad_bpms</span><span class="p">,</span> <span class="n">good_bpms</span><span class="p">)]</span>
+        <span class="n">signif_feature</span> <span class="o">=</span> <span class="n">get_significant_features</span><span class="p">(</span><span class="n">bpm_tfs_data</span><span class="p">,</span> <span class="n">data_for_clustering</span><span class="p">,</span> <span class="n">bad_bpms</span><span class="p">,</span> <span class="n">good_bpms</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+        <span class="n">signif_feature</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;SCORE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bad_bpms_scores</span>
+        <span class="n">dataframes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">signif_feature</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plot</span><span class="p">:</span>
+            <span class="c1"># plot_scores_threshold(all_bpms_scores, cont, title)</span>
+            <span class="n">plot_bpms_3d</span><span class="p">(</span><span class="n">good_bpms</span><span class="p">,</span> <span class="n">bad_bpms</span><span class="p">,</span> <span class="n">uplane</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">bad_bpms_scores</span><span class="p">)</span>
+<span class="c1">#             plot_two_dim(good_bpms, bad_bpms,&quot;TUNE&quot;, &quot;NOISE_SCALED&quot;, uplane, title)</span>
+<span class="c1">#             plot_two_dim(good_bpms, bad_bpms, &quot;TUNE&quot;, &quot;AMP&quot;, uplane, title)</span>
+<span class="c1">#             plot_two_dim(good_bpms, bad_bpms, &quot;AMP&quot;, &quot;NOISE_SCALED&quot;, uplane, title)</span>
+    <span class="k">return</span> <span class="n">pandas</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">dataframes</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">reassign_index</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;NEW_INDEX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">NAME</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;NEW_INDEX&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_significant_features</span><span class="p">(</span><span class="n">bpm_tfs_data</span><span class="p">,</span> <span class="n">data_for_clustering</span><span class="p">,</span> <span class="n">bad_bpms</span><span class="p">,</span> <span class="n">good_bpms</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+    <span class="n">features_df</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">bad_bpms</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">FEATURES</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">bad_bpms</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <span class="n">max_dist</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([(</span><span class="nb">abs</span><span class="p">(</span><span class="n">data_for_clustering</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">-</span>
+                             <span class="n">good_bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()),</span> <span class="n">col</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">])</span>
+        <span class="n">max_dist</span><span class="p">,</span> <span class="n">sig_col</span> <span class="o">=</span> <span class="n">max_dist</span>
+        <span class="n">features_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;NAME&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bad_bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;NAME&quot;</span><span class="p">]</span>
+        <span class="n">features_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;FEATURE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sig_col</span>
+        <span class="n">features_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;VALUE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bpm_tfs_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="n">sig_col</span><span class="p">]</span>
+        <span class="n">features_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;AVG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">bpm_tfs_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">good_bpms</span><span class="o">.</span><span class="n">index</span><span class="p">][</span><span class="n">sig_col</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">features_df</span>
+
+
+<span class="k">def</span> <span class="nf">detect_anomalies</span><span class="p">(</span><span class="n">contamination</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">uplane</span><span class="p">):</span>
+    <span class="n">iforest</span> <span class="o">=</span> <span class="n">IsolationForest</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">max_samples</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                              <span class="n">contamination</span><span class="o">=</span><span class="n">contamination</span><span class="p">,</span> <span class="n">max_features</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                              <span class="n">bootstrap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">FEATURES</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">uplane</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span>
+    <span class="n">iforest</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">iforest</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+    <span class="n">bad_bpms</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">labels</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">good_bpms</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">labels</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">all_bpms_scores</span> <span class="o">=</span> <span class="n">iforest</span><span class="o">.</span><span class="n">decision_function</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+    <span class="n">bad_bpms_scores</span> <span class="o">=</span> <span class="n">iforest</span><span class="o">.</span><span class="n">decision_function</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">labels</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="n">bad_bpms</span><span class="p">,</span> <span class="n">good_bpms</span><span class="p">,</span> <span class="n">all_bpms_scores</span><span class="p">,</span> <span class="n">bad_bpms_scores</span>
+
+
+<span class="k">def</span> <span class="nf">get_data_for_clustering</span><span class="p">(</span><span class="n">bpm_tfs_data</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">FEATURES</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+    <span class="n">arc_bpm_mask</span> <span class="o">=</span> <span class="n">lhc</span><span class="o">.</span><span class="n">Lhc</span><span class="o">.</span><span class="n">get_element_types_mask</span><span class="p">(</span><span class="n">bpm_tfs_data</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;arc_bpm&quot;</span><span class="p">])</span>
+    <span class="n">ir_bpm_data_for_clustering</span> <span class="o">=</span> <span class="n">bpm_tfs_data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">~</span><span class="n">arc_bpm_mask</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">arc_bpm_data_for_clustering</span> <span class="o">=</span> <span class="n">bpm_tfs_data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">arc_bpm_mask</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">:</span>
+        <span class="n">ir_bpm_data_for_clustering</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">_normalize_parameter</span><span class="p">(</span><span class="n">ir_bpm_data_for_clustering</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col</span><span class="p">])</span>
+        <span class="n">arc_bpm_data_for_clustering</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">_normalize_parameter</span><span class="p">(</span><span class="n">arc_bpm_data_for_clustering</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">arc_bpm_data_for_clustering</span><span class="p">,</span> <span class="n">ir_bpm_data_for_clustering</span>
+
+
+<span class="k">def</span> <span class="nf">_create_tfs_data</span><span class="p">(</span><span class="n">filepaths</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+    <span class="n">bpm_data_rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">filepath</span> <span class="ow">in</span> <span class="n">filepaths</span><span class="p">:</span>
+        <span class="n">bpm_tfs_file</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+        <span class="n">bpms_tfs_data</span> <span class="o">=</span> <span class="n">bpm_tfs_file</span><span class="p">[</span><span class="n">FEATURES_WITH_NAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span>
+        <span class="n">bpm_data_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bpms_tfs_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pandas</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">bpm_data_rows</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_normalize_parameter</span><span class="p">(</span><span class="n">column_data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">column_data</span> <span class="o">-</span> <span class="n">column_data</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="n">column_data</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">column_data</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+
+
+<span class="k">def</span> <span class="nf">separate_by_plane</span><span class="p">(</span><span class="n">files_list</span><span class="p">):</span>
+    <span class="n">files_x</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">files_y</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">file_in</span> <span class="ow">in</span> <span class="n">files_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file_in</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;linx&quot;</span><span class="p">):</span>
+            <span class="n">files_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_in</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">file_in</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;liny&quot;</span><span class="p">):</span>
+            <span class="n">files_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_in</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Given file is not a measurement!&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">files_x</span><span class="p">,</span> <span class="n">files_y</span>
+
+
+<div class="viewcode-block" id="remove_bpms_from_file"><a class="viewcode-back" href="../entrypoints/index.html#iforest_for_bpms.remove_bpms_from_file">[docs]</a><span class="k">def</span> <span class="nf">remove_bpms_from_file</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">bad_bpm_names</span><span class="p">,</span> <span class="n">plane</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Writes a backup of the original .lin files (e.g .linx --&gt; .linx.notcleaned)</span>
+<span class="sd">    and removes the BPNs identified by iForest as bad.</span>
+<span class="sd">    :param paths: original lin files</span>
+<span class="sd">    :param bad_bpm_names: list of the names of bad BPMs identified by iForest</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="n">src_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">pardir</span><span class="p">))</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">new_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.notcleaned&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">new_filename</span><span class="p">)</span>
+        <span class="n">original_file_tfs</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">new_filename</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;NAME&quot;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">original_file_tfs</span> <span class="o">=</span> <span class="n">original_file_tfs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">original_file_tfs</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">bad_bpm_names</span><span class="p">)]</span>
+        <span class="n">pln_num</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span> <span class="k">if</span> <span class="n">plane</span> <span class="o">==</span> <span class="s2">&quot;x&quot;</span> <span class="k">else</span> <span class="s2">&quot;2&quot;</span>
+        <span class="n">original_file_tfs</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Q</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pln_num</span><span class="p">)]</span> <span class="o">=</span>\
+            <span class="n">original_file_tfs</span><span class="p">[</span><span class="s2">&quot;TUNE&quot;</span> <span class="o">+</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">original_file_tfs</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Q</span><span class="si">{}</span><span class="s2">RMS&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pln_num</span><span class="p">)]</span> <span class="o">=</span>\
+            <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">original_file_tfs</span><span class="p">[</span><span class="s2">&quot;TUNE&quot;</span> <span class="o">+</span> <span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">()])</span>
+        <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">write_tfs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">original_file_tfs</span><span class="p">,</span> <span class="n">original_file_tfs</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="revert_forest_cleaning"><a class="viewcode-back" href="../entrypoints/index.html#iforest_for_bpms.revert_forest_cleaning">[docs]</a><span class="k">def</span> <span class="nf">revert_forest_cleaning</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reverts the cleaning. The backup files are renamed back to the original names (e.g .linx.notcleaned --&gt; .linx)</span>
+<span class="sd">    :param paths: list of files, where bad bpms identified by iForest are removed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">files_list</span> <span class="o">=</span> <span class="n">files</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">files_list</span><span class="p">:</span>
+        <span class="n">src_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">pardir</span><span class="p">))</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">notcleaned_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.notcleaned&quot;</span><span class="p">)</span>
+        <span class="n">original_file_tfs</span> <span class="o">=</span> <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">read_tfs</span><span class="p">(</span><span class="n">notcleaned_file</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;NAME&quot;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">lin_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="n">notcleaned_file</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.notcleaned&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">notcleaned_file</span><span class="p">,</span> <span class="n">lin_file</span><span class="p">)</span>
+        <span class="n">tfs_pandas</span><span class="o">.</span><span class="n">write_tfs</span><span class="p">(</span><span class="n">lin_file</span><span class="p">,</span> <span class="n">original_file_tfs</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">plot_scores_threshold</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">cont</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">scoreatpercentile</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span><span class="mi">100</span><span class="o">*</span><span class="n">ARCS_CONT</span><span class="p">)</span>
+    <span class="n">scores_bellow_threshold</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">scores_over_threshold</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">scores</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">:</span>
+            <span class="n">scores_bellow_threshold</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">scores_over_threshold</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>        
+    <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">scores_bellow_threshold</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span><span class="mf">0.2</span><span class="p">),</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">scores_over_threshold</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span><span class="mf">0.2</span><span class="p">),</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Learned Threshold&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">threshold</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">threshold</span><span class="p">)[:</span><span class="o">-</span><span class="mi">14</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">35</span><span class="p">,</span> <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;bottom&#39;</span><span class="p">,</span> <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontdict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;fontsize&#39;</span><span class="p">:</span><span class="mi">35</span><span class="p">,</span> <span class="s1">&#39;verticalalignment&#39;</span><span class="p">:</span><span class="s1">&#39;baseline&#39;</span><span class="p">})</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Anomaly score&quot;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">35</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Number of BPMs&quot;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">35</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">35</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">(</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">35</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">35</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    
+
+<span class="k">def</span> <span class="nf">plot_bpms_3d</span><span class="p">(</span><span class="n">good_bpms</span><span class="p">,</span> <span class="n">bad_bpms</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">scores</span><span class="p">):</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">FEATURES_WITH_NAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">p3</span><span class="o">.</span><span class="n">Axes3D</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot3D</span><span class="p">(</span><span class="n">good_bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">good_bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span> <span class="n">good_bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">[</span><span class="mi">3</span><span class="p">]],</span> <span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markerfacecolor</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
+                      <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;good&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot3D</span><span class="p">(</span><span class="n">bad_bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">bad_bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span> <span class="n">bad_bpms</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">[</span><span class="mi">3</span><span class="p">]],</span> <span class="s1">&#39;^&#39;</span><span class="p">,</span> <span class="n">markerfacecolor</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span>
+                      <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;faulty&quot;</span><span class="p">)</span>
+<span class="c1">#     for index, score in zip(bad_bpms.index, scores):</span>
+<span class="c1">#         ax.text(bad_bpms.loc[index, columns[1]], bad_bpms.loc[index, columns[2]], bad_bpms.loc[index, columns[3]], bad_bpms.loc[index,&quot;NAME&quot;] + &quot; {&quot; + str(score)[:-10] + &quot;}&quot;)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Tune&#39;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">linespacing</span><span class="o">=</span><span class="mf">3.2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Amplitude&#39;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">linespacing</span><span class="o">=</span><span class="mf">3.2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_zlabel</span><span class="p">(</span><span class="s1">&#39;Noise&#39;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">linespacing</span><span class="o">=</span><span class="mf">3.2</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">numpoints</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontdict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;fontsize&#39;</span><span class="p">:</span><span class="mi">25</span><span class="p">,</span> <span class="s1">&#39;verticalalignment&#39;</span><span class="p">:</span><span class="s1">&#39;baseline&#39;</span><span class="p">})</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+ 
+<span class="k">def</span> <span class="nf">plot_two_dim</span><span class="p">(</span><span class="n">good</span><span class="p">,</span> <span class="n">bad</span><span class="p">,</span> <span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+    <span class="n">label1</span> <span class="o">=</span> <span class="s2">&quot;Tune&quot;</span>
+    <span class="n">label2</span> <span class="o">=</span> <span class="s2">&quot;Noise&quot;</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">col1</span><span class="o">==</span><span class="s2">&quot;AMP&quot;</span><span class="p">):</span>
+        <span class="n">label1</span> <span class="o">=</span> <span class="s2">&quot;Amplitude&quot;</span>
+    <span class="n">col1</span> <span class="o">=</span> <span class="n">col1</span> <span class="o">+</span> <span class="n">plane</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">col2</span><span class="o">==</span><span class="s2">&quot;AMP&quot;</span><span class="p">):</span>
+        <span class="n">col2</span> <span class="o">=</span> <span class="n">col2</span> <span class="o">+</span> <span class="n">plane</span>
+        <span class="n">label2</span> <span class="o">=</span> <span class="s2">&quot;Amplitude&quot;</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">good</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col1</span><span class="p">],</span>
+        <span class="n">good</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col2</span><span class="p">],</span>
+        <span class="s1">&#39;o&#39;</span><span class="p">,</span>
+        <span class="n">markerfacecolor</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
+        <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span>
+        <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Good&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">bad</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col1</span><span class="p">],</span>
+        <span class="n">bad</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col2</span><span class="p">],</span>
+        <span class="s1">&#39;^&#39;</span><span class="p">,</span>
+        <span class="n">markerfacecolor</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span>
+        <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span>
+        <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Bad&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="n">label1</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">label2</span><span class="p">,</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">(</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">numpoints</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_parse_args</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--files&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;files&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--remove_bpms&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;remove_bpms&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--revert&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;revert&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--plot&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;plot&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">options</span><span class="o">.</span><span class="n">files</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">remove_bpms</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">revert</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">plot</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">_files</span><span class="p">,</span> <span class="n">_remove_bpms</span><span class="p">,</span> <span class="n">_revert</span><span class="p">,</span> <span class="n">plot</span> <span class="o">=</span> <span class="n">_parse_args</span><span class="p">()</span>
+    <span class="k">if</span><span class="p">(</span><span class="ow">not</span> <span class="n">_revert</span><span class="p">):</span>
+        <span class="n">get_bad_bpms</span><span class="p">(</span><span class="n">_files</span><span class="p">,</span> <span class="n">_remove_bpms</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">revert_forest_cleaning</span><span class="p">(</span><span class="n">_files</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

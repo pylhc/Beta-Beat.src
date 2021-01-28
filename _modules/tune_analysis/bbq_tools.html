@@ -1,0 +1,432 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>tune_analysis.bbq_tools &mdash; Beta-Beat.src 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Beta-Beat.src
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../entrypoints/index.html">Main Entrypoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../correction/index.html">Correction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GetLLM/index.html">GetLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../harmonic_analysis/index.html">Harmonic Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model/index.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../online_model/index.html">Online Model Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../plotshop/index.html">Plotting Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../segment_by_segment/index.html">Segment by Segment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tfs_files/index.html">TFS Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tune_analysis/index.html">Tune Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../twiss_optics/index.html">Twiss Optics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../utils/index.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Beta-Beat.src</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>tune_analysis.bbq_tools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tune_analysis.bbq_tools</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module tune_analysis.bbq_tools</span>
+<span class="sd">----------------------------------</span>
+
+<span class="sd">Tools to handle BBQ data.</span>
+
+<span class="sd">This package contains a collection of tools to handle and modify BBQ data:</span>
+<span class="sd"> - Calculating moving average</span>
+<span class="sd"> - Plotting</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.dates</span> <span class="k">as</span> <span class="nn">mdates</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span><span class="p">,</span> <span class="n">gridspec</span>
+<span class="kn">from</span> <span class="nn">matplotlib.ticker</span> <span class="kn">import</span> <span class="n">FormatStrFormatter</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">colors</span>
+<span class="kn">import</span> <span class="nn">constants</span> <span class="k">as</span> <span class="nn">const</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logging_tools</span>
+<span class="kn">from</span> <span class="nn">plotshop</span> <span class="kn">import</span> <span class="n">plot_style</span> <span class="k">as</span> <span class="n">ps</span>
+
+<span class="n">TIMEZONE</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_experiment_timezone</span><span class="p">()</span>
+
+<span class="n">PLANES</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_planes</span><span class="p">()</span>
+
+<span class="n">COL_MAV</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_mav_col</span>
+<span class="n">COL_IN_MAV</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_used_in_mav_col</span>
+<span class="n">COL_BBQ</span> <span class="o">=</span> <span class="n">const</span><span class="o">.</span><span class="n">get_bbq_col</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging_tools</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_moving_average"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.bbq_tools.get_moving_average">[docs]</a><span class="k">def</span> <span class="nf">get_moving_average</span><span class="p">(</span><span class="n">data_series</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+                       <span class="n">min_val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fine_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fine_cut</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Get a moving average of the ``data_series`` over ``length`` entries.</span>
+<span class="sd">    The data can be filtered beforehand.</span>
+<span class="sd">    The values are shifted, so that the averaged value takes ceil((length-1)/2) values previous</span>
+<span class="sd">    and floor((length-1)/2) following values into account.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_series: Series of data</span>
+<span class="sd">        length: length of the averaging window</span>
+<span class="sd">        min_val: minimum value (for filtering)</span>
+<span class="sd">        max_val: maximum value (for filtering)</span>
+<span class="sd">        fine_length: length of the averaging window for fine cleaning</span>
+<span class="sd">        fine_cut: allowed deviation for fine cleaning</span>
+
+<span class="sd">    Returns: filtered and averaged Series and the mask used for filtering data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Calculating BBQ moving average of length </span><span class="si">{:d}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">length</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">fine_length</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">fine_cut</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;To activate fine cleaning, both &quot;</span>
+                                  <span class="s2">&quot;&#39;fine_window&#39; and &#39;fine_cut&#39; are needed.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">min_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">min_mask</span> <span class="o">=</span> <span class="n">data_series</span> <span class="o">&lt;=</span> <span class="n">min_val</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">min_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data_series</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">max_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_mask</span> <span class="o">=</span> <span class="n">data_series</span> <span class="o">&gt;=</span> <span class="n">max_val</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">max_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data_series</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="n">cut_mask</span> <span class="o">=</span> <span class="n">min_mask</span> <span class="o">|</span> <span class="n">max_mask</span>
+    <span class="n">_is_almost_empty_mask</span><span class="p">(</span><span class="o">~</span><span class="n">cut_mask</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+    <span class="n">data_mav</span><span class="p">,</span> <span class="n">std_mav</span> <span class="o">=</span> <span class="n">_get_interpolated_moving_average</span><span class="p">(</span><span class="n">data_series</span><span class="p">,</span> <span class="n">cut_mask</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">fine_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">min_mask</span> <span class="o">=</span> <span class="n">data_series</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">data_mav</span> <span class="o">-</span> <span class="n">fine_cut</span><span class="p">)</span>
+        <span class="n">max_mask</span> <span class="o">=</span> <span class="n">data_series</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="n">data_mav</span> <span class="o">+</span> <span class="n">fine_cut</span><span class="p">)</span>
+        <span class="n">cut_mask</span> <span class="o">=</span> <span class="n">min_mask</span> <span class="o">|</span> <span class="n">max_mask</span>
+        <span class="n">_is_almost_empty_mask</span><span class="p">(</span><span class="o">~</span><span class="n">cut_mask</span><span class="p">,</span> <span class="n">fine_length</span><span class="p">)</span>
+        <span class="n">data_mav</span><span class="p">,</span> <span class="n">std_mav</span> <span class="o">=</span> <span class="n">_get_interpolated_moving_average</span><span class="p">(</span><span class="n">data_series</span><span class="p">,</span> <span class="n">cut_mask</span><span class="p">,</span> <span class="n">fine_length</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_mav</span><span class="p">,</span> <span class="n">std_mav</span><span class="p">,</span> <span class="n">cut_mask</span></div>
+
+
+<div class="viewcode-block" id="plot_bbq_data"><a class="viewcode-back" href="../../tune_analysis/index.html#tune_analysis.bbq_tools.plot_bbq_data">[docs]</a><span class="k">def</span> <span class="nf">plot_bbq_data</span><span class="p">(</span><span class="n">bbq_df</span><span class="p">,</span>
+                  <span class="n">interval</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ymin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ymax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">two_plots</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Plot BBQ data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        bbq_df: BBQ Dataframe with moving average columns</span>
+<span class="sd">        interval: start and end time of used interval, will be marked with red bars</span>
+<span class="sd">        xmin: Lower x limit (time)</span>
+<span class="sd">        xmax: Upper x limit (time)</span>
+<span class="sd">        ymin: Lower y limit (tune)</span>
+<span class="sd">        ymax: Upper y limit (tune)</span>
+<span class="sd">        output: Path to the output file</span>
+<span class="sd">        show: Shows plot if `True`</span>
+<span class="sd">        two_plots: Plots each tune in it&#39;s own axes if `True`</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Plotted figure</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LOG</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Plotting BBQ data.&quot;</span><span class="p">)</span>
+
+    <span class="n">ps</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="sa">u</span><span class="s1">&#39;figure.figsize&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">12.24</span><span class="p">,</span> <span class="mf">7.68</span><span class="p">],</span>
+        <span class="sa">u</span><span class="s2">&quot;lines.marker&quot;</span><span class="p">:</span> <span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="sa">u</span><span class="s2">&quot;lines.linestyle&quot;</span><span class="p">:</span> <span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">}</span>
+        <span class="p">)</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">two_plots</span><span class="p">:</span>
+        <span class="n">gs</span> <span class="o">=</span> <span class="n">gridspec</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="p">[</span><span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">gs</span> <span class="o">=</span> <span class="n">gridspec</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="p">[</span><span class="n">ax</span><span class="p">,</span> <span class="n">ax</span><span class="p">]</span>
+
+    <span class="n">bbq_df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="n">TIMEZONE</span><span class="p">)</span> <span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">bbq_df</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="n">handles</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">PLANES</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">plane</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">PLANES</span><span class="p">):</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">get_mpl_color</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">bbq_df</span><span class="p">[</span><span class="n">COL_IN_MAV</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span>
+
+        <span class="c1"># plot and save handles for nicer legend</span>
+        <span class="n">handles</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bbq_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">bbq_df</span><span class="p">[</span><span class="n">COL_BBQ</span><span class="p">(</span><span class="n">plane</span><span class="p">)],</span>
+                                    <span class="n">color</span><span class="o">=</span><span class="n">ps</span><span class="o">.</span><span class="n">change_color_brightness</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="o">.</span><span class="mi">4</span><span class="p">),</span>
+                                    <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">markerfacecolor</span><span class="o">=</span><span class="s2">&quot;None&quot;</span><span class="p">,</span>
+                                    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;$Q_</span><span class="si">{:s}</span><span class="s2">$&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">lower</span><span class="p">(),)</span>
+                                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">bbq_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="n">COL_BBQ</span><span class="p">(</span><span class="n">plane</span><span class="p">)]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="n">handles</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">PLANES</span><span class="p">)</span><span class="o">+</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">filtered_data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">filtered_data</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                                                <span class="n">color</span><span class="o">=</span><span class="n">ps</span><span class="o">.</span><span class="n">change_color_brightness</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="o">.</span><span class="mi">7</span><span class="p">),</span>
+                                                <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+                                                <span class="n">label</span><span class="o">=</span><span class="s2">&quot;filtered&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+                                                <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">handles</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">PLANES</span><span class="p">)</span><span class="o">+</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bbq_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">bbq_df</span><span class="p">[</span><span class="n">COL_MAV</span><span class="p">(</span><span class="n">plane</span><span class="p">)],</span>
+                                                  <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+                                                  <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span>
+                                                  <span class="n">label</span><span class="o">=</span><span class="s2">&quot;moving av.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plane</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+                                                  <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">ymin</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">two_plots</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">bottom</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">bbq_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="n">COL_BBQ</span><span class="p">(</span><span class="n">plane</span><span class="p">)]))</span>
+
+        <span class="k">if</span> <span class="n">ymax</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">two_plots</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">bbq_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="n">COL_BBQ</span><span class="p">(</span><span class="n">plane</span><span class="p">)]))</span>
+
+    <span class="c1"># things to add/do only once if there is only one plot</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">two_plots</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">interval</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">interval</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">interval</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">two_plots</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;$Q_</span><span class="si">{:s}</span><span class="s2">$&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">PLANES</span><span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Tune&#39;</span><span class="p">)</span>
+
+        <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">bottom</span><span class="o">=</span><span class="n">ymin</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="n">ymax</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_formatter</span><span class="p">(</span><span class="n">FormatStrFormatter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.5f</span><span class="s1">&#39;</span><span class="p">))</span>
+
+        <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">xmin</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">xmax</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Time&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_formatter</span><span class="p">(</span><span class="n">mdates</span><span class="o">.</span><span class="n">DateFormatter</span><span class="p">(</span><span class="s1">&#39;%H:%M:%S&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">idx</span><span class="p">:</span>
+            <span class="c1"># don&#39;t show labels on upper plot (if two plots)</span>
+            <span class="c1"># use the visibility to allow cursor x-position to be shown</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">labelbottom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">get_label</span><span class="p">()</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">two_plots</span> <span class="ow">or</span> <span class="n">idx</span><span class="p">:</span>
+            <span class="c1"># reorder legend</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="p">,</span> <span class="p">[</span><span class="n">h</span><span class="o">.</span><span class="n">get_label</span><span class="p">()</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">handles</span><span class="p">],</span>
+                           <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower right&#39;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">),</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">3</span><span class="p">,)</span>
+
+    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="n">ps</span><span class="o">.</span><span class="n">set_name</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">fig</span></div>
+
+
+<span class="c1"># Private methods ############################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_get_interpolated_moving_average</span><span class="p">(</span><span class="n">data_series</span><span class="p">,</span> <span class="n">clean_mask</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the moving average of data series with a window of length and interpolated NaNs&quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data_series</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">clean_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+
+    <span class="c1"># &#39;interpolate&#39; fills nan based on index/values of neighbours</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;bfill&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;ffill&quot;</span><span class="p">)</span>
+
+    <span class="n">shift</span> <span class="o">=</span> <span class="o">-</span><span class="nb">int</span><span class="p">((</span><span class="n">length</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># Shift average to middle value</span>
+
+    <span class="c1"># calculate mean and std, fill NaNs at the ends</span>
+    <span class="n">data_mav</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">length</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;bfill&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;ffill&quot;</span><span class="p">)</span>
+    <span class="n">std_mav</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="n">length</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">shift</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;bfill&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">&quot;ffill&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data_mav</span><span class="p">,</span> <span class="n">std_mav</span>
+
+
+<span class="k">def</span> <span class="nf">_is_almost_empty_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">av_length</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Checks if masked data could be used to calculate moving average. &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">av_length</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Too many points have been filtered. Maybe wrong tune, cutoff?&quot;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018, OMC-TEAM.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
