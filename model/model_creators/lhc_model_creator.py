@@ -36,13 +36,19 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
+        """ Returns the MAD-X script.
+
+            In case of 2022 afs is assumed at the moment and a symblink is created. 
+            If not this has to be handled by the user.
+        """
         use_acd = "1" if (lhc_instance.excitation ==
                           AccExcitationMode.ACD) else "0"
         use_adt = "1" if (lhc_instance.excitation ==
                           AccExcitationMode.ADT) else "0"
         crossing_on = "1" if lhc_instance.xing else "0"
         beam = lhc_instance.get_beam()
-
+	if(lhc_instance.YEAR is "2022"):
+		os.symlink("/afs/cern.ch/eng/acc-models/lhc/2022", output_path + "/acc-models-lhc")
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),

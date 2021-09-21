@@ -25,7 +25,6 @@ def get_lhc_modes():
         "lhc_runII_2016_ats": LhcRunII2016Ats,
         "lhc_runII_2017": LhcRunII2017,
         "lhc_runII_2018": LhcRunII2018,
-        "lhc_runIII_2021": LhcRunIII2021,
         "lhc_runIII_2022": LhcRunIII2022,
         "hllhc10": HlLhc10,
         "hllhc12": HlLhc12,
@@ -973,9 +972,6 @@ class LhcRunII2017(LhcAts):
 
 class LhcRunII2018(LhcAts):
     YEAR = "2018"
-
-class LhcRunIII2021(LhcAts):
-    YEAR = "2021"
 
 class LhcRunIII2022(LhcAts):
     YEAR = "2022"
