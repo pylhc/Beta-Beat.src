@@ -36,6 +36,11 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
+        """ Returns the MAD-X script.
+
+            In case of 2022 afs is assumed at the moment and a symblink is created. 
+            If not this has to be handled by the user.
+        """
         use_acd = "1" if (lhc_instance.excitation ==
                           AccExcitationMode.ACD) else "0"
         use_adt = "1" if (lhc_instance.excitation ==
