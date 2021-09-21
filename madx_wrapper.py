@@ -80,6 +80,7 @@ def resolve_and_run_file(input_file, output_file=None, log_file=None,
         log_file: If given writes MADX logging output.
         madx_path: Path to MADX executable
     """
+    os.chdir(os.path.dirname(input_file))
     input_string = _read_input_file(input_file)
     resolve_and_run_string(input_string, output_file=output_file, log_file=log_file,
                                   madx_path=madx_path, cwd=cwd)
