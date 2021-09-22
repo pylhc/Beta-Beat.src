@@ -1,6 +1,7 @@
 from __future__ import print_function
 import logging
 import madx_wrapper
+import os
 
 LOGGER = logging.getLogger(__name__)
 
@@ -12,7 +13,8 @@ class ModelCreator(object):
         LOGGER.info("instance name <%s>", instance.NAME)
         
         instance.verify_object()
-        madx_script = creator.get_madx_script(
+    	os.chdir(output_path)    
+	madx_script = creator.get_madx_script(
             instance,
             output_path
         )
