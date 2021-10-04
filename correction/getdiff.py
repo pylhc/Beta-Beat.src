@@ -86,14 +86,14 @@ def getdiff(meas_path=None, beta_file_name="getbeta"):
     uncorrected_model_path = join(meas_path, TWISS_NOT_CORRECTED)
 
     meas = OpticsMeasurement(meas_path)
-    twiss_cor = read_tfs(corrected_model_path).set_index('NAME', drop=False)
-    twiss_no = read_tfs(uncorrected_model_path).set_index('NAME', drop=False)
+    twiss_cor = read_tfs(corrected_model_path).set_index('NAME')
+    twiss_no = read_tfs(uncorrected_model_path).set_index('NAME')
     coup_cor = TwissOptics(twiss_cor, quick_init=True).get_coupling(method='cmatrix')
     coup_no = TwissOptics(twiss_no, quick_init=True).get_coupling(method='cmatrix')
-    model = pd.merge(twiss_cor, twiss_no, how='inner', on='NAME', suffixes=('_c', '_n'))
+    model = pd.merge(twiss_cor, twiss_no, how='inner', left_index=True, right_index=True, suffixes=('_c', '_n'))
     coupling_model = pd.merge(coup_cor, coup_no, how='inner', left_index=True, right_index=True,
                               suffixes=('_c', '_n'))
-    coupling_model['NAME'] = coupling_model.index.values
+    #coupling_model['NAME'] = coupling_model.index.values
 
     for plane in ['x', 'y']:
         _write_betabeat_diff_file(meas_path, meas, model, plane, beta_file_name)
@@ -122,7 +122,7 @@ def _write_betabeat_diff_file(meas_path, meas, model, plane, betafile):
         raise KeyError("Unknown beta file name '{}'.".format(betafile))
 
     up = plane.upper()
-    tw = pd.merge(meas_beta, model, how='inner', on='NAME')
+    tw = pd.merge(meas_beta, model, how='inner', left_index=True, right_index=True)
     tw['MEA'] = ((tw.loc[:, 'BET' + up] - tw.loc[:, 'BET' + up + 'MDL'])
                  / tw.loc[:, 'BET' + up + 'MDL'])
     tw['ERROR'] = tw.loc[:, 'ERRBET' + up] / tw.loc[:, 'BET' + up + 'MDL']
@@ -136,7 +136,7 @@ def _write_betabeat_diff_file(meas_path, meas, model, plane, betafile):
 def _write_phase_diff_file(meas_path, meas, model, plane):
     LOG.debug("Calculating phase diff.")
     up = plane.upper()
-    tw = pd.merge(meas.phase[plane], model, how='inner', on='NAME')
+    tw = pd.merge(meas.phase[plane], model, how='inner', left_index=True, right_index=True)
     tw['MEA'] = tw.loc[:, 'PHASE' + up]
     tw['ERROR'] = tw.loc[:, 'STDPH' + up]
     tw['MODEL'] = np.concatenate((np.diff(tw.loc[:, 'MU' + up + '_c']), np.array([0.0])))
@@ -152,7 +152,7 @@ def _write_disp_diff_file(meas_path, meas, model, plane):
     LOG.debug("Calculating dispersion diff.")
     up = plane.upper()
     try:
-        tw = pd.merge(meas.disp[plane], model, how='inner', on='NAME')
+        tw = pd.merge(meas.disp[plane], model, how='inner', left_index=True, right_index=True)
     except IOError:
         LOG.debug("Dispersion measurements not found. Skipped.")
     else:
@@ -168,7 +168,7 @@ def _write_closed_orbit_diff_file(meas_path, meas, model, plane):
     LOG.debug("Calculating orbit diff.")
     up = plane.upper()
     try:
-        tw = pd.merge(meas.orbit[plane], model, how='inner', on='NAME')
+        tw = pd.merge(meas.orbit[plane], model, how='inner', left_index=True, right_index=True)
     except IOError:
         LOG.debug("Orbit measurements not found. Skipped.")
     else:
@@ -183,7 +183,7 @@ def _write_closed_orbit_diff_file(meas_path, meas, model, plane):
 def _write_norm_disp_diff_file(meas_path, meas, model):
     LOG.debug("Calculating normalized dispersion diff.")
     try:
-        tw = pd.merge(meas.norm_disp, model, how='inner', on='NAME')
+        tw = pd.merge(meas.norm_disp, model, how='inner', left_index=True, right_index=True)
     except IOError:
         LOG.debug("Normalized dispersion measurements not found. Skipped.")
     else:
@@ -198,7 +198,7 @@ def _write_norm_disp_diff_file(meas_path, meas, model):
 
 def _write_coupling_diff_file(meas_path, meas, model):
     LOG.debug("Calculating coupling diff.")
-    tw = pd.merge(meas.coupling, model, how='inner', on='NAME')
+    tw = pd.merge(meas.coupling, model, how='inner', left_index=True, right_index=True)
     out_columns = ['NAME', 'S']
     for idx, rdt in enumerate(['F1001', 'F1010']):
         tw[rdt+'re'] = tw.loc[:, rdt+'R']
