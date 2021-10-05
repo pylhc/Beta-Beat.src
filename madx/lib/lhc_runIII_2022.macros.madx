@@ -1,0 +1,15 @@
+/*
+* Specific macros for the LHC
+*/
+
+!@require lhc_runII.macros.madx
+!@require lhc_runII_ats.macros.madx
+
+
+/*
+* Load the LHC runIII 2022 main sequence. This overloads the other defined macro
+*/
+load_main_sequence(): macro = {
+    system, "ln -s /afs/cern.ch/eng/acc-models/lhc/2022/ acc-models-lhc";
+    call, file = "/afs/cern.ch/eng/acc-models/lhc/2022/lhc.seq";
+};
