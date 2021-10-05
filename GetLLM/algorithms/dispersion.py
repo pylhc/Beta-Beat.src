@@ -179,7 +179,8 @@ def _norm_disp_x(mad_twiss, list_zero_dpp_x, list_non_zero_dpp_x, list_co_x, bet
             ndstd=math.sqrt(np.average(ndi*ndi)-(np.average(ndi))**2.0+2.2e-16)
             ndas=np.average(wf*ndi)
             nda[bn1]=[ndas,ndstd]
-            Dx[bn1]=[nda[bn1][0]*math.sqrt(betax[bn1][0]),dummy]
+            #Dx[bn1]=[nda[bn1][0]*math.sqrt(betax[bn1][0]),dummy]
+            Dx[bn1]=[dummy,dummy]
             bpms.append([bns1,bn1])
         except:
             badco+=1
