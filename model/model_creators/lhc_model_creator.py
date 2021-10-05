@@ -149,6 +149,8 @@ class LhcSegmentCreator(model_creator.ModelCreator):
     def get_madx_script(cls, lhc_instance, output_path):
         with open(lhc_instance.get_segment_tmpl()) as textfile:
             madx_template = textfile.read()
+        if(lhc_instance.YEAR is "2022" and not os.path.exists(output_path + "/acc-models-lhc")):
+            os.symlink("/afs/cern.ch/eng/acc-models/lhc/2022", output_path + "/acc-models-lhc")
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
