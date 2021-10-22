@@ -204,25 +204,15 @@ def main(opt, accel_opt):
     masks = _get_measurement_masks(accel_inst, opt.meas_dir, mcut, ecut, opt.beta_file_name)
 
     # main functionality
-    # HACK FOR 2022 OTPICS WITH SYMLINK
-    symlink_path = os.path.join(opt.corrections_dir, 'acc-models-lhc')
-    if os.path.islink(symlink_path):
-        os.unlink(symlink_path)
-    if getattr(accel_inst, 'YEAR', '') == '2022':      
-        symlink_src = '/afs/cern.ch/eng/acc-models/lhc/2022'
-        os.symlink(symlink_src, symlink_path)
-    
     corrections = _get_all_corrections(opt.corrections_dir, opt.file_pattern)
     _call_madx(accel_inst, corrections)
     _get_diffs(corrections, opt.meas_dir, opt.file_pattern, opt.beta_file_name)
     figs = _plot(corrections, opt.corrections_dir, opt.show_plots, opt.change_marker, opt.auto_scale, masks)
-    
-    # finalizing hack
-    if os.path.islink(symlink_path):
-        os.unlink(symlink_path)
-        
+
     if opt.clean_up:
         _clean_up(opt.corrections_dir, corrections)
+
+    return figs
 
 
 # Private Functions ##########################################################
