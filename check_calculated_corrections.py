@@ -179,7 +179,8 @@ def main(opt, accel_opt):
     LOG.info("Started 'check_calculated_corrections'.")
     # get accelerator class
     accel_cls = manager.get_accel_class(accel_opt)
-    accel_inst = accel_cls(model_dir=opt.model_dir)
+    accel_inst = accel_cls(model_dir=opt.model_dir)    
+    
     if opt.optics_file is not None:
         accel_inst.optics_file = opt.optics_file
 
@@ -203,11 +204,23 @@ def main(opt, accel_opt):
     masks = _get_measurement_masks(accel_inst, opt.meas_dir, mcut, ecut, opt.beta_file_name)
 
     # main functionality
+    # HACK FOR 2022 OTPICS WITH SYMLINK
+    symlink_path = os.path.join(opt.corrections_dir, 'acc-models-lhc')
+    if os.path.islink(symlink_path):
+        os.unlink(symlink_path)
+    if getattr(accel_inst, 'YEAR', '') == '2022':      
+        symlink_src = '/afs/cern.ch/eng/acc-models/lhc/2022'
+        os.symlink(symlink_src, symlink_path)
+    
     corrections = _get_all_corrections(opt.corrections_dir, opt.file_pattern)
     _call_madx(accel_inst, corrections)
     _get_diffs(corrections, opt.meas_dir, opt.file_pattern, opt.beta_file_name)
     figs = _plot(corrections, opt.corrections_dir, opt.show_plots, opt.change_marker, opt.auto_scale, masks)
-
+    
+    # finalizing hack
+    if os.path.islink(symlink_path):
+        os.unlink(symlink_path)
+        
     if opt.clean_up:
         _clean_up(opt.corrections_dir, corrections)
 
@@ -254,6 +267,9 @@ def _get_all_corrections(source_dir, file_pattern):
     corrections = {}
     for sub in sub_dirs:
         fullpath_dir = os.path.join(source_dir, sub)
+        if os.path.islink(fullpath_dir):
+            continue
+            
         if os.path.isdir(fullpath_dir):
             corrections[fullpath_dir] = []
 
