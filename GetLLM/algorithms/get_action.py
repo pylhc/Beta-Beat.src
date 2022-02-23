@@ -133,12 +133,23 @@ def get_kick_from_bpm_list_w_ACdipole_phase(amp, beta_phase,beta_phase_error):
     amplitude is obtained from Drive/SUSSIX and is normalized with the model beta-function.
 
     '''
-    beta_phase_filter = np.array(beta_phase)[(np.array(beta_phase) > -1)]
+
+    # Remove the negative beta phase values, which can be here for some reason
+    indices = [i for i, e in enumerate(beta_phase) if e < 0]
+    beta_phase = np.delete(beta_phase, indices)
+    beta_phase_error = np.delete(beta_phase_error, indices)
+
+    new_amp = []
+    for i in range(len(amp)):
+        new_amp.append(np.delete(amp[i], indices))
+    amp = np.asarray(new_amp)
+
     actions = (((amp).transpose() * (1/(beta_phase.transpose()**0.5))[:, np.newaxis]).mean(0))**2
     actions_error_spread = ((amp).transpose() * (1/(beta_phase.transpose()**0.5))[:, np.newaxis]).std(0)
     actions_error_std = (actions_error_spread/len(amp[0])**0.5)
     actions_error_phase = ((((amp**2).transpose() * 1/(beta_phase.transpose()**2)[:, np.newaxis] * beta_phase_error.transpose()[:, np.newaxis])**2).sum(0))**0.5/len(amp[0])
-    return actions,actions_error_spread,actions_error_std,actions_error_phase
+    
+    return actions, actions_error_spread, actions_error_std, actions_error_phase
 
 
 def get_kick_from_bpm_list_w_ACdipole_model(amp, beta_model):
