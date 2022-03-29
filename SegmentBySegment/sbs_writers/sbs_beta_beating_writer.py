@@ -298,9 +298,9 @@ def _write_kmod_beta_beat_for_plane(file_kmod_beta_beat, plane, bpms_list,
         beta_kmod = _get_from_twiss(measured_kmod, bpm_name, "BET", plane)
         beta_beat_kmod = (beta_kmod - beta_propagation) / beta_propagation
         
-        # skowron 2019.08.27
-        std_beta_beat_kmod = _get_from_twiss(measured_kmod, bpm_name, "STDBET", plane)
-        #std_beta_beat_kmod = _get_from_twiss(measured_kmod, bpm_name, "ERRBET", plane)
+        # skowron 2019.08.27, tpersson reverted back 2022.03.28 
+        #std_beta_beat_kmod = _get_from_twiss(measured_kmod, bpm_name, "STDBET", plane)
+        std_beta_beat_kmod = _get_from_twiss(measured_kmod, bpm_name, "ERRBET", plane)
         
         prop_err_beta_kmod = sbs_beta_writer._propagate_error_beta(
             initial_values.err_beta_start,
@@ -316,9 +316,9 @@ def _write_kmod_beta_beat_for_plane(file_kmod_beta_beat, plane, bpms_list,
         # Beta from kmod beating (back)
         beta_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "BET", plane)
         beta_beat_kmod_back = (beta_kmod_back - beta_back_propagation) / beta_back_propagation
-        # skowron 2019.08.27
-        std_beta_beat_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "STDBET", plane)
-        #std_beta_beat_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "ERRBET", plane)
+        # skowron 2019.08.27, tpersson reverted back 2022.03.28  
+        #std_beta_beat_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "STDBET", plane)
+        std_beta_beat_kmod_back = _get_from_twiss(measured_kmod, bpm_name, "ERRBET", plane)
         prop_err_beta_kmod_back = sbs_beta_writer._propagate_error_beta(
             initial_values.err_beta_end,
             initial_values.err_alfa_end,
