@@ -167,19 +167,25 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
         
         important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
         
-        important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-        important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
+        important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL", "BPM1", "BPM2"])
+        important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%s", "%s"])
 
-        for bn1 in getllm_d.important_pairs:
+        for (el1, bn1, delta1, el2, bn2, delta2) in getllm_d.important_pairs:
             if bn1 in phase_d.ph_x:
-                for bn2 in getllm_d.important_pairs[bn1]:
-                    key = "H" + bn1 + bn2
-                    if key in phase_d.ph_x:
-                        phmdl = phase_d.ph_x[bn1][4]
-                        
-                        imp_phase = phase_d.ph_x[key]
-                        list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
-                        important_x.add_table_row(list_row_entries)
+                key = "H" + bn1 + bn2
+                if key in phase_d.ph_x:
+                    phmdl = phase_d.ph_x[bn1][4]
+                    
+                    imp_phase = phase_d.ph_x[key]
+                    list_row_entries = ['"' + el1 + '"',
+                                        '"' + el2 + '"',
+                                        imp_phase[0]+delta1-delta2,
+                                        imp_phase[1],
+                                        phmdl,
+                                        mad_ac.MUX[mad_ac.indx[bn1]],
+                                        bn1,
+                                        bn2]
+                    important_x.add_table_row(list_row_entries)
         if not important_x.get_tfs_table().is_empty():
             important_x.write_to_file()
         else:
@@ -205,28 +211,29 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                     list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.x_f[bn1][0], phase_d.x_f[bn1][1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
                     tfs_file.add_table_row(list_row_entries)
                
-                important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
-                
-                important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-                important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
+               ## why is this repeated here?
+                #important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
+                #
+                #important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
+                #important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
         
-                for bn1 in getllm_d.important_pairs:
-                    if bn1 in phase_d.x_f:
-                        for bn2 in getllm_d.important_pairs[bn1]:
-                                key = "H" + bn1 + bn2
-                                if key in phase_d.x_f:
-                                    bns1 = 0
-                                    phmdlf = phase_d.x_f[bn1][4]
-                                    bns2 = 0
-                                    imp_phase = phase_d.x_f[key]
-                                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
-                                    important_x.add_table_row(list_row_entries)
+                #for bn1 in getllm_d.important_pairs:
+                #    if bn1 in phase_d.x_f:
+                #        for bn2 in getllm_d.important_pairs[bn1]:
+                #                key = "H" + bn1 + bn2
+                #                if key in phase_d.x_f:
+                #                    bns1 = 0
+                #                    phmdlf = phase_d.x_f[bn1][4]
+                #                    bns2 = 0
+                #                    imp_phase = phase_d.x_f[key]
+                #                    list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdlf, mad_twiss.MUX[mad_twiss.indx[bn1]]]
+                #                    important_x.add_table_row(list_row_entries)
 
-                if not important_x.get_tfs_table().is_empty():
-                    important_x.write_to_file()
-                else:
-                    file_name = important_x.get_file_name()
-                    LOGGER.info('File {} is empty, not writting it'.format(file_name))
+                #if not important_x.get_tfs_table().is_empty():
+                #    important_x.write_to_file()
+                #else:
+                #    file_name = important_x.get_file_name()
+                #    LOGGER.info('File {} is empty, not writting it'.format(file_name))
             except Exception:
                 traceback.print_exc()
 
@@ -275,27 +282,27 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
             list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_y), phase_d.ph_y[bn1][0], phase_d.ph_y[bn1][1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
        
-        important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
-                
-        important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
-        important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
+        #important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
+        #        
+        #important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
+        #important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
 
-        for bn1 in getllm_d.important_pairs:
-            if bn1 in phase_d.ph_y:
-                for bn2 in getllm_d.important_pairs[bn1]:
-                    key = "V" + bn1 + bn2
-                    if key in phase_d.ph_y:
-                        bns1 = 0
-                        phmdl = phase_d.ph_y[bn1][4]
-                        bns2 = 0
-                        imp_phase = phase_d.ph_y[key]
-                        list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
-                        important_x.add_table_row(list_row_entries)
-        if not important_x.get_tfs_table().is_empty():
-            important_x.write_to_file()
-        else:
-            file_name = important_x.get_file_name()
-            LOGGER.info('File {} is empty, not writting it'.format(file_name))
+        #for bn1 in getllm_d.important_pairs:
+        #    if bn1 in phase_d.ph_y:
+        #        for bn2 in getllm_d.important_pairs[bn1]:
+        #            key = "V" + bn1 + bn2
+        #            if key in phase_d.ph_y:
+        #                bns1 = 0
+        #                phmdl = phase_d.ph_y[bn1][4]
+        #                bns2 = 0
+        #                imp_phase = phase_d.ph_y[key]
+        #                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+        #                important_x.add_table_row(list_row_entries)
+        #if not important_x.get_tfs_table().is_empty():
+        #    important_x.write_to_file()
+        #else:
+        #    file_name = important_x.get_file_name()
+        #    LOGGER.info('File {} is empty, not writting it'.format(file_name))
 
         #-- ac to free phase
         if getllm_d.with_ac_calc:
@@ -326,22 +333,22 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                 important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL"])
                 important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le"])
         
-                for bn1 in getllm_d.important_pairs:
-                    if bn1 in phase_d.y_f:
-                        for bn2 in getllm_d.important_pairs[bn1]:
-                            key = "V" + bn1 + bn2
-                            if key in phase_d.y_f:
-                                phmdl = phase_d.y_f[bn1][4]
-                                bns2 = 0
-                                imp_phase = phase_d.y_f[key]
-                                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
-                                important_x.add_table_row(list_row_entries)
-                if not important_x.get_tfs_table().is_empty():
-                    important_x.write_to_file()
-                else:
-                    file_name = important_x.get_file_name()
-                    LOGGER.info('File {} is empty, not writting it'.format(file_name))
-
+#                for bn1 in getllm_d.important_pairs:
+#                    if bn1 in phase_d.y_f:
+#                        for bn2 in getllm_d.important_pairs[bn1]:
+#                            key = "V" + bn1 + bn2
+#                            if key in phase_d.y_f:
+#                                phmdl = phase_d.y_f[bn1][4]
+#                                bns2 = 0
+#                                imp_phase = phase_d.y_f[key]
+#                                list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', imp_phase[0], imp_phase[1], phmdl, mad_ac.MUY[mad_ac.indx[bn1]]]
+#                                important_x.add_table_row(list_row_entries)
+#                if not important_x.get_tfs_table().is_empty():
+#                    important_x.write_to_file()
+#                else:
+#                    file_name = important_x.get_file_name()
+#                    LOGGER.info('File {} is empty, not writting it'.format(file_name))
+#
 
             except Exception:
                 traceback.print_exc()
@@ -754,11 +761,11 @@ def get_phases(getllm_d, mad_twiss, ListOfFiles, tune_q, plane):
         p_i = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[]} # dict for the six bpm pairs i.e. p_i[1] is for pair bpm[0], bpm[1]
         
         
-        if bpms[0] in getllm_d.important_pairs:
-            number = 1
-            for second_bpm in getllm_d.important_pairs[bpms[0]]:
+        number = 1
+        for (_, bpm_from, _, _, bpm_to, _) in getllm_d.important_pairs:
+            if bpms[0] == bpm_from:
                 p_i[10 + number] = []
-                bpms.append(second_bpm)
+                bpms.append(bpm_to)
                 number += 1
         
         # For all files take phase adv diffences between this bpm (bpms[0]) and 9 following ones in list bpms             

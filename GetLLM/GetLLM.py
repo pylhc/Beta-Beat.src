@@ -669,16 +669,31 @@ def _intial_setup(getllm_d, model_filename, dict_file):
     # look for file with important BPM pairs
     pairsfilename = os.path.dirname(model_filename) + "/important_pairs"
     if os.path.exists(pairsfilename):
-        getllm_d.important_pairs = {}
+        getllm_d.important_pairs = []
         pair_file = open(pairsfilename)
         for line in pair_file:
             key_value = line.split(":")
-            key = key_value[0].strip()
-            value = key_value[1].strip()
-            if key in getllm_d.important_pairs:
-                getllm_d.important_pairs[key].append(value)
-            else:
-                getllm_d.important_pairs[key] = [value]
+            element_from = key_value[0].strip()
+            element_to = key_value[1].strip()
+            if not element_from in mad_elem.NAME:
+                continue
+            idx = mad_elem.indx[element_from]
+            from_delta = 0
+            bpm_from = ""
+            for i in range(idx,idx+50):
+                if mad_elem.NAME[i].startswith("BPM"):
+                    from_delta = mad_elem.MUX[i] - mad_elem.MUX[idx]
+                    bpm_from = mad_elem.NAME[i] 
+                    break
+            idx = mad_elem.indx[element_to]
+            to_delta = 0
+            bpm_to = ""
+            for i in range(idx,idx+50):
+                if mad_elem.NAME[i].startswith("BPM"):
+                    to_delta = mad_elem.MUX[i] - mad_elem.MUX[idx]
+                    bpm_to = mad_elem.NAME[i]
+                    break
+            getllm_d.important_pairs.append([element_from, bpm_from, from_delta, element_to, bpm_to, to_delta])
 
     return mad_twiss, mad_ac, bpm_dictionary, mad_elem, mad_best_knowledge, mad_ac_best_knowledge, mad_elem_centre
 
