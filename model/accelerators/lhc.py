@@ -1050,10 +1050,11 @@ class HlLhc13(LhcAts):
 
 
 def _get_call_main_for_year(year):
-    if year < 2021:
+    # create possible acc-models name if it doesn't exist, assume that we have an old model
+    file_for_year = os.path.join(ACC_MODELS_DIR, year, "lhc.seq")
+    if not os.path.exists(file_for_year):
         file_for_year = _get_file_for_year(year, "main.seq")
-    else:
-        file_for_year = os.path.join(ACC_MODELS_DIR, year, "lhc.seq")
+
     call_main = _get_madx_call_command(file_for_year)
     return call_main
 

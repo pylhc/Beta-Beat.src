@@ -115,8 +115,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             "CROSSING_ON": crossing_on,
         }
 
-        with open(os.path.join(output_path,
-                               "job.iterate.madx"), "w") as textfile:
+        with open(os.path.join(output_path, "job.iterate.madx"), "w") as textfile:
             textfile.write(iterate_template % replace_dict)
 
 
