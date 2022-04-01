@@ -23,6 +23,28 @@ LOG = logging_tools.get_logger(__name__)
 
 
 # Main Functions ###############################################################
+# This function is made to combine the new format. 
+def merge_and_copy_kmod_omc3_style(beam, kmod_dir_parent, res_dir, mod_path, directories):
+    new_data_x = tfs_pandas.TfsDataFrame()
+    new_data_y = tfs_pandas.TfsDataFrame()
+    model_twiss = tfs_pandas.read_tfs(mod_path, index="NAME")
+
+    for kmod_dir in directories:
+        file_path = join(kmod_dir_parent,kmod_dir, 'lsa_results.tfs')
+        data = _load_source_data(file_path, "NAME")
+        if data is not None:
+            in_model = data.index.isin(model_twiss.index)
+            new_data_x = new_data_x.append(data.loc[in_model, ['BETX', 'ERRBETX']])
+            new_data_y = new_data_y.append(data.loc[in_model, ['BETY', 'ERRBETY']])
+            new_data_x["S"] = model_twiss.loc[new_data_x.index, "S"]
+            new_data_y["S"] = model_twiss.loc[new_data_y.index, "S"]
+            new_data_x["BETXMDL"] = model_twiss.loc[new_data_x.index, "BETX"]
+            new_data_y["BETYMDL"] = model_twiss.loc[new_data_y.index, "BETY"]
+            
+    getkmodx = join(res_dir,'getkmodbetax.out')
+    getkmody = join(res_dir,'getkmodbetay.out')
+    tfs_pandas.write_tfs(getkmodx, new_data_x, save_index="NAME")
+    tfs_pandas.write_tfs(getkmody, new_data_y, save_index="NAME")
 
 
 def merge_and_copy_kmod_output(beam, kmod_dir, res_dir, mod_path):
@@ -117,4 +139,10 @@ def parse_args():
 
 if __name__ == '__main__':
     opt = parse_args()
-    merge_and_copy_kmod_output(opt.beam, opt.kmod_dir, opt.res_dir, opt.mod_path)
+    onlyDir = [f for f in os.listdir(opt.kmod_dir) if os.path.isdir(join(opt.kmod_dir, f))]
+    kmod_files = os.listdir(join(opt.kmod_dir,onlyDir[0]))
+    if 'lsa_results.tfs' in kmod_files:
+        LOG.warn("New style")
+        merge_and_copy_kmod_omc3_style(opt.beam, opt.kmod_dir, opt.res_dir, opt.mod_path, onlyDir)
+    else:
+        merge_and_copy_kmod_output(opt.beam, opt.kmod_dir, opt.res_dir, opt.mod_path)

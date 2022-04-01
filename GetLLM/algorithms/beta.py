@@ -160,6 +160,10 @@ def _write_getbeta_out(twiss_d_zero_dpp, q1, q2, mad_ac, number_of_bpms, range_o
                             row[4], row[5], row[6], row[7],
                             mod_BET[model_ac_index], mod_ALF[model_ac_index], mod_MU[model_ac_index],
                             row[10]]
+
+        if beta_d_col[name][0] < 0:  # BETX or BETY
+            print_('Warning: beta value for {} is negative: {}'.format(name, beta_d_col[name][0]))
+
         # list_row_entries = ['"' + name + '"', mad_ac.S[model_ac_index], len(twiss_d_zero_dpp),
         #                     row[0], row[1], row[2], row[3],
         #                     row[8],
