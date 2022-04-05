@@ -133,6 +133,13 @@ class Accelerator(object):
     def get_errordefspath(self):
         Accelerator.__raise_definition_error()
 
+    def get_important_phases(self):
+        """Returns a list of expanded important phase pairs
+        Elements of this list are of the form
+        [element_from, BPM_from, mu_element_from_bpm, element_to, BPM_to, mu_element_to_bpm]
+        """
+        print("WARNING: no important phase advances for this accelerator (not implemented)")
+
     def set_errordefspath(self, path):
         # TODO: Jaime, are there virtual members for python base classes?
         Accelerator.__raise_definition_error()
@@ -257,3 +264,63 @@ def get_commonbpm(key1, key2, commonbpms):
         raise KeyError("Giving up looking for the closest exciter BPM")
     return i2, commonbpms.index[i2]
 
+
+
+def get_important_pairs_from_file(model_dir):
+    """Is looking for an important pairs file in the model directory
+    If the file exists, add those pairs to the list of important elements
+    (This file should only rarely exist, so failing to find one is the expected behaviour)
+
+    Args:
+        model_dir (str): the path to the model directory
+    """
+    # look for file with important BPM pairs
+    pairsfilename = model_dir + "/important_pairs"
+    important_pairs = []
+    if os.path.exists(pairsfilename):
+        print("additional important phase advances requested")
+        pair_file = open(pairsfilename)
+        for line in pair_file:
+            key_value = line.split(":")
+            element_from = key_value[0].strip()
+            element_to = key_value[1].strip()
+            important_pairs.append([element_from, element_to])
+
+        return important_pairs
+
+
+def expand_important_phases(important_pairs, mad_elem):
+    """Expands the list of important pairs to a list containing the pairs, nearest BPMs and phase advances to the nearest BPMs
+
+    Args:
+        important_pairs (list): a list of important pairs [element_from, element_to]
+        mad_elem (madTwiss): the model of elements
+
+    Returns:
+        list: a list of element, bpm and phase_advance pairs [element_from, BPM_from, phase_edvance, element_to, BPM_to, phase_advance]
+    """
+
+    important_phases = []
+
+    for [element_from, element_to] in important_pairs:
+        if not element_from in mad_elem.NAME:
+            continue
+        idx = mad_elem.indx[element_from]
+        from_delta = 0
+        bpm_from = ""
+        for i in range(idx,idx+50):
+            if mad_elem.NAME[i].startswith("BPM"):
+                from_delta = mad_elem.MUX[i] - mad_elem.MUX[idx]
+                bpm_from = mad_elem.NAME[i] 
+                break
+        idx = mad_elem.indx[element_to]
+        to_delta = 0
+        bpm_to = ""
+        for di in range(50):
+            i = idx - di  # go backwards
+            if mad_elem.NAME[i].startswith("BPM"):
+                to_delta = mad_elem.MUX[i] - mad_elem.MUX[idx]
+                bpm_to = mad_elem.NAME[i]
+                break
+        important_phases.append([element_from, bpm_from, from_delta, element_to, bpm_to, to_delta])
+    return important_phases

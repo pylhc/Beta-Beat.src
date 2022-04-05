@@ -6,8 +6,8 @@ from collections import OrderedDict
 
 import pandas as pd
 
-from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, \
-    get_commonbpm
+from model.accelerators.accelerator import Accelerator, AcceleratorDefinitionError, Element, AccExcitationMode, expand_important_phases, \
+    get_commonbpm, get_important_pairs_from_file
 from utils import logging_tools
 from tfs_files import tfs_pandas
 from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
@@ -754,14 +754,6 @@ class Lhc(Accelerator):
                         "BPMWA.B5L4.B2", "BPMWA.A5L4.B2", commonbpms), "ADTKV.B5L4.B2"
         return None
 
-    def get_important_phase_advances(self):
-        if self.get_beam() == 2:
-            return[["MKD.O5R6.B2", "TCTPH.4R1.B2"],
-                   ["MKD.O5R6.B2", "TCTPH.4R5.B2"]]
-        if self.get_beam() == 1:
-            return [["MKD.O5L6.B1", "TCTPH.4L1.B1"],
-                    ["MKD.O5L6.B1", "TCTPH.4L5.B1"]]
-
     def get_exciter_name(self, plane):
         if self.get_beam() == 1:
             if self.excitation == AccExcitationMode.ACD:
@@ -800,6 +792,16 @@ class Lhc(Accelerator):
         if self._errordefspath is None:
             raise AttributeError("No error definitions file given in this accelerator instance.")
         return self._errordefspath
+
+    def get_important_phase_advances(self):
+        important_pairs = get_important_pairs_from_file(self.model_dir)
+
+        important_pairs.add["MKD.O5R6.B2", "TCTPH.4R1.B2"]
+        important_pairs.add["MKD.O5R6.B2", "TCTPH.4R5.B2"]
+        important_pairs.add["MKD.O5L6.B1", "TCTPH.4L1.B1"]
+        important_pairs.add["MKD.O5L6.B1", "TCTPH.4L5.B1"]
+
+        return expand_important_phases(important_pairs, self._elements)
 
     def set_errordefspath(self, path):
         self._errordefspath = path

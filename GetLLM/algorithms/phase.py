@@ -164,33 +164,9 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
             bns2 = bpmsx[(i+1)%len(bpmsx)][0]
             list_row_entries = ['"' + bn1 + '"', '"' + bn2 + '"', bns1, bns2, len(twiss_d.zero_dpp_x), phase_d.ph_x[bn1][0], phase_d.ph_x[bn1][1], phmdl, mad_ac.MUX[mad_ac.indx[bn1]]]
             tfs_file.add_table_row(list_row_entries)
-        
-        important_x = tfs_file_writer.TfsFileWriter(tfs_file.get_absolute_file_name_path().replace(".out", "_important_phase_advances"))
-        
-        important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL", "BPM1", "BPM2"])
-        important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%s", "%s"])
 
-        for (el1, bn1, delta1, el2, bn2, delta2) in getllm_d.important_pairs:
-            if bn1 in phase_d.ph_x:
-                key = "H" + bn1 + bn2
-                if key in phase_d.ph_x:
-                    phmdl = phase_d.ph_x[bn1][4]
-                    
-                    imp_phase = phase_d.ph_x[key]
-                    list_row_entries = ['"' + el1 + '"',
-                                        '"' + el2 + '"',
-                                        imp_phase[0]+delta1-delta2,
-                                        imp_phase[1],
-                                        phmdl,
-                                        mad_ac.MUX[mad_ac.indx[bn1]],
-                                        bn1,
-                                        bn2]
-                    important_x.add_table_row(list_row_entries)
-        if not important_x.get_tfs_table().is_empty():
-            important_x.write_to_file()
-        else:
-            file_name = important_x.get_file_name()
-            LOGGER.info('File {} is empty, not writting it'.format(file_name))
+        calc_and_output_important_phases(tfs_file.get_absolute_file_name_path(), getllm_d.accel.get_important_phase_advances())
+        
         #-- ac to free phase
         if getllm_d.with_ac_calc:
             #-- from eq
@@ -973,3 +949,32 @@ def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
         phasef[bn2] = phi12, phstd12, ph_m
 
     return phasef, bpms
+
+
+def calc_and_output_important_phases(getphase_path, important_phase_advances):
+        important_x = tfs_file_writer.TfsFileWriter(getphase_path.replace(".out", "_important_phase_advances.out"))
+        
+        important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL", "BPM1", "BPM2"])
+        important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%s", "%s"])
+
+        for (el1, bn1, delta1, el2, bn2, delta2) in important_phase_advances:
+            if bn1 in phase_d.ph_x:
+                key = "H" + bn1 + bn2
+                if key in phase_d.ph_x:
+                    phmdl = phase_d.ph_x[bn1][4]
+                    
+                    imp_phase = phase_d.ph_x[key]
+                    list_row_entries = ['"' + el1 + '"',
+                                        '"' + el2 + '"',
+                                        imp_phase[0]+delta1-delta2,
+                                        imp_phase[1],
+                                        phmdl,
+                                        mad_ac.MUX[mad_ac.indx[bn1]],
+                                        bn1,
+                                        bn2]
+                    important_x.add_table_row(list_row_entries)
+        if not important_x.get_tfs_table().is_empty():
+            important_x.write_to_file()
+        else:
+            file_name = important_x.get_file_name()
+            LOGGER.info('File {} is empty, not writting it'.format(file_name))
