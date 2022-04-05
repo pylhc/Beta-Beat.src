@@ -952,6 +952,17 @@ def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
 
 
 def calc_and_output_important_phases(getphase_path, important_phase_advances):
+    """Calculates the important phase advances between certain elements
+    This function is supposed to be called for each getphase*out output, i.e. for up to a total of 6 cases
+    (both planes, various compensations)
+
+    **Note**: this function directly creates the output file, no call to an additional write function
+    is needed.
+
+    Args:
+        getphase_path (str): path to the corresponding getphase*.out
+        important_phase_advances (_type_): _description_
+    """
         important_x = tfs_file_writer.TfsFileWriter(getphase_path.replace(".out", "_important_phase_advances.out"))
         
         important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL", "BPM1", "BPM2"])
