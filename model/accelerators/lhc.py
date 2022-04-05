@@ -15,6 +15,8 @@ from utils.entrypoint import EntryPoint, EntryPointParameters, split_arguments
 LOGGER = logging_tools.get_logger(__name__)
 CURRENT_DIR = os.path.dirname(__file__)
 LHC_DIR = os.path.join(CURRENT_DIR, "lhc")
+ACC_MODELS_DIR = "/afs/cern.ch/eng/acc-models/lhc"
+
 
 
 def get_lhc_modes():
@@ -1050,9 +1052,14 @@ class HlLhc13(LhcAts):
 
 
 def _get_call_main_for_year(year):
-    call_main = _get_madx_call_command(
-        _get_file_for_year(year, "main.seq")
-    )
+    # create possible acc-models name if it doesn't exist, assume that we have an old model
+    file_for_year = os.path.join(ACC_MODELS_DIR, year, "lhc.seq")
+    if not os.path.exists(file_for_year):
+        file_for_year = _get_file_for_year(year, "main.seq")
+    if not os.path.exists(file_for_year):
+        raise FileNotFoundError("main sequence for tag '{}' neither in acc-models nor in Beta-Beat.src".format(year))
+
+    call_main = _get_madx_call_command(file_for_year)
     return call_main
 
 

@@ -32,6 +32,7 @@ class LhcModelCreator(model_creator.ModelCreator):
         "5.5": "5500GeV.tfs",
         "6.0": "6000GeV.tfs",
         "6.5": "6500GeV.tfs",
+        "6.8": "6800GeV.tfs",
     }
 
     @classmethod
@@ -47,8 +48,14 @@ class LhcModelCreator(model_creator.ModelCreator):
                           AccExcitationMode.ADT) else "0"
         crossing_on = "1" if lhc_instance.xing else "0"
         beam = lhc_instance.get_beam()
-	if(lhc_instance.YEAR is "2022"):
-		os.symlink("/afs/cern.ch/eng/acc-models/lhc/2022", output_path + "/acc-models-lhc")
+        if(lhc_instance.YEAR is "2022"):
+            src = "/afs/cern.ch/eng/acc-models/lhc/2022"
+            dst = output_path + "/acc-models-lhc"
+            if os.path.exists(dst):
+                LOGGER.warn("model exists, overwriting")
+                os.unlink(dst)
+            os.symlink(src, dst)
+
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
@@ -108,8 +115,7 @@ class LhcModelCreator(model_creator.ModelCreator):
             "CROSSING_ON": crossing_on,
         }
 
-        with open(os.path.join(output_path,
-                               "job.iterate.madx"), "w") as textfile:
+        with open(os.path.join(output_path, "job.iterate.madx"), "w") as textfile:
             textfile.write(iterate_template % replace_dict)
 
 
