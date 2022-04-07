@@ -15,10 +15,11 @@ load_main_sequence(): macro = {
 };
 
 coupling_knob(beam_number): macro = {
-    Cmrs.b1_op := b1_re_ip7_knob;
-    Cmrs.b2_op := b2_re_ip7_knob;
-    Cmis.b1_op := b1_im_ip7_knob;
-    Cmis.b2_op := b2_im_ip7_knob;
+    CMRS.b1 := b1_re_ip7_knob;
+    CMIS.b1 := b1_im_ip7_knob;
+
+    CMRS.b2 := b2_re_ip7_knob;
+    CMIS.b2 := b2_im_ip7_knob;
 };
 
 

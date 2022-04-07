@@ -1,9 +1,5 @@
 {
   "coupling_knobs": [
-    "CMIS.b2_op",  
-    "CMRS.b2_op"
-  ], 
-  "coupling_knobs_old": [
     "b2_re_ip7_knob",  
     "b2_im_ip7_knob"
   ], 
