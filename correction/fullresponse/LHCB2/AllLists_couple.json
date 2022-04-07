@@ -1,5 +1,5 @@
 {
-  "coupling_knobs_squeeze": [
+  "coupling_knobs": [
     "CMIS.b2_op",  
     "CMRS.b2_op"
   ], 

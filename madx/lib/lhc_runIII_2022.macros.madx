@@ -15,23 +15,10 @@ load_main_sequence(): macro = {
 };
 
 coupling_knob(beam_number): macro = {
-    if (ARC_SQUEEZE == 1.0){
-    /*This correct but the knob was not implemented by in LSA 
-        Cmrs.b1_sq := b1_re_ip7_knob;
-        Cmrs.b2_sq := b2_re_ip7_knob;
-        Cmis.b1_sq := b1_im_ip7_knob;
-        Cmis.b2_sq := b2_im_ip7_knob;
-        */
-        Cmrs.b1 := b1_re_ip7_knob;
-        Cmrs.b2 := b2_re_ip7_knob;
-        Cmis.b1 := b1_im_ip7_knob;
-        Cmis.b2 := b2_im_ip7_knob;
-    } else {
-        Cmrs.b1 := b1_re_ip7_knob;
-        Cmrs.b2 := b2_re_ip7_knob;
-        Cmis.b1 := b1_im_ip7_knob;
-        Cmis.b2 := b2_im_ip7_knob;
-    }
+    Cmrs.b1_op := b1_re_ip7_knob;
+    Cmrs.b2_op := b2_re_ip7_knob;
+    Cmis.b1_op := b1_im_ip7_knob;
+    Cmis.b2_op := b2_im_ip7_knob;
 };
 
 
