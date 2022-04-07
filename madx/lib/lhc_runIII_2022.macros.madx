@@ -13,3 +13,53 @@ load_main_sequence(): macro = {
     system, "ln -s /afs/cern.ch/eng/acc-models/lhc/2022/ acc-models-lhc";
     call, file = "/afs/cern.ch/eng/acc-models/lhc/2022/lhc.seq";
 };
+
+coupling_knob(beam_number): macro = {
+    if (ARC_SQUEEZE == 1.0){
+    /*This correct but the knob was not implemented by in LSA 
+        Cmrs.b1_sq := b1_re_ip7_knob;
+        Cmrs.b2_sq := b2_re_ip7_knob;
+        Cmis.b1_sq := b1_im_ip7_knob;
+        Cmis.b2_sq := b2_im_ip7_knob;
+        */
+        Cmrs.b1 := b1_re_ip7_knob;
+        Cmrs.b2 := b2_re_ip7_knob;
+        Cmis.b1 := b1_im_ip7_knob;
+        Cmis.b2 := b2_im_ip7_knob;
+    } else {
+        Cmrs.b1 := b1_re_ip7_knob;
+        Cmrs.b2 := b2_re_ip7_knob;
+        Cmis.b1 := b1_im_ip7_knob;
+        Cmis.b2 := b2_im_ip7_knob;
+    }
+};
+
+
+/*
+* Performs the matching of the LHC tunes, adapted to ATS optics.
+* uses op knobs
+*/
+match_tunes(nqx, nqy, beam_number): macro = {
+    exec, find_complete_tunes(nqx, nqy, beam_number);
+    exec, match_tunes_op(total_qx, total_qy, beam_number);
+};
+
+
+match_tunes_op(nqx, nqy, beam_number): macro = {
+    match;
+    vary, name=dQx.bbeam_number_op;
+    vary, name=dQy.bbeam_number_op;
+    constraint, range=#E, mux=nqx, muy=nqy;
+    lmdif;
+    endmatch;
+};
+
+
+match_tunes_arc_squeeze(nqx, nqy, beam_number): macro = {
+    match;
+    vary, name=dQx.bbeam_number_sq;
+    vary, name=dQy.bbeam_number_sq;
+    constraint, range=#E, mux=nqx, muy=nqy;
+    lmdif;
+    endmatch;
+};
