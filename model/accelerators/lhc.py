@@ -977,6 +977,8 @@ class LhcRunII2018(LhcAts):
 
 class LhcRunIII2022(LhcAts):
     YEAR = "2022"
+    MACROS_NAME = "lhc_runIII_2022"
+
 
 
 class HlLhc10(LhcAts):
