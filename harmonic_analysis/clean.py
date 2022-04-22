@@ -24,7 +24,7 @@ NTS_LIMIT = 8.
 def clean(bpm_data, clean_input, file_date):
     
     LOGGER.debug("clean: number of BPMs in the input %s ", bpm_data.index.size)
-    known_bad_bpm_names = clean_input.bad_bpms + LIST_OF_KNOWN_BAD_BPMS
+    known_bad_bpm_names = clean_input.bad_bpms
     known_bad_bpms = detect_known_bad_bpms(bpm_data, known_bad_bpm_names)
     bpm_flatness = detect_flat_bpms(bpm_data, clean_input.peak_to_peak)
     bpm_spikes = detect_bpms_with_spikes(bpm_data, clean_input.max_peak)
