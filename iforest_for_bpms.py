@@ -22,7 +22,7 @@ from model.accelerators import lhc
 
 LOGGER = logging_tools.get_logger(__name__)
 ARCS_CONT = 0.01
-IRS_CONT = 0.025
+IRS_CONT = 0.01
 FEATURES = "TUNE{0},NOISE_SCALED,AMP{0}"
 FEATURES_WITH_NAME = "NAME,TUNE{0},NOISE_SCALED,AMP{0}"
 PLANE = ("x", "y")
