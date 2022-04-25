@@ -4,8 +4,9 @@ import logging
 import os
 import sys
 
-import model_creator
 from model.accelerators.accelerator import AccExcitationMode
+
+import model_creator
 
 AFS_ROOT = "/afs"
 if "win" in sys.platform and sys.platform != "darwin":
@@ -16,8 +17,9 @@ LOGGER = logging.getLogger(__name__)
 
 class LhcModelCreator(model_creator.ModelCreator):
     ERR_DEF_PATH = os.path.join(AFS_ROOT, "cern.ch", "eng", "sl", "lintrack",
-                                "omc3", "omc3", "model", "accelerators",
-                                "lhc", "systematic_errors")
+                                "omc_repositories", "omc3", "omc3", "model", 
+                                "accelerators", "lhc", "systematic_errors")
+   
     ERR_DEF_FILES = {
         "0.45": "0450GeV.tfs",
         "1.0": "1000GeV.tfs",
@@ -37,18 +39,16 @@ class LhcModelCreator(model_creator.ModelCreator):
 
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
-        """ Returns the MAD-X script.
+        """Returns the MAD-X script.
 
-            In case of 2022 afs is assumed at the moment and a symblink is created. 
-            If not this has to be handled by the user.
+        In case of 2022 afs is assumed at the moment and a symblink is created.
+        If not this has to be handled by the user.
         """
-        use_acd = "1" if (lhc_instance.excitation ==
-                          AccExcitationMode.ACD) else "0"
-        use_adt = "1" if (lhc_instance.excitation ==
-                          AccExcitationMode.ADT) else "0"
+        use_acd = "1" if (lhc_instance.excitation == AccExcitationMode.ACD) else "0"
+        use_adt = "1" if (lhc_instance.excitation == AccExcitationMode.ADT) else "0"
         crossing_on = "1" if lhc_instance.xing else "0"
         beam = lhc_instance.get_beam()
-        if(lhc_instance.YEAR is "2022"):
+        if lhc_instance.YEAR is "2022":
             src = "/afs/cern.ch/eng/acc-models/lhc/2022"
             dst = output_path + "/acc-models-lhc"
             if os.path.exists(dst):
@@ -68,10 +68,12 @@ class LhcModelCreator(model_creator.ModelCreator):
             "USE_ADT": use_adt,
             "DPP": lhc_instance.dpp,
             "CROSSING_ON": crossing_on,
-            "QX": "", "QY": "", "QDX": "", "QDY": "",
+            "QX": "",
+            "QY": "",
+            "QDX": "",
+            "QDY": "",
         }
-        if (lhc_instance.excitation in
-                (AccExcitationMode.ACD, AccExcitationMode.ADT)):
+        if lhc_instance.excitation in (AccExcitationMode.ACD, AccExcitationMode.ADT):
             replace_dict["QX"] = lhc_instance.nat_tune_x
             replace_dict["QY"] = lhc_instance.nat_tune_y
             replace_dict["QDX"] = lhc_instance.drv_tune_x
@@ -120,7 +122,6 @@ class LhcModelCreator(model_creator.ModelCreator):
 
 
 class LhcBestKnowledgeCreator(LhcModelCreator):
-
     @classmethod
     def get_madx_script(cls, lhc_instance, output_path):
         if lhc_instance.excitation is not AccExcitationMode.FREE:
@@ -155,8 +156,12 @@ class LhcSegmentCreator(model_creator.ModelCreator):
     def get_madx_script(cls, lhc_instance, output_path):
         with open(lhc_instance.get_segment_tmpl()) as textfile:
             madx_template = textfile.read()
-        if(lhc_instance.YEAR is "2022" and not os.path.exists(output_path + "/acc-models-lhc")):
-            os.symlink("/afs/cern.ch/eng/acc-models/lhc/2022", output_path + "/acc-models-lhc")
+        if lhc_instance.YEAR is "2022" and not os.path.exists(
+            output_path + "/acc-models-lhc"
+        ):
+            os.symlink(
+                "/afs/cern.ch/eng/acc-models/lhc/2022", output_path + "/acc-models-lhc"
+            )
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
@@ -188,7 +193,6 @@ class LhcCouplingCreator(model_creator.ModelCreator):
             "QMX": lhc_instance.nat_tune_x,
             "QMY": lhc_instance.nat_tune_y,
             "CROSSING_ON": crossing_on,
-
         }
         madx_script = madx_template % replace_dict
         return madx_script
