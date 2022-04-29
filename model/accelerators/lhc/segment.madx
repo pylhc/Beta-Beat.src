@@ -8,6 +8,8 @@ exec, define_nominal_beams();
 call, file = "%(OPTICS_PATH)s";
 exec, set_default_crossing_scheme();
 
+call, file = "/afs/cern.ch/eng/acc-models/lhc/2022/toolkit/remove-triplet-symmetry-knob.madx"; ! removes ktqx.r1 := -ktqx.l1 type issues 
+
 ! Cycle the sequence in the start point to
 ! avoid negative length sequence.
 seqedit, sequence=LHCB%(NUM_BEAM)i;
