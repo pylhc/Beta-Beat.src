@@ -70,9 +70,7 @@ def main():
     parser.add_argument("--state", action='store_true',
                         help="prints the state of the statetracker")
     parser.add_argument("--output", type=str, default='knobs.madx',
-                        help=("this flag activates an interactive subscription mode."
-                              "The knob extractor will go into an event loop and notify / log / create modifiers file "
-                              "if any of the specified knobs changes")
+                        help="specify user-defined output path. This should probably be `model_dir/knobs.madx`"
                         )
 
     args = parser.parse_args()
@@ -95,7 +93,7 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
     if end is not None:
         try:
             t2 = _time_from_str(end)
-        except:  # I am going to use bare except whenever I want
+        except:
             t2 = _add_delta(t1, end)
             if t2 < t1:
                 t1, t2 = t2, t1
