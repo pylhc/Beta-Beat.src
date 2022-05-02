@@ -72,7 +72,7 @@ MATCHING_MACRO_TEMPLATE = """
 USE, PERIOD={segment_seq};
 
 OPTION, -ECHO, -INFO;
-CALL, FILE = "{modifiers_optics}";
+! CALL, FILE = "{modifiers_optics}"; !! Removed because it was causing 'out of memory' errors in 2022 (logbook entry 2022-04-27)
 
 {update_variables}
 
@@ -104,6 +104,130 @@ if ({is_back} == 0) {{
                         "{matcher_path}/twiss_{label}_cor_back.dat",
                         {bininame});
 }}
+"""
+
+
+GET_LSA_STRENGTHS_TEMPLATE = """
+OPTION, -ECHO, -INFO;
+CALL, FILE = "{modifiers_optics}";
+CALL, FILE = "/afs/cern.ch/eng/acc-models/lhc/2022/toolkit/remove-triplet-symmetry-knob.madx"; ! removes ktqx.r1 := -ktqx.l1 type issues
+
+start_mqxa.1l1 =  mqxa.1l1->k1;
+start_mqxb.2l1 = mqxb.a2l1->k1;
+start_mqxa.3l1 =  mqxa.3l1->k1;
+start_mqxa.1r1 =  mqxa.1r1->k1;
+start_mqxb.2r1 = mqxb.a2r1->k1;
+start_mqxa.3r1 =  mqxa.3r1->k1;
+
+start_mqxa.1l2 =  mqxa.1l2->k1;
+start_mqxb.2l2 = mqxb.a2l2->k1;
+start_mqxa.3l2 =  mqxa.3l2->k1;
+start_mqxa.1r2 =  mqxa.1r2->k1;
+start_mqxb.2r2 = mqxb.a2r2->k1;
+start_mqxa.3r2 =  mqxa.3r2->k1;
+
+start_mqxa.1l5 =  mqxa.1l5->k1;
+start_mqxb.2l5 = mqxb.a2l5->k1;
+start_mqxa.3l5 =  mqxa.3l5->k1;
+start_mqxa.1r5 =  mqxa.1r5->k1;
+start_mqxb.2r5 = mqxb.a2r5->k1;
+start_mqxa.3r5 =  mqxa.3r5->k1;
+
+start_mqxa.1l8 =  mqxa.1l8->k1;
+start_mqxb.2l8 = mqxb.a2l8->k1;
+start_mqxa.3l8 =  mqxa.3l8->k1;
+start_mqxa.1r8 =  mqxa.1r8->k1;
+start_mqxb.2r8 = mqxb.a2r8->k1;
+start_mqxa.3r8 =  mqxa.3r8->k1;
+
+{apply_corrections}
+
+end_mqxa.1l1 =  mqxa.1l1->k1;
+end_mqxb.2l1 = mqxb.a2l1->k1;
+end_mqxa.3l1 =  mqxa.3l1->k1;
+end_mqxa.1r1 =  mqxa.1r1->k1;
+end_mqxb.2r1 = mqxb.a2r1->k1;
+end_mqxa.3r1 =  mqxa.3r1->k1;
+
+end_mqxa.1l2 =  mqxa.1l2->k1;
+end_mqxb.2l2 = mqxb.a2l2->k1;
+end_mqxa.3l2 =  mqxa.3l2->k1;
+end_mqxa.1r2 =  mqxa.1r2->k1;
+end_mqxb.2r2 = mqxb.a2r2->k1;
+end_mqxa.3r2 =  mqxa.3r2->k1;
+
+end_mqxa.1l5 =  mqxa.1l5->k1;
+end_mqxb.2l5 = mqxb.a2l5->k1;
+end_mqxa.3l5 =  mqxa.3l5->k1;
+end_mqxa.1r5 =  mqxa.1r5->k1;
+end_mqxb.2r5 = mqxb.a2r5->k1;
+end_mqxa.3r5 =  mqxa.3r5->k1;
+
+end_mqxa.1l8 =  mqxa.1l8->k1;
+end_mqxb.2l8 = mqxb.a2l8->k1;
+end_mqxa.3l8 =  mqxa.3l8->k1;
+end_mqxa.1r8 =  mqxa.1r8->k1;
+end_mqxb.2r8 = mqxb.a2r8->k1;
+end_mqxa.3r8 =  mqxa.3r8->k1;
+
+diff_mqxa.1l1 = end_mqxa.1l1 - start_mqxa.1l1;
+diff_mqxb.2l1 = end_mqxb.2l1 - start_mqxb.2l1;
+diff_mqxa.3l1 = end_mqxa.3l1 - start_mqxa.3l1;
+diff_mqxa.1r1 = end_mqxa.1r1 - start_mqxa.1r1;
+diff_mqxb.2r1 = end_mqxb.2r1 - start_mqxb.2r1;
+diff_mqxa.3r1 = end_mqxa.3r1 - start_mqxa.3r1;
+
+diff_mqxa.1l2 = end_mqxa.1l2 - start_mqxa.1l2;
+diff_mqxb.2l2 = end_mqxb.2l2 - start_mqxb.2l2;
+diff_mqxa.3l2 = end_mqxa.3l2 - start_mqxa.3l2;
+diff_mqxa.1r2 = end_mqxa.1r2 - start_mqxa.1r2;
+diff_mqxb.2r2 = end_mqxb.2r2 - start_mqxb.2r2;
+diff_mqxa.3r2 = end_mqxa.3r2 - start_mqxa.3r2;
+
+diff_mqxa.1l5 = end_mqxa.1l5 - start_mqxa.1l5;
+diff_mqxb.2l5 = end_mqxb.2l5 - start_mqxb.2l5;
+diff_mqxa.3l5 = end_mqxa.3l5 - start_mqxa.3l5;
+diff_mqxa.1r5 = end_mqxa.1r5 - start_mqxa.1r5;
+diff_mqxb.2r5 = end_mqxb.2r5 - start_mqxb.2r5;
+diff_mqxa.3r5 = end_mqxa.3r5 - start_mqxa.3r5;
+
+diff_mqxa.1l8 = end_mqxa.1l8 - start_mqxa.1l8;
+diff_mqxb.2l8 = end_mqxb.2l8 - start_mqxb.2l8;
+diff_mqxa.3l8 = end_mqxa.3l8 - start_mqxa.3l8;
+diff_mqxa.1r8 = end_mqxa.1r8 - start_mqxa.1r8;
+diff_mqxb.2r8 = end_mqxb.2r8 - start_mqxb.2r8;
+diff_mqxa.3r8 = end_mqxa.3r8 - start_mqxa.3r8;
+
+select, flag=save, pattern= "diff_mqxa.1l1";
+select, flag=save, pattern= "diff_mqxb.2l1";
+select, flag=save, pattern= "diff_mqxa.3l1";
+select, flag=save, pattern= "diff_mqxa.1r1";
+select, flag=save, pattern= "diff_mqxb.2r1";
+select, flag=save, pattern= "diff_mqxa.3r1";
+
+select, flag=save, pattern= "diff_mqxa.1l2";
+select, flag=save, pattern= "diff_mqxb.2l2";
+select, flag=save, pattern= "diff_mqxa.3l2";
+select, flag=save, pattern= "diff_mqxa.1r2";
+select, flag=save, pattern= "diff_mqxb.2r2";
+select, flag=save, pattern= "diff_mqxa.3r2";
+
+select, flag=save, pattern= "diff_mqxa.1l5";
+select, flag=save, pattern= "diff_mqxb.2l5";
+select, flag=save, pattern= "diff_mqxa.3l5";
+select, flag=save, pattern= "diff_mqxa.1r5";
+select, flag=save, pattern= "diff_mqxb.2r5";
+select, flag=save, pattern= "diff_mqxa.3r5";
+
+select, flag=save, pattern= "diff_mqxa.1l8";
+select, flag=save, pattern= "diff_mqxb.2l8";
+select, flag=save, pattern= "diff_mqxa.3l8";
+select, flag=save, pattern= "diff_mqxa.1r8";
+select, flag=save, pattern= "diff_mqxb.2r8";
+select, flag=save, pattern= "diff_mqxa.3r8";
+
+SAVE, FILE="{match_path}/changeparameters_LSA.madx";
+
 """
 
 
@@ -152,6 +276,7 @@ class TemplateProcessor(object):
             GEN_CHANGEPARAMETERS="\n".join(self._gen_changeparameters_list),
             SAVE_CHANGEPARAMETERS=SAVE_CHANGEPARAMETERS.format(match_path=self._match_path),
             RUN_CORRECTED_TWISS="\n".join(self._run_corrected_twiss_list),
+            GET_LSA_STRENGTHS="\n".join(self._change_lsa_parameters),
         )
         madx_wrapper.resolve_and_run_string(madx_script,
                                             output_file=self._output_file,
@@ -195,6 +320,7 @@ class TemplateProcessor(object):
             self._set_matching_macros(matcher)
             self._generate_changeparameters()
             self._run_corrected_twiss(matcher)
+        self._run_lsa_variables_calc(matcher, self._match_path)
         self._define_variables()
 
     def _extract_sequences(self, matcher):
@@ -298,3 +424,21 @@ class TemplateProcessor(object):
             bininame=matcher.get_initvals_name(),
         )
         self._run_corrected_twiss_list.append(run_corrected_twiss_str)
+
+    def _run_lsa_variables_calc(self, matcher, match_path):
+        run_conv_lsa_str = ""
+
+        apply_correction_str = ""
+        for variable in self._variables:
+            apply_correction_str += (
+                '{variable} = {matcher_name}.{variable}_0 + d{variable};\n'
+            ).format(matcher_name=matcher.name, variable=variable)
+
+        run_conv_lsa_str += GET_LSA_STRENGTHS_TEMPLATE.format(
+            modifiers_optics=matcher.segment.optics_file,
+            apply_corrections=apply_correction_str,
+            match_path=match_path,
+        )
+        self._change_lsa_parameters = run_conv_lsa_str
+
+
