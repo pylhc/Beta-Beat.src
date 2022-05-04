@@ -103,8 +103,8 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
     knobdict = _get_knobs_dict()
 
     ldb = pytimber.LoggingDB(source="nxcals")
-    disp=ldb.get("%IP1-SDISP-CORR-SEP%", t1)
-    print(disp)
+    print(ldb.get("LhcStateTracker:State", t1))
+    print(ldb.get("LhcStateTracker/State", t1))
     with open(output, "w") as outfile:
         outfile.write("!! File created by knob extractor\n")
         outfile.write("!! knobs extracted for time {}\n\n".format(t1))
@@ -112,7 +112,7 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
             outfile.write("!! --- {:12} ---\n".format(knob))
             for knobname in KNOB_NAMES[knob]:
                 print("looking for {}".format(knobname))
-                knobkey = "LhcStateTracker:{}:value".format(knobname)
+                knobkey = "LhcStateTracker:{}:target".format(knobname)
                 knobvalue = ldb.get(knobkey, t1, t2=t2)
                 print(knobvalue)
                 if not knobkey in knobvalue:
