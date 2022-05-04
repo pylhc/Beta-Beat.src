@@ -95,7 +95,8 @@ def _write_sbs_data(segment_inst, temporary_path):
 def _build_changeparameters_file(input_data):
     original_file =\
         os.path.join(input_data.match_path, "changeparameters.madx")
-    output_dir = os.path.join(input_data.match_path, "results")
+    results_dirname = "results_" + datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    output_dir = os.path.join(input_data.match_path, results_dirname)
     os.mkdir(output_dir)
     vars_dict = OrderedDict()
     with open(original_file, "r") as original_file_data:

@@ -9,6 +9,8 @@ exec, define_nominal_beams();
 call, file = "%(OPTICS_PATH)s";
 exec, cycle_sequences();
 
+call, file = "/afs/cern.ch/eng/acc-models/lhc/2022/toolkit/remove-triplet-symmetry-knob.madx"; ! removes ktqx.r1 := -ktqx.l1 type issues 
+
 
 use, period = LHCB%(NUM_BEAM)i;
 
