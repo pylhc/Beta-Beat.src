@@ -151,6 +151,12 @@ class Lhc(Accelerator):
             type=float,
         )
         params.add_parameter(
+            flags=["--error_table"],
+            help="Error table for bk model.",
+            name="error_table",
+            type=str,
+        )
+        params.add_parameter(
             flags=["--optics"],
             help="Path to the optics file to use (modifiers file).",
             name="optics",
@@ -236,6 +242,7 @@ class Lhc(Accelerator):
 
             # optional no default
             self.energy = opt.get("energy", None)
+            self.error_table = opt.get("error_table", None)
             self.xing = opt.get("xing", None)
             self.optics_file = opt.get("optics", None)
 

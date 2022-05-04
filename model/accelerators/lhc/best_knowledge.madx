@@ -21,6 +21,8 @@ option, echo;
 
 exec, load_average_error_table(%(ENERGY)s, %(NUM_BEAM)i);
 
+%(ERROR_TABLE)s
+
 exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
 
 call, file = "%(PATH)s/corrections.madx";

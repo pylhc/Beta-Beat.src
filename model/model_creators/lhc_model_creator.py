@@ -14,6 +14,7 @@ if "win" in sys.platform and sys.platform != "darwin":
 
 LOGGER = logging.getLogger(__name__)
 
+ERROR_TABLES_ROOT = "/afs/cern.ch/eng/sl/lintrack/error_tables"
 
 class LhcModelCreator(model_creator.ModelCreator):
     ERR_DEF_PATH = os.path.join(AFS_ROOT, "cern.ch", "eng", "sl", "lintrack",
@@ -135,6 +136,10 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
         with open(lhc_instance.get_best_knowledge_tmpl()) as textfile:
             madx_template = textfile.read()
         crossing_on = "1" if lhc_instance.xing else "0"
+
+        # TODO: refactor
+        print("-------------------------------------------------------------------------------")
+
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
@@ -147,6 +152,18 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             "ENERGY": lhc_instance.energy,
             "CROSSING_ON": crossing_on,
         }
+        if lhc_instance.error_table is not None:
+            print("00000000000000000000000000000000000000000000000000000000000000000000000000000000")
+            print(lhc_instance.error_table)
+            replace_dict["ERROR_TABLE"] = """
+readmytable, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.errors", table=errtab;
+seterr, table=errtab;
+call, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.mad";
+""".format(lhc_instance.get_beam(), lhc_instance.error_table,
+           lhc_instance.get_beam(), lhc_instance.error_table)
+        else:
+            replace_dict["ERROR_TABLE"] = ""
+
         madx_script = madx_template % replace_dict
         return madx_script
 
