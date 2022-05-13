@@ -144,10 +144,10 @@ def _get_main_parser():
 class CleanInput(object):
     DEFAULTS = {
         "svd_mode": "numpy",
-        "sing_val": 12,
+        "sing_val": 22,
         "peak_to_peak": 0.00001,
         "max_peak": 20.,
-        "single_svd_bpm_threshold": 0.925,
+        "single_svd_bpm_threshold": 0.5,
         "bad_bpms": [],
         "wrong_polarity_bpms": [],
         "noresync": False,

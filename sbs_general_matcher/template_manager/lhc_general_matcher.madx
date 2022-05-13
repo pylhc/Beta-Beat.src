@@ -20,6 +20,8 @@ option, echo, warn;
 
 !!!!!! Matching !!!!!!
 
+call, file = "/afs/cern.ch/eng/acc-models/lhc/2022/toolkit/remove-triplet-symmetry-knob.madx"; ! removes ktqx.r1 := -ktqx.l1 type issues 
+
 {START_MATCH}
 
 {DEFINE_VARIABLES}
@@ -37,3 +39,6 @@ select, flag=save, clear;
 
 !!! Running corrected twiss
 {RUN_CORRECTED_TWISS}
+
+{GET_LSA_STRENGTHS}
+
