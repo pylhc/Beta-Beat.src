@@ -55,17 +55,11 @@ def main():
     parser.add_argument("--extract", type=str, nargs='+',
                         help=("defines the time at which to extract the knob settings. "
                               "'now': extracts the current knob setting. "
-                              "<start> <end>: extracts the knob setting for a time span. "
-                              "datetime is a valid datetime representation, "
-                              "<end> is either a second valid datetime rep (MUST be later than <start>) "
-                              "or a timedelta specification (7m = 7 minutes, 1d = 1day, 7m30s = 7 min 30 secs) "
-                              "a prefix 'back' specifies a negative time span"
+                              "<time>: extracts the knob setting for a given time. "
+                              "<time> <timedelta>: extracts the knob setting for a given time, "
+                              "<timedelta> is a timedelta specification (7m = 7 minutes, 1d = 1day, 7m30s = 7 min 30 secs) "
+                              "a prefix '_' specifies a negative timedelta"
                               )
-                        )
-    parser.add_argument("--subscribe", action='store_true',
-                        help=("this flag activates an interactive subscription mode."
-                              "The knob extractor will go into an event loop and notify / log / create modifiers file "
-                              "if any of the specified knobs changes")
                         )
     parser.add_argument("--state", action='store_true',
                         help="prints the state of the statetracker")
@@ -79,32 +73,25 @@ def main():
         end = args.extract[1] if len(args.extract) > 1 else None
         _extract(args.knobs, args.extract[0], end, args.output)
 
-    if args.subscribe:
-        print("!! Subscription not yet implemented")
-
 
 def _extract(knobs, start, end = None, output="./knobs.madx"):
     import pytimber
-    print("---- EXTRACTING KNOBS ------")
+    print("---- EXTRACTING KNOBS -------------------------")
 
     t1 = _time_from_str(start)
-    t2 = None
 
     if end is not None:
-        try:
-            t2 = _time_from_str(end)
-        except:
-            t2 = _add_delta(t1, end)
-            if t2 < t1:
-                t1, t2 = t2, t1
+        t1 = _add_delta(t1, end)
 
-    print("starttime = {}, endtime = {}".format(t1, t2))
+    print("starttime = {}".format(t1))
 
     knobdict = _get_knobs_dict()
 
     ldb = pytimber.LoggingDB(source="nxcals")
+    print("---- STATE ------------------------------------")
     print(ldb.get("LhcStateTracker:State", t1))
     print(ldb.get("LhcStateTracker/State", t1))
+    print("---- KNOBS ------------------------------------")
     with open(output, "w") as outfile:
         outfile.write("!! File created by knob extractor\n")
         outfile.write("!! knobs extracted for time {}\n\n".format(t1))
@@ -113,7 +100,7 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
             for knobname in KNOB_NAMES[knob]:
                 print("looking for {}".format(knobname))
                 knobkey = "LhcStateTracker:{}:target".format(knobname)
-                knobvalue = ldb.get(knobkey, t1, t2=t2)
+                knobvalue = ldb.get(knobkey, t1)
                 print(knobvalue)
                 if not knobkey in knobvalue:
                     outfile.write("! no value for {}\n".format(knobname))
@@ -145,7 +132,7 @@ def _time_from_str(pattern):
 
 
 def _add_delta(t1, pattern):
-    is_negative = pattern.startswith('back')
+    is_negative = pattern.startswith('_')
     sign = 1
 
     if is_negative:
