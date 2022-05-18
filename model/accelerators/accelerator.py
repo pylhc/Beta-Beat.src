@@ -275,8 +275,12 @@ def get_important_pairs_from_file(model_dir):
         model_dir (str): the path to the model directory
     """
     # look for file with important BPM pairs
-    pairsfilename = model_dir + "/important_pairs"
     important_pairs = []
+
+    if model_dir is None:
+        return important_pairs
+
+    pairsfilename = model_dir + "/important_pairs"
     if os.path.exists(pairsfilename):
         print("additional important phase advances requested")
         pair_file = open(pairsfilename)

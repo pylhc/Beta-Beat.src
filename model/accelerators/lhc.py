@@ -795,15 +795,16 @@ class Lhc(Accelerator):
             raise AttributeError("No error definitions file given in this accelerator instance.")
         return self._errordefspath
 
-    def get_important_phase_advances(self):
-        important_pairs = get_important_pairs_from_file(self.model_dir)
+    @staticmethod
+    def get_important_phase_advances_static(model_dir, elements):
+        important_pairs = get_important_pairs_from_file(model_dir)
 
-        important_pairs.add["MKD.O5R6.B2", "TCTPH.4R1.B2"]
-        important_pairs.add["MKD.O5R6.B2", "TCTPH.4R5.B2"]
-        important_pairs.add["MKD.O5L6.B1", "TCTPH.4L1.B1"]
-        important_pairs.add["MKD.O5L6.B1", "TCTPH.4L5.B1"]
+        important_pairs.append(["MKD.O5R6.B2", "TCTPH.4R1.B2"])
+        important_pairs.append(["MKD.O5R6.B2", "TCTPH.4R5.B2"])
+        important_pairs.append(["MKD.O5L6.B1", "TCTPH.4L1.B1"])
+        important_pairs.append(["MKD.O5L6.B1", "TCTPH.4L5.B1"])
 
-        return expand_important_phases(important_pairs, self._elements)
+        return expand_important_phases(important_pairs, elements)
 
     def set_errordefspath(self, path):
         self._errordefspath = path
