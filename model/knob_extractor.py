@@ -39,7 +39,7 @@ KNOB_NAMES = {
         "LHCBEAM:IP5-SDISP-CORR-XING",
     ],
     "mo": [
-        "LHCBEAM1:LANDAU_DAMPING"
+        "LHCBEAM1:LANDAU_DAMPING",
         "LHCBEAM2:LANDAU_DAMPING"
     ]
 }
@@ -95,6 +95,8 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
     ldb = pytimber.LoggingDB(source="nxcals")
     print("---- KNOBS ------------------------------------")
     with open(output, "w") as outfile:
+        outfile.write(f"!! --- knobs extracted by knob_extractor\n")
+        outfile.write(f"!! --- extracted knobs for time {t1}\n\n")
         for knob in knobs:
             outfile.write(f"!! --- {knob:10} --------------------\n")
             for knobname in KNOB_NAMES[knob]:
