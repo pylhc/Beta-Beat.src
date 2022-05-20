@@ -44,9 +44,26 @@ KNOB_NAMES = {
     ]
 }
 
+USAGE_EXAMPLES = """Usage Examples:
+
+python knob_extractor.py disp chroma --extract 2022-05-04T14:00     
+    extracts the chromaticity and dispersion knobs at 14h on May 4th 2022
+
+python knob_extractor.py disp chroma --extract now _2h 
+    extracts the chromaticity and dispersion knobs as of 2 hours ago
+
+python knob_extractor.py --state
+    prints the current StateTracker/State metadata
+
+python knob_extractor.py disp sep xing chroma ip_offset mo --extract now
+    extracts the current settings for all the knobs
+"""
+
 
 def main():
-    parser = argparse.ArgumentParser("Knob extraction tool.")
+    parser = argparse.ArgumentParser("Knob extraction tool.",
+                                    epilog=USAGE_EXAMPLES,
+                                    formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("knobs", type=str, nargs='*',
                         help="a list of knob categories to extract",
@@ -57,7 +74,11 @@ def main():
                               "'now': extracts the current knob setting. "
                               "<time>: extracts the knob setting for a given time. "
                               "<time> <timedelta>: extracts the knob setting for a given time, "
-                              "<timedelta> is a timedelta specification (7m = 7 minutes, 1d = 1day, 7m30s = 7 min 30 secs) "
+                              "with an offset of <timedelta> "
+                              "the format of timedelta is '((\\d+)(\\w))+' "
+                              "with the second token being one of "
+                              "s(seconds), m(minutes), h(hours), d(days), w(weeks), M(months) "
+                              "e.g 7m = 7 minutes, 1d = 1day, 7m30s = 7 min 30 secs. "
                               "a prefix '_' specifies a negative timedelta"
                               )
                         )
@@ -105,9 +126,13 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
                 knobvalue = ldb.get(knobkey, t1)
                 print(knobvalue)
                 if not knobkey in knobvalue:
-                    outfile.write(f"! no value for {knobname}\n")
+                    outfile.write(f"! no value for {knobname}, 'target' not in knob\n")
                     continue
                 (timestamps, values) = knobvalue[knobkey]
+                if len(values) == 0:
+                    print(f"no value for {knobname}")
+                    outfile.write(f"! no value for {knobname}, no values defined for given time\n")
+                    continue
                 value = values[-1]
                 (madxname, scaling) = knobdict[knobname.replace(":", "/")]
                 print(f"{madxname}: {value*scaling}")
