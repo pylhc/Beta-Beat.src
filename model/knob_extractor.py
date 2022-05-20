@@ -1,3 +1,4 @@
+import pytimber
 import argparse
 import math
 from datetime import datetime, timedelta
@@ -73,6 +74,11 @@ def main():
         end = args.extract[1] if len(args.extract) > 1 else None
         _extract(args.knobs, args.extract[0], end, args.output)
 
+    if args.state:
+        print("---- STATE ------------------------------------")
+        print(ldb.get("LhcStateTracker:State", t1))
+        print(ldb.get("LhcStateTracker/State", t1))
+
 
 def _extract(knobs, start, end = None, output="./knobs.madx"):
     import pytimber
@@ -83,35 +89,29 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
     if end is not None:
         t1 = _add_delta(t1, end)
 
-    print("starttime = {}".format(t1))
+    print(f"extracting knobs for {t1}")
 
     knobdict = _get_knobs_dict()
 
     ldb = pytimber.LoggingDB(source="nxcals")
-    print("---- STATE ------------------------------------")
-    print(ldb.get("LhcStateTracker:State", t1))
-    print(ldb.get("LhcStateTracker/State", t1))
     print("---- KNOBS ------------------------------------")
     with open(output, "w") as outfile:
-        outfile.write("!! File created by knob extractor\n")
-        outfile.write("!! knobs extracted for time {}\n\n".format(t1))
         for knob in knobs:
-            outfile.write("!! --- {:12} ---\n".format(knob))
+            outfile.write(f"!! --- {knob:12} ---\n")
             for knobname in KNOB_NAMES[knob]:
-                print("looking for {}".format(knobname))
-                knobkey = "LhcStateTracker:{}:target".format(knobname)
+                print(f"looking for {knobname}")
+                knobkey = f"LhcStateTracker:{knobname}:target"
                 knobvalue = ldb.get(knobkey, t1)
                 print(knobvalue)
                 if not knobkey in knobvalue:
-                    outfile.write("! no value for {}\n".format(knobname))
+                    outfile.write("! no value for {knobname}\n")
                     continue
                 (timestamps, values) = knobvalue[knobkey]
                 value = values[-1]
                 (madxname, scaling) = knobdict[knobname.replace(":", "/")]
-                print("{}: {}".format(madxname, value*scaling))
+                print("{madxname}: {value*scaling}")
                 if not math.isnan(value):
-                    outfile.write("{} := {};\n".format(
-                        madxname, value*scaling))
+                    outfile.write("{madxname} := {value*scaling};\n")
             outfile.write("\n")
 
 
@@ -127,7 +127,7 @@ def _time_from_str(pattern):
     except:
         pass
 
-    print("couldn't read datetime '{}'".format(pattern))
+    print(f"couldn't read datetime '{pattern}'")
     return None
 
 
@@ -164,14 +164,14 @@ def _get_knobs_dict(user_defined = None):
     # if all fails, fall back to lhc acc-models
     if user_defined is not None:
         filename = user_defined
-        print("take user defined knobs.txt: '{}".format(filename))
+        print(f"take user defined knobs.txt: '{filename}")
     elif os.path.isfile(KNOBS_TXT_MDLDIR):
         filename = KNOBS_TXT_MDLDIR
-        print("take model folder's knobs.txt: '{}".format(filename))
+        print(f"take model folder's knobs.txt: '{filename}")
     else:
         # if all fails, fall back to lhc acc-models
         filename = KNOBS_TXT_FALLBACK
-        print("take fallback knobs.txt: '{}".format(filename))
+        print(f"take fallback knobs.txt: '{filename}'")
 
     knobdict = {}
     with open(filename) as knobtxt:
@@ -184,4 +184,5 @@ def _get_knobs_dict(user_defined = None):
     return knobdict
 
 
-main()
+if __name__ == "__main__":
+    main()
