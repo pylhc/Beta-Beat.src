@@ -1,4 +1,3 @@
-import pytimber
 import argparse
 import math
 from datetime import datetime, timedelta
@@ -97,21 +96,21 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
     print("---- KNOBS ------------------------------------")
     with open(output, "w") as outfile:
         for knob in knobs:
-            outfile.write(f"!! --- {knob:12} ---\n")
+            outfile.write(f"!! --- {knob:10} --------------------\n")
             for knobname in KNOB_NAMES[knob]:
                 print(f"looking for {knobname}")
                 knobkey = f"LhcStateTracker:{knobname}:target"
                 knobvalue = ldb.get(knobkey, t1)
                 print(knobvalue)
                 if not knobkey in knobvalue:
-                    outfile.write("! no value for {knobname}\n")
+                    outfile.write(f"! no value for {knobname}\n")
                     continue
                 (timestamps, values) = knobvalue[knobkey]
                 value = values[-1]
                 (madxname, scaling) = knobdict[knobname.replace(":", "/")]
-                print("{madxname}: {value*scaling}")
+                print(f"{madxname}: {value*scaling}")
                 if not math.isnan(value):
-                    outfile.write("{madxname} := {value*scaling};\n")
+                    outfile.write(f"{madxname} := {value*scaling};\n")
             outfile.write("\n")
 
 
