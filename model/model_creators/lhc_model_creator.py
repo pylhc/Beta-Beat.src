@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import logging
 import os
+import shutil
 import sys
 
 from model.accelerators.accelerator import AccExcitationMode
@@ -99,6 +100,17 @@ class LhcModelCreator(model_creator.ModelCreator):
             except OSError:
                 pass
             os.symlink(file_path, link_path)
+            # for omc3
+            error_deffs_path = os.path.join(output_path, "error_deffs.txt")
+            try:
+                os.unlink(error_deffs_path)
+            except OSError:
+                pass
+
+            if os.path.exists(file_path):
+                shutil.copy(file_path, error_deffs_path)
+            else:
+                os.symlink(file_path, error_deffs_path)
 
     @classmethod
     def _prepare_fullresponse(cls, lhc_instance, output_path):
