@@ -49,7 +49,7 @@ class LhcModelCreator(model_creator.ModelCreator):
         crossing_on = "1" if lhc_instance.xing else "0"
         beam = lhc_instance.get_beam()
         if lhc_instance.YEAR is "2022":
-            src = "/afs/cern.ch/eng/acc-models/lhc/2022"
+            src = "/afs/cern.ch/eng/sl/lintrack/models/acc-models-lhc"
             dst = output_path + "/acc-models-lhc"
             if os.path.exists(dst):
                 LOGGER.warn("model exists, overwriting")
