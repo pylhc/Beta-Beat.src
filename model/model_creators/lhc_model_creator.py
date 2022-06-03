@@ -165,8 +165,6 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             "CROSSING_ON": crossing_on,
         }
         if lhc_instance.error_table is not None:
-            print("00000000000000000000000000000000000000000000000000000000000000000000000000000000")
-            print(lhc_instance.error_table)
             replace_dict["ERROR_TABLE"] = """
 readmytable, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.errors", table=errtab;
 seterr, table=errtab;

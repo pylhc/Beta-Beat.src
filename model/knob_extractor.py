@@ -41,7 +41,9 @@ KNOB_NAMES = {
     "mo": [
         "LHCBEAM1:LANDAU_DAMPING",
         "LHCBEAM2:LANDAU_DAMPING"
-    ]
+    ],
+    "all": [],
+    "none": [],
 }
 
 USAGE_EXAMPLES = """Usage Examples:
@@ -67,7 +69,8 @@ def main():
 
     parser.add_argument("knobs", type=str, nargs='*',
                         help="a list of knob categories to extract",
-                        choices=[key for key in KNOB_NAMES.keys()]
+                        choices=[key for key in KNOB_NAMES.keys()],
+                        default="none",
                         )
     parser.add_argument("--extract", type=str, nargs='+',
                         help=("defines the time at which to extract the knob settings. "
@@ -95,6 +98,9 @@ def main():
         _extract(args.knobs, args.extract[0], end, args.output)
 
     if args.state:
+        import pytimber
+        ldb = pytimber.LoggingDB(source="nxcals")
+        t1 = datetime.now()
         print("---- STATE ------------------------------------")
         print(ldb.get("LhcStateTracker:State", t1))
         print(ldb.get("LhcStateTracker/State", t1))
@@ -109,6 +115,9 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
     if end is not None:
         t1 = _add_delta(t1, end)
 
+    if "all" in knobs:
+        knobs = KNOB_NAMES.keys()
+
     print(f"extracting knobs for {t1}")
 
     knobdict = _get_knobs_dict()
@@ -119,6 +128,8 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
         outfile.write(f"!! --- knobs extracted by knob_extractor\n")
         outfile.write(f"!! --- extracted knobs for time {t1}\n\n")
         for knob in knobs:
+            if len(KNOB_NAMES[knob]) == 0:
+                continue
             outfile.write(f"!! --- {knob:10} --------------------\n")
             for knobname in KNOB_NAMES[knob]:
                 print(f"looking for {knobname}")
