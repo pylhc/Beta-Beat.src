@@ -19,6 +19,8 @@ KNOB_NAMES = {
         "LHCBEAM:IP1-XING-H-MURAD",
         "LHCBEAM:IP5-XING-V-MURAD",
         "LHCBEAM:IP5-XING-H-MURAD",
+        "LHCBEAM:IP2-XING-V-MURAD",
+        "LHCBEAM:IP8-XING-H-MURAD",
     ],
     "chroma": [
         "LHCBEAM1:QPH",
