@@ -118,6 +118,9 @@ def _extract(knobs, start, end = None, output="./knobs.madx", knobs_txt=None):
 
     t1 = _time_from_str(start)
 
+    if t1 is None:
+        return
+
     if end is not None:
         t1 = _add_delta(t1, end)
 
