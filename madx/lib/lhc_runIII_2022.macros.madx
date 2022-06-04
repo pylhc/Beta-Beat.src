@@ -52,3 +52,14 @@ match_tunes_arc_squeeze(nqx, nqy, beam_number): macro = {
     endmatch;
 };
 
+/*
+* Loads the average dipole b2 errors and correction.
+*
+* NOTE: this is handled by the model creator,
+* we override this with an empty macro for backwards compatibility
+*
+* @param energy: The energy to be used.
+* @param beam_number: The beam to use either 1 or 2.
+*/
+load_average_error_table(energy, beam_number): macro = {
+};
