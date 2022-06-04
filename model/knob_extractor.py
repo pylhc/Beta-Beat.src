@@ -92,12 +92,16 @@ def main():
     parser.add_argument("--output", type=str, default='knobs.madx',
                         help="specify user-defined output path. This should probably be `model_dir/knobs.madx`"
                         )
+    parser.add_argument("--knobs_txt", type=str,
+                        help="user defined path to knob.txt"
+                        )
 
     args = parser.parse_args()
 
     if args.extract is not None:
         end = args.extract[1] if len(args.extract) > 1 else None
-        _extract(args.knobs, args.extract[0], end, args.output)
+        print(f"knobs_txt: {args.knobs_txt}")
+        _extract(args.knobs, args.extract[0], end, args.output, args.knobs_txt)
 
     if args.state:
         import pytimber
@@ -108,7 +112,7 @@ def main():
         print(ldb.get("LhcStateTracker/State", t1))
 
 
-def _extract(knobs, start, end = None, output="./knobs.madx"):
+def _extract(knobs, start, end = None, output="./knobs.madx", knobs_txt=None):
     import pytimber
     print("---- EXTRACTING KNOBS -------------------------")
 
@@ -122,7 +126,7 @@ def _extract(knobs, start, end = None, output="./knobs.madx"):
 
     print(f"extracting knobs for {t1}")
 
-    knobdict = _get_knobs_dict()
+    knobdict = _get_knobs_dict(knobs_txt)
 
     ldb = pytimber.LoggingDB(source="nxcals")
     print("---- KNOBS ------------------------------------")
@@ -200,7 +204,7 @@ def _add_delta(t1, pattern):
 
 
 def _get_knobs_dict(user_defined = None):
-    # if all fails, fall back to lhc acc-models
+    # gets a mapping from LSA names to madx names with scaling
     if user_defined is not None:
         filename = user_defined
         print(f"take user defined knobs.txt: '{filename}")
