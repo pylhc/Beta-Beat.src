@@ -85,7 +85,7 @@ do_twiss_elements(use_sequence, output_file, dpp): macro = {
 * @param dpp: delta p / p to use in the twiss command.
 */
 do_twiss_lhc_ips_few_columns(use_sequence, output_file, dpp): macro = {
-    exec, select_lhc_ips();
+    exec, select_lhc_ips_few_columns();
     twiss, chrom, sequence=use_sequence, deltap=dpp, file=output_file;
 };
 
