@@ -31,3 +31,7 @@ if(%(USE_ACD)s == 1){
 }else if(%(USE_ADT)s == 1){
     exec, twiss_adt(%(QX)s, %(QY)s, %(QDX)s, %(QDY)s, %(NUM_BEAM)i, "%(PATH)s/twiss_adt.dat", %(DPP)s);
 }
+
+! check the values at the IPs, to see that knob extraction worked.
+exec, do_twiss_lhc_ips_few_columns(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_ips.dat", %(DPP)s);
+system, "cat %(PATH)s/twiss_ips.dat";
