@@ -175,7 +175,8 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
             calc_and_output_important_phases(tfs_file.get_absolute_file_name_path(),
                                              important_pairs,
                                              phase_d.ph_x,
-                                             mad_ac
+                                             mad_ac,
+                                             "H",
                                             )
         
         #-- ac to free phase
@@ -209,7 +210,8 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                     calc_and_output_important_phases(tfs_file.get_absolute_file_name_path(),
                                                      important_pairs,
                                                      phase_d.x_f,
-                                                     mad_ac
+                                                     mad_ac,
+                                                     "H",
                                                     )
                
             except Exception:
@@ -236,7 +238,8 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                 calc_and_output_important_phases(tfs_file.get_absolute_file_name_path(),
                                                  important_pairs,
                                                  phase_d.x_f2,
-                                                 mad_ac
+                                                 mad_ac,
+                                                 "H",
                                                 )
 
     #---- V plane result
@@ -262,7 +265,8 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
             calc_and_output_important_phases(tfs_file.get_absolute_file_name_path(),
                                              important_pairs,
                                              phase_d.ph_y,
-                                             mad_ac
+                                             mad_ac,
+                                             "V",
                                             )
         #-- ac to free phase
         if getllm_d.with_ac_calc:
@@ -292,7 +296,8 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                     calc_and_output_important_phases(tfs_file.get_absolute_file_name_path(),
                                                      important_pairs,
                                                      phase_d.y_f,
-                                                     mad_ac
+                                                     mad_ac,
+                                                     "V",
                                                     )
             except Exception:
                 traceback.print_exc()
@@ -317,7 +322,8 @@ def calculate_phase(getllm_d, twiss_d, tune_d, mad_twiss, mad_ac, mad_elem, file
                 calc_and_output_important_phases(tfs_file.get_absolute_file_name_path(),
                                                  important_pairs,
                                                  phase_d.y_f2,
-                                                 mad_ac
+                                                 mad_ac,
+                                                 "V",
                                                 )
 
     return phase_d, tune_d
@@ -915,7 +921,7 @@ def get_free_phase_total(phase, bpms, plane, mad_twiss, mad_ac):
     return phasef, bpms
 
 
-def calc_and_output_important_phases(getphase_path, important_phase_advances, phase_d, mad_ac):
+def calc_and_output_important_phases(getphase_path, important_phase_advances, phase_d, mad_ac, plane):
     """Calculates the important phase advances between certain elements
     This function is supposed to be called for each getphase*out output, i.e. for up to a total of 6 cases
     (both planes, various compensations)
@@ -927,18 +933,22 @@ def calc_and_output_important_phases(getphase_path, important_phase_advances, ph
         getphase_path (str): path to the corresponding getphase*.out
         important_phase_advances (_type_): _description_
     """
+    print("------")
+    print("calculating important phases for {}".format(getphase_path))
+    print(".. important elements to check:")
+    print(important_phase_advances)
     important_x = tfs_file_writer.TfsFileWriter(getphase_path.replace(".out", "_important_phase_advances.out"))
     
     important_x.add_column_names(["NAME", "NAME2", "PHASEX", "STDPHX", "PHXMDL", "MUXMDL", "BPM1", "BPM2"])
     important_x.add_column_datatypes(["%s", "%s", "%le", "%le", "%le", "%le", "%s", "%s"])
 
     for (el1, bn1, delta1, el2, bn2, delta2) in important_phase_advances:
-        if bn1 in phase:
-            key = "H" + bn1 + bn2
-            if key in phase:
-                phmdl = phase[bn1][4]
+        if bn1 in phase_d:
+            key = plane + bn1 + bn2
+            if key in phase_d:
+                phmdl = phase_d[bn1][4]
                 
-                imp_phase = phase[key]
+                imp_phase = phase_d[key]
                 list_row_entries = ['"' + el1 + '"',
                                     '"' + el2 + '"',
                                     imp_phase[0]+delta1-delta2,
@@ -949,6 +959,8 @@ def calc_and_output_important_phases(getphase_path, important_phase_advances, ph
                                     bn2]
                 important_x.add_table_row(list_row_entries)
     if not important_x.get_tfs_table().is_empty():
+        print("output for {}".format(getphase_path))
         important_x.write_to_file()
     else:
+        print("no important phases found")
         file_name = important_x.get_file_name()
