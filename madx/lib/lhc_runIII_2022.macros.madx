@@ -61,5 +61,18 @@ match_tunes_arc_squeeze(nqx, nqy, beam_number): macro = {
 * @param energy: The energy to be used.
 * @param beam_number: The beam to use either 1 or 2.
 */
+OMCload_average_error_table_skipped = -1;
 load_average_error_table(energy, beam_number): macro = {
+  OMCload_average_error_table_skipped = 1;
+};
+
+// and more empty macros
+  OMCcrossing_scheme_ON_skipped = -1;
+set_crossing_scheme_ON(): macro = {
+  OMCcrossing_scheme_ON_skipped = 1;
+};
+
+  OMCset_default_crossing_scheme_skipped = -1;
+set_default_crossing_scheme(): macro = {
+  OMCset_default_crossing_scheme_skipped = 1;
 };
