@@ -149,9 +149,6 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             madx_template = textfile.read()
         crossing_on = "1" if lhc_instance.xing else "0"
 
-        # TODO: refactor
-        print("-------------------------------------------------------------------------------")
-
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,
             "MAIN_SEQ": lhc_instance.load_main_seq_madx(),
