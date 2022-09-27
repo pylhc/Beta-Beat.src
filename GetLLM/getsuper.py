@@ -127,6 +127,7 @@ def check_input(opt):
     if "source_files" not in opt or len(opt.source_files) < 2:
         raise ValueError("Provide at least two source files!")
     for f_name in opt.source_files:
+
         if not os.path.isfile(f_name) and not os.path.isfile(f_name + '.gz') and not os.path.isfile(f_name + '.clean') and not os.path.isfile(f_name + '.sdds'):
             raise ValueError(f_name + ' does not exist')
 
