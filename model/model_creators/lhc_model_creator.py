@@ -165,7 +165,7 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             replace_dict["ERROR_TABLE"] = """
 readmytable, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.errors", table=errtab;
 seterr, table=errtab;
-call, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.mad";
+call, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.madx";
 """.format(lhc_instance.get_beam(), lhc_instance.error_table,
            lhc_instance.get_beam(), lhc_instance.error_table)
         else:
