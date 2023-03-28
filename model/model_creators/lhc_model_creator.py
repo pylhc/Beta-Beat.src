@@ -50,8 +50,8 @@ class LhcModelCreator(model_creator.ModelCreator):
         use_adt = "1" if (lhc_instance.excitation == AccExcitationMode.ADT) else "0"
         crossing_on = "1" if lhc_instance.xing else "0"
         beam = lhc_instance.get_beam()
-        if lhc_instance.YEAR is "2022":
-            src = "/afs/cern.ch/eng/acc-models/lhc/2022"
+        if lhc_instance.YEAR in ["2022", "2023"]:
+            src = "/afs/cern.ch/eng/acc-models/lhc/" + lhc_instance.YEAR
             dst = output_path + "/acc-models-lhc"
             if os.path.exists(dst):
                 LOGGER.warn("model exists, overwriting")
@@ -165,7 +165,7 @@ class LhcBestKnowledgeCreator(LhcModelCreator):
             replace_dict["ERROR_TABLE"] = """
 readmytable, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.errors", table=errtab;
 seterr, table=errtab;
-call, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.mad";
+call, file = "/afs/cern.ch/eng/sl/lintrack/error_tables/Beam{}/{}.madx";
 """.format(lhc_instance.get_beam(), lhc_instance.error_table,
            lhc_instance.get_beam(), lhc_instance.error_table)
         else:
@@ -180,11 +180,11 @@ class LhcSegmentCreator(model_creator.ModelCreator):
     def get_madx_script(cls, lhc_instance, output_path):
         with open(lhc_instance.get_segment_tmpl()) as textfile:
             madx_template = textfile.read()
-        if lhc_instance.YEAR is "2022" and not os.path.exists(
+        if lhc_instance.YEAR in ["2022", "2023"] and not os.path.exists(
             output_path + "/acc-models-lhc"
         ):
             os.symlink(
-                "/afs/cern.ch/eng/acc-models/lhc/2022", output_path + "/acc-models-lhc"
+                "/afs/cern.ch/eng/acc-models/lhc/" + lhc_instance.YEAR, output_path + "/acc-models-lhc"
             )
         replace_dict = {
             "LIB": lhc_instance.MACROS_NAME,

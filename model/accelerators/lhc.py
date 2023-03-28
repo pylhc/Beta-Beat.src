@@ -28,6 +28,7 @@ def get_lhc_modes():
         "lhc_runII_2017": LhcRunII2017,
         "lhc_runII_2018": LhcRunII2018,
         "lhc_runIII_2022": LhcRunIII2022,
+        "lhc_runIII_2023": LhcRunIII2023,
         "hllhc10": HlLhc10,
         "hllhc12": HlLhc12,
         "hllhc13": HlLhc13,
@@ -986,6 +987,9 @@ class LhcRunIII2022(LhcAts):
     YEAR = "2022"
     MACROS_NAME = "lhc_runIII_2022"
 
+class LhcRunIII2023(LhcAts):
+    YEAR = "2023"
+    MACROS_NAME = "lhc_runIII_2023"
 
 
 class HlLhc10(LhcAts):
