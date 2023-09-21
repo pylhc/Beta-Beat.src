@@ -417,6 +417,7 @@ def _create_models_by_madx(accel_inst, dpps):
     model_creator.run_madx(madx_script,
                            logfile=os.path.join(accel_inst.model_dir, "w_analysis_multidpp.log"),
                            writeto=os.path.join(accel_inst.model_dir, "w_analysis_multidpp.madx"),
+                           cwd=accel_inst.model_dir
                            )
 
 
