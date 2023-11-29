@@ -29,11 +29,12 @@ class ModelCreator(object):
             cls._prepare_fullresponse(acc_instance, output_path)
             
     @staticmethod
-    def run_madx(madx_script, logfile=None, writeto=None):
+    def run_madx(madx_script, logfile=None, writeto=None, cwd=None):
         madx_wrapper.resolve_and_run_string(
             madx_script,
             output_file=writeto,
-            log_file=logfile
+            log_file=logfile,
+            cwd=cwd
         )
 
 

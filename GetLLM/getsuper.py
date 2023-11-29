@@ -126,10 +126,6 @@ def check_input(opt):
     # files
     if "source_files" not in opt or len(opt.source_files) < 2:
         raise ValueError("Provide at least two source files!")
-    for f_name in opt.source_files:
-
-        if not os.path.isfile(f_name) and not os.path.isfile(f_name + '.gz') and not os.path.isfile(f_name + '.clean') and not os.path.isfile(f_name + '.sdds'):
-            raise ValueError(f_name + ' does not exist')
 
     if "twissfile" not in opt:
         raise ValueError("Twissfile needed for execution.")
@@ -197,25 +193,28 @@ def main(**kwargs):
     if 0 not in files_dict:
         raise ValueError("NO DPP=0.0. Provide at least one source file with DPP=0.0.")
 
-    accel_inst = _create_accel_instance(options.accel_cls, files_dict, options.output_path,
+    output_path = os.path.abspath(options.output_path)
+
+    accel_inst = _create_accel_instance(options.accel_cls, files_dict, output_path,
                                         options.twissfile)
 
     _create_models_by_madx(accel_inst, files_dict.keys())
 
+
     for dpp in files_dict:
         files = files_dict[dpp]
-        twiss_dpp_path = _join_with_output_path(options.output_path, "twiss_{:f}.dat".format(dpp))
+        twiss_dpp_path = _join_with_output_path(output_path, "twiss_{:f}.dat".format(dpp))
         _rungetllm(twiss_dpp_path, files, dpp,
-                   options.output_path, accel_inst, options.algorithm)
+                   output_path, accel_inst, options.algorithm)
 
     # The GUI wants the default files to have the names without _0.0
-    _copy_default_outfiles(options.output_path)
+    _copy_default_outfiles(output_path)
 
     #TODO: HOPE THAT GETLLM DOES A BETTER JOB
     LOG.warn("Cleaning files of NAN! This should not be necessary!")
-    all_files = os.listdir(options.output_path)
+    all_files = os.listdir(output_path)
     tfs_utils.remove_nan_from_files(
-        [os.path.join(options.output_path, f) for f in all_files], replace=True)
+        [os.path.join(output_path, f) for f in all_files], replace=True)
 
     # adding data
     betalistx = {}
@@ -234,9 +233,9 @@ def main(**kwargs):
 
     for dpp in files_dict.keys():
         LOG.debug("Loading driven data for dpp {:f}".format(dpp))
-        betx_path = _join_with_output_path(options.output_path, 'getbetax{ext:s}'.format(ext=_ext(dpp)))
-        bety_path = _join_with_output_path(options.output_path, 'getbetay{ext:s}'.format(ext=_ext(dpp)))
-        couple_path = _join_with_output_path(options.output_path, 'getcouple{ext:s}'.format(ext=_ext(dpp)))
+        betx_path = _join_with_output_path(output_path, 'getbetax{ext:s}'.format(ext=_ext(dpp)))
+        bety_path = _join_with_output_path(output_path, 'getbetay{ext:s}'.format(ext=_ext(dpp)))
+        couple_path = _join_with_output_path(output_path, 'getcouple{ext:s}'.format(ext=_ext(dpp)))
 
         betx = metaclass.twiss(betx_path)
         bety = metaclass.twiss(bety_path)
@@ -257,16 +256,16 @@ def main(**kwargs):
         modeld = metaclass.twiss(options.twissfile)
 
         try:
-            betaxf_path = _join_with_output_path(options.output_path, 'getbetax_free{ext:s}'.format(ext=_ext(dpp)))
+            betaxf_path = _join_with_output_path(output_path, 'getbetax_free{ext:s}'.format(ext=_ext(dpp)))
             betxf = metaclass.twiss(betaxf_path)
             LOG.debug("Loaded betax free data from '{:s}".format(betaxf_path))
 
 
-            betayf_path = _join_with_output_path(options.output_path, 'getbetay_free{ext:s}'.format(ext=_ext(dpp)))
+            betayf_path = _join_with_output_path(output_path, 'getbetay_free{ext:s}'.format(ext=_ext(dpp)))
             betyf = metaclass.twiss(betayf_path)
             LOG.debug("Loaded betay free data from '{:s}".format(betayf_path))
 
-            couplef_path = _join_with_output_path(options.output_path, 'getcouple_free{ext:s}'.format(ext=_ext(dpp)))
+            couplef_path = _join_with_output_path(output_path, 'getcouple_free{ext:s}'.format(ext=_ext(dpp)))
             couplef = metaclass.twiss(couplef_path)
             LOG.debug("Loaded coupling free data from '{:s}".format(couplef_path))
         except IOError:
@@ -296,14 +295,14 @@ def main(**kwargs):
 
     LOG.debug("Getting Driven beta")
     # H
-    fileobj = _chromFileWriter('beta', _join_with_output_path(options.output_path, "chrombetax" + _ext()), 'H')
+    fileobj = _chromFileWriter('beta', _join_with_output_path(output_path, "chrombetax" + _ext()), 'H')
     bpms = bpm_util.intersect(listx)
     bpms = bpm_util.model_intersect(bpms, modeld)
     _do_lin_reg_bet(fileobj, files_dict.keys(), betalistx, bpms, "H", zerobx, modeld)
     del fileobj
 
     # V
-    fileobj = _chromFileWriter('beta', _join_with_output_path(options.output_path, "chrombetay" + _ext()), 'V')
+    fileobj = _chromFileWriter('beta', _join_with_output_path(output_path, "chrombetay" + _ext()), 'V')
     bpms = bpm_util.intersect(listy)
     bpms = bpm_util.model_intersect(bpms, modeld)
     _do_lin_reg_bet(fileobj, files_dict.keys(), betalisty, bpms, "V", zeroby, modeld)
@@ -312,7 +311,7 @@ def main(**kwargs):
 
 
     LOG.debug("Getting Driven coupling")
-    fileobj = _chromFileWriter('coupling', _join_with_output_path(options.output_path, "chromcoupling" + _ext()), '')
+    fileobj = _chromFileWriter('coupling', _join_with_output_path(output_path, "chromcoupling" + _ext()), '')
     bpms = bpm_util.intersect(listc)
     bpms = bpm_util.model_intersect(bpms, modeld)
     _do_linreg_coupling(couplelist, bpms, files_dict.keys(), fileobj)
@@ -326,14 +325,14 @@ def main(**kwargs):
         LOG.debug("Getting Free beta")
         # H
         fileobj = _chromFileWriter('beta',
-                                   _join_with_output_path(options.output_path, "chrombetax_free" + _ext()), 'H')
+                                   _join_with_output_path(output_path, "chrombetax_free" + _ext()), 'H')
         bpms = bpm_util.intersect(listxf)
         bpms = bpm_util.model_intersect(bpms, modelf)
         _do_lin_reg_bet(fileobj, files_dict.keys(), betalistxf, bpms, "H", zerobxf, modelf)
 
         # V
         fileobj = _chromFileWriter('beta',
-                                   _join_with_output_path(options.output_path, "chrombetay_free" + _ext()), 'V')
+                                   _join_with_output_path(output_path, "chrombetay_free" + _ext()), 'V')
         bpms = bpm_util.intersect(listyf)
         bpms = bpm_util.model_intersect(bpms, modelf)
         _do_lin_reg_bet(fileobj, files_dict.keys(), betalistyf, bpms, "V", zerobyf, modelf)
@@ -342,7 +341,7 @@ def main(**kwargs):
 
         LOG.debug("GettingFree coupling")
         fileobj = _chromFileWriter('coupling',
-                                   _join_with_output_path(options.output_path, "chromcoupling_free" + _ext()), '')
+                                   _join_with_output_path(output_path, "chromcoupling_free" + _ext()), '')
         bpms = bpm_util.intersect(listcf)
         bpms = bpm_util.model_intersect(bpms, modelf)
         _do_linreg_coupling(couplelistf, bpms, files_dict.keys(), fileobj)
@@ -414,9 +413,11 @@ def _create_models_by_madx(accel_inst, dpps):
     model_creator = creator.CREATORS[accel_inst.NAME]["nominal"]
     model_creator.prepare_run(accel_inst, accel_inst.model_dir)
     madx_script = accel_inst.get_multi_dpp_job(dpps)
+    model_dir = os.path.abspath(accel_inst.model_dir)
     model_creator.run_madx(madx_script,
-                           logfile=os.path.join(accel_inst.model_dir, "w_analysis_multidpp.log"),
-                           writeto=os.path.join(accel_inst.model_dir, "w_analysis_multidpp.madx"),
+                           logfile=os.path.join(model_dir, "w_analysis_multidpp.log"),
+                           writeto=os.path.join(model_dir, "w_analysis_multidpp.madx"),
+                           cwd=model_dir
                            )
 
 
