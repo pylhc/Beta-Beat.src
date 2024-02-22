@@ -50,7 +50,7 @@ class LhcModelCreator(model_creator.ModelCreator):
         use_adt = "1" if (lhc_instance.excitation == AccExcitationMode.ADT) else "0"
         crossing_on = "1" if lhc_instance.xing else "0"
         beam = lhc_instance.get_beam()
-        if lhc_instance.YEAR in ["2022", "2023"]:
+        if lhc_instance.YEAR in ["2022", "2023", "2024"]:
             src = "/afs/cern.ch/eng/acc-models/lhc/" + lhc_instance.YEAR
             dst = output_path + "/acc-models-lhc"
             if os.path.exists(dst):
