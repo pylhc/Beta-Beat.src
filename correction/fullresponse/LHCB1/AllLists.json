@@ -341,7 +341,6 @@
     "kq5.r8b1" 
   ], 
   "MQY_Q4": [
-    "kq4.r1b1", 
     "kq4.l2b1", 
     "kq4.r2b1", 
     "kq6.l4b1", 
@@ -355,11 +354,9 @@
     "kq5.r6b1", 
     "kq4.l8b1", 
     "kq4.r8b1", 
-    "kq5.r8b1", 
-    "kq4.l1b1"
+    "kq5.r8b1"
   ], 
-  "Q": [
-    "kq4.r1b1", 
+  "Q": [ 
     "kq5.r1b1", 
     "kq6.r1b1", 
     "kq7.r1b1", 
@@ -546,8 +543,7 @@
     "kq8.l1b1", 
     "kq7.l1b1", 
     "kq6.l1b1", 
-    "kq5.l1b1", 
-    "kq4.l1b1", 
+    "kq5.l1b1",
     "kqx.r1", 
     "ktqx1.r1", 
     "ktqx2.r1", 
@@ -590,11 +586,9 @@
     "lkq10.r5b1",
     "lkq10.r6b1",
     "lkq10.r8b1",
-    "lkq4.l1b1",
     "lkq4.l2b1",
     "lkq4.l5b1",
     "lkq4.l8b1",
-    "lkq4.r1b1",
     "lkq4.r2b1",
     "lkq4.r5b1",
     "lkq4.r6b1",
@@ -747,9 +741,7 @@
     "kq8.l1b1", 
     "kq7.l1b1", 
     "kq6.l1b1", 
-    "kq5.l1b1", 
-    "kq4.l1b1", 
-    "kq4.r1b1", 
+    "kq5.l1b1",
     "kq5.r1b1", 
     "kq6.r1b1", 
     "kq7.r1b1", 
@@ -856,7 +848,6 @@
     }, 
     {
       "1": [
-        "kq4.r1b1", 
         "kq5.r1b1", 
         "kq6.r1b1", 
         "kq7.r1b1", 
@@ -874,8 +865,7 @@
         "kq8.l1b1", 
         "kq7.l1b1", 
         "kq6.l1b1", 
-        "kq5.l1b1", 
-        "kq4.l1b1"
+        "kq5.l1b1"
       ], 
       "2": [
         "kqt13.l2b1", 
