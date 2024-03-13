@@ -31,6 +31,8 @@ def main(lhc_mode=None, match_path=None, input_dir=None):
     LOGGER.info("- Match output path: " + os.path.abspath(match_path))
     LOGGER.info("-------------------- ")
     main_controller.set_match_path(match_path)
+    LOGGER.info("Setting the current directory to: " + os.path.abspath(match_path))
+    os.chdir(match_path)
     main_controller.set_lhc_mode(lhc_mode)
     main_controller.set_input_dir(input_dir)
     main_controller.show_view()

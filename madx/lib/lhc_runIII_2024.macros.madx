@@ -9,7 +9,7 @@
 * Load the LHC runIII 2023 main sequence. This overloads the other defined macro
 */
 load_main_sequence(): macro = {
-    system, "ln -s /afs/cern.ch/eng/acc-models/lhc/2023/ acc-models-lhc";
-    call, file = "/afs/cern.ch/eng/acc-models/lhc/2023/lhc.seq";
+    system, "ln -s /afs/cern.ch/eng/acc-models/lhc/2024/ acc-models-lhc";
+    call, file = "/afs/cern.ch/eng/acc-models/lhc/2024/lhc.seq";
 };
 

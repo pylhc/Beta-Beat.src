@@ -180,7 +180,7 @@ class LhcSegmentCreator(model_creator.ModelCreator):
     def get_madx_script(cls, lhc_instance, output_path):
         with open(lhc_instance.get_segment_tmpl()) as textfile:
             madx_template = textfile.read()
-        if lhc_instance.YEAR in ["2022", "2023"] and not os.path.exists(
+        if lhc_instance.YEAR in ["2022", "2023", "2024"] and not os.path.exists(
             output_path + "/acc-models-lhc"
         ):
             os.symlink(
