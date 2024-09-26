@@ -25,10 +25,13 @@ exec, load_average_error_table(%(ENERGY)s, %(NUM_BEAM)i);
 
 %(ERROR_TABLE)s
 
-exec, match_tunes(%(QMX)s, %(QMY)s, %(NUM_BEAM)i);
-
 call, file = "%(PATH)s/corrections.madx";
 call, file = "%(PATH)s/extracted_mqts.str";
 
 exec, do_twiss_monitors(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_best_knowledge.dat", %(DPP)s);
 exec, do_twiss_elements(LHCB%(NUM_BEAM)i, "%(PATH)s/twiss_elements_best_knowledge.dat", %(DPP)s);
+
+// print out b2errors for debugging to make sure that they were loaded
+select, flag=error, clear;
+select, flag=error, pattern="^MB";
+esave, "%(PATH)s/b2errors_best_knowledge.dat";
